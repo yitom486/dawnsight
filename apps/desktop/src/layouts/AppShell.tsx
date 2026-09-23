@@ -37,21 +37,23 @@ export function FullscreenToggleButton() {
 
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
+      <TooltipTrigger
+        render={
+          <Button
           type="button"
           variant="ghost"
           size="icon" className="size-8"
           onClick={() => void toggleFullscreen()}
           aria-label={fullscreen ? "退出全屏" : "全屏"}
-        >
-          {fullscreen ? (
-            <Minimize2 className="size-4" />
-          ) : (
-            <Maximize2 className="size-4" />
-          )}
-        </Button>
-      </TooltipTrigger>
+          >
+            {fullscreen ? (
+              <Minimize2 className="size-4" />
+            ) : (
+              <Maximize2 className="size-4" />
+            )}
+          </Button>
+        }
+      />
       <TooltipContent>
         {fullscreen ? "退出全屏 (Esc / F)" : "全屏 (F)"}
       </TooltipContent>
@@ -69,17 +71,19 @@ function LogDirButton() {
 
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
+      <TooltipTrigger
+        render={
+          <Button
           type="button"
           variant="ghost"
           size="icon" className="size-8"
           onClick={onClick}
           aria-label="打开日志目录"
-        >
-          <FileText className="size-4" />
-        </Button>
-      </TooltipTrigger>
+          >
+            <FileText className="size-4" />
+          </Button>
+        }
+      />
       <TooltipContent>打开日志目录（报障时打包发开发者）</TooltipContent>
     </Tooltip>
   );
@@ -111,18 +115,22 @@ export function AboutButton() {
   return (
     <AlertDialog>
       <Tooltip>
-        <TooltipTrigger asChild>
-          <AlertDialogTrigger asChild>
-            <Button
+        <TooltipTrigger
+          render={
+            <AlertDialogTrigger
+              render={
+                <Button
               type="button"
               variant="ghost"
               size="icon" className="size-8"
               aria-label="关于 Lumina"
-            >
-              <Info className="size-4" />
-            </Button>
-          </AlertDialogTrigger>
-        </TooltipTrigger>
+                >
+                  <Info className="size-4" />
+                </Button>
+              }
+            />
+          }
+        />
         <TooltipContent>关于 Lumina</TooltipContent>
       </Tooltip>
       {/* vendor 还原后默认 bg-background/max-w-lg；转出层保留原深色窄版。 */}

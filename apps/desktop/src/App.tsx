@@ -158,8 +158,8 @@ export default function App() {
   }, [closeChat, settingsWorkspace]);
 
   return (
-    <TooltipProvider delayDuration={400}>
-      {/* delayDuration 是转出配置：vendor TooltipProvider 故意不定默认值。 */}
+    <TooltipProvider delay={400}>
+      {/* Tooltip delay is configured centrally for the desktop shell. */}
       <AppShell>
         <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
           <div className="flex min-h-0 flex-1 overflow-hidden">

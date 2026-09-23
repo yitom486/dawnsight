@@ -128,11 +128,11 @@ export function TrackControlButtons({
         {cinema ? (
           <>
             <Tooltip>
-              <TooltipTrigger asChild>{audioButton}</TooltipTrigger>
+              <TooltipTrigger render={audioButton} />
               <TooltipContent>音轨</TooltipContent>
             </Tooltip>
             <Tooltip>
-              <TooltipTrigger asChild>{subtitleButton}</TooltipTrigger>
+              <TooltipTrigger render={subtitleButton} />
               <TooltipContent>字幕</TooltipContent>
             </Tooltip>
           </>

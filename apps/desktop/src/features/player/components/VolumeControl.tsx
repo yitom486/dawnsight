@@ -50,15 +50,15 @@ export function VolumeControl({
             min={0}
             max={100}
             step={1}
-            value={[shown]}
-            onValueChange={(vals) => {
-              const next = vals[0] ?? 0;
+            value={shown}
+            onValueChange={(value) => {
+              const next = Array.isArray(value) ? (value[0] ?? 0) : value;
               dragVolume.current = next;
               setDragging(true);
               setDraft(next);
             }}
-            onValueCommit={(vals) => {
-              const next = vals[0] ?? dragVolume.current;
+            onValueCommitted={(value) => {
+              const next = Array.isArray(value) ? (value[0] ?? dragVolume.current) : value;
               setDragging(false);
               void setVolume(next);
             }}
@@ -104,15 +104,15 @@ export function VolumeControl({
         min={0}
         max={100}
         step={1}
-        value={[shown]}
-        onValueChange={(vals) => {
-          const next = vals[0] ?? 0;
+        value={shown}
+        onValueChange={(value) => {
+          const next = Array.isArray(value) ? (value[0] ?? 0) : value;
           dragVolume.current = next;
           setDragging(true);
           setDraft(next);
         }}
-        onValueCommit={(vals) => {
-          const next = vals[0] ?? dragVolume.current;
+        onValueCommitted={(value) => {
+          const next = Array.isArray(value) ? (value[0] ?? dragVolume.current) : value;
           setDragging(false);
           void setVolume(next);
         }}

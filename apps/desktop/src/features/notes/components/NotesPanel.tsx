@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@lumina/ui/button";
+import { Textarea } from "@lumina/ui/textarea";
 import { ScrollArea } from "@lumina/ui/scroll-area";
 import { usePlayerStore } from "@/features/player";
 import { useTrackStore } from "@/features/player/trackStore";
@@ -250,7 +251,7 @@ export function NotesPanel() {
           保存后写入下方列表；同一段台词可写多条批注
         </p>
 
-        <textarea
+        <Textarea
           className={cn(
             "min-h-[64px] w-full resize-none rounded-md border border-border bg-background px-2 py-1.5 text-sm",
             "outline-none focus-visible:ring-1 focus-visible:ring-ring",

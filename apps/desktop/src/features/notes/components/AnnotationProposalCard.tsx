@@ -3,6 +3,7 @@ import { useState } from "react";
 
 import { Button } from "@lumina/ui/button";
 import { ScrollArea } from "@lumina/ui/scroll-area";
+import { Textarea } from "@lumina/ui/textarea";
 import { errorMessage, formatTime } from "@/lib/format";
 import { cn } from "@lumina/ui/utils";
 
@@ -82,7 +83,7 @@ export function AnnotationProposalCard({
         </div>
       </div>
 
-      <textarea
+      <Textarea
         className="mb-2 min-h-[88px] w-full resize-y rounded-md border border-input bg-background px-2 py-1.5 text-sm"
         value={body}
         onChange={(event) => setBody(event.target.value)}

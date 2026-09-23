@@ -35,8 +35,13 @@
 - 第一批富组件建议包括：关键点提示、字幕引用、时间线、章节列表、保存为笔记、跳转播放、继续追问。
 - 所有可操作组件必须携带来源时间或章节锚点；点击「跳转播放」只调用播放器 seek，不直接改变 HWND 生命周期。
 - 流式输出时先渲染 Markdown 文本，结构化组件在 JSON block 完整后再显示，避免半截卡片闪烁。
-- 业务富组件放在 `packages/chat-ui`；`packages/ui` 只提供 Radix/shadcn 通用原语，
+- 业务富组件放在 `packages/chat-ui`；`packages/ui` 集中提供 Base UI/shadcn 通用原语，
   `apps/desktop` 负责 Tab、任务状态和真实数据接线。
+- 添加通用交互前先复用 `packages/ui`；缺少时优先从 shadcn 官方 Base UI registry
+  复制并适配，而不是在 feature 内自建一套控件行为。Magic UI 仅按场景复制视觉组件，
+  不引入整库或无用动画依赖。
+- 业务组件拥有自己的领域状态和 sibling 布局；Base UI Portal/Magic UI 动效不能绕过
+  native libmpv HWND 不遮挡约束。
 
 ## 章节生成策略
 

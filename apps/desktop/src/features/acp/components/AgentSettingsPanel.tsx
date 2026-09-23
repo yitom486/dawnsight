@@ -2,6 +2,10 @@ import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@lumina/ui/button";
+import { Checkbox } from "@lumina/ui/checkbox";
+import { Input } from "@lumina/ui/input";
+import { Label } from "@lumina/ui/label";
+import { NativeSelect, NativeSelectOption } from "@lumina/ui/native-select";
 
 import { useAcpProfilesStore } from "@lumina/chat-ui/acpProfilesStore";
 import {
@@ -29,9 +33,6 @@ const AGENT_MODES = [
   { id: "plan", label: "计划优先" },
   { id: "fast", label: "快速" },
 ] as const;
-
-const selectClassName =
-  "h-8 w-full rounded-md border border-border bg-background px-2 text-xs";
 
 /** Advanced Agent prefs — model/permission live in ChatComposerBar. */
 export function AgentSettingsPanel({
@@ -116,9 +117,11 @@ export function AgentSettingsPanel({
 
       {open ? (
         <div className="mt-2 space-y-3">
-          <Field label="Agent">
-            <select
-              className={selectClassName}
+          <Field label="Agent" htmlFor="agent-profile">
+            <NativeSelect
+              id="agent-profile"
+              size="sm"
+              className="w-full"
               value={activeProfileId}
               disabled={controlsDisabled}
               onChange={(e) => {
@@ -133,16 +136,16 @@ export function AgentSettingsPanel({
               }}
             >
               {profileList.map((profile) => (
-                <option key={profile.id} value={profile.id}>
+                <NativeSelectOption key={profile.id} value={profile.id}>
                   {profileLabel(profile)}
-                </option>
+                </NativeSelectOption>
               ))}
-            </select>
+            </NativeSelect>
           </Field>
 
           {activeProfileId === "custom" ? (
             <div className="flex gap-2">
-              <input
+              <Input
                 className="h-8 min-w-0 flex-1 rounded-md border border-border bg-background px-2 text-xs"
                 placeholder="自定义 Agent 命令"
                 value={customCommand}
@@ -173,24 +176,28 @@ export function AgentSettingsPanel({
             </Button>
           ) : null}
 
-          <Field label="模式">
-            <select
-              className={selectClassName}
+          <Field label="模式" htmlFor="agent-mode">
+            <NativeSelect
+              id="agent-mode"
+              size="sm"
+              className="w-full"
               value={agentMode}
               disabled={controlsDisabled}
               onChange={(e) => patchSettings({ agentMode: e.target.value })}
             >
               {AGENT_MODES.map((mode) => (
-                <option key={mode.id} value={mode.id}>
+                <NativeSelectOption key={mode.id} value={mode.id}>
                   {mode.label}
-                </option>
+                </NativeSelectOption>
               ))}
-            </select>
+            </NativeSelect>
           </Field>
 
-          <Field label="思考展示">
-            <select
-              className={selectClassName}
+          <Field label="思考展示" htmlFor="agent-thinking-level">
+            <NativeSelect
+              id="agent-thinking-level"
+              size="sm"
+              className="w-full"
               value={thinkingLevel}
               disabled={controlsDisabled}
               onChange={(e) =>
@@ -199,15 +206,17 @@ export function AgentSettingsPanel({
                 })
               }
             >
-              <option value="hidden">隐藏</option>
-              <option value="minimal">流式时显示，完成后收起</option>
-              <option value="verbose">始终保留思考/工具轨迹</option>
-            </select>
+              <NativeSelectOption value="hidden">隐藏</NativeSelectOption>
+              <NativeSelectOption value="minimal">流式时显示，完成后收起</NativeSelectOption>
+              <NativeSelectOption value="verbose">始终保留思考/工具轨迹</NativeSelectOption>
+            </NativeSelect>
           </Field>
 
-          <Field label="台词上下文窗口">
-            <select
-              className={selectClassName}
+          <Field label="台词上下文窗口" htmlFor="agent-transcript-window">
+            <NativeSelect
+              id="agent-transcript-window"
+              size="sm"
+              className="w-full"
               value={transcriptWindowPreset}
               disabled={controlsDisabled}
               onChange={(e) =>
@@ -217,25 +226,27 @@ export function AgentSettingsPanel({
               }
             >
               {TRANSCRIPT_WINDOW_PRESET_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
+                <NativeSelectOption key={option.value} value={option.value}>
                   {option.label}（前后各 {option.radiusSec} 秒）
-                </option>
+                </NativeSelectOption>
               ))}
-            </select>
+            </NativeSelect>
             <p className="text-[10px] leading-relaxed text-muted-foreground">
               下一轮提问时建议 Agent 读取当前播放点前后的台词范围。
             </p>
           </Field>
 
-          <Field label="视图截图">
-            <label className="flex cursor-pointer items-center gap-2 text-xs text-foreground">
-              <input
-                type="checkbox"
-                className="size-3.5 rounded border border-border"
+          <div className="space-y-1">
+            <Label
+              htmlFor="agent-vision-capable"
+              className="flex cursor-pointer items-center gap-2 text-xs text-foreground"
+            >
+              <Checkbox
+                id="agent-vision-capable"
                 checked={visionCapable}
                 disabled={controlsDisabled}
-                onChange={(e) => {
-                  const nextVisionCapable = e.target.checked;
+                onCheckedChange={(checked) => {
+                  const nextVisionCapable = checked === true;
                   patchSettings({ visionCapable: nextVisionCapable });
                   if (sessionConnected) {
                     void acpSyncMcpCapabilities({
@@ -249,13 +260,13 @@ export function AgentSettingsPanel({
                 }}
               />
               启用画面截图工具（需视图模型）
-            </label>
+            </Label>
             <p className="text-[10px] leading-relaxed text-muted-foreground">
               以发送消息时的播放进度为锚点；默认单帧；前后秒数按约 1 帧/秒采样（单侧最多
               7 秒、共最多 15 帧）；640px JPEG；工具返回后本地即删。关闭后 MCP
               不再暴露截图工具；若 Agent 仍看不到变化，请点「新对话」。
             </p>
-          </Field>
+          </div>
 
           {controlError ? (
             <p className="text-[10px] leading-relaxed text-destructive">
@@ -294,18 +305,23 @@ export function AgentSettingsPanel({
 
 function Field({
   label,
+  htmlFor,
   children,
 }: {
   label: string;
+  htmlFor: string;
   children: React.ReactNode;
 }) {
   return (
-    <label className="block space-y-1">
-      <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+    <div className="space-y-1">
+      <Label
+        htmlFor={htmlFor}
+        className="block text-[10px] font-medium uppercase tracking-wide text-muted-foreground"
+      >
         {label}
-      </span>
+      </Label>
       {children}
-    </label>
+    </div>
   );
 }
 

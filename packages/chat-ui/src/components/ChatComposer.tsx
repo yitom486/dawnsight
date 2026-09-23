@@ -1,4 +1,4 @@
-import { Button, cn } from "@lumina/ui";
+import { Button, Textarea, cn } from "@lumina/ui";
 
 import { ChatColumn } from "./ChatShell";
 
@@ -24,7 +24,7 @@ export function ChatComposer({
   return (
     <ChatColumn className="shrink-0 space-y-2 border-t border-border py-3">
       <div className={cn(busy && "chat-composer-active p-px")}>
-        <textarea
+        <Textarea
           className={cn(
             "min-h-[72px] w-full resize-none rounded-md border border-border bg-background px-3 py-2 text-sm",
             "outline-none focus-visible:ring-1 focus-visible:ring-ring",

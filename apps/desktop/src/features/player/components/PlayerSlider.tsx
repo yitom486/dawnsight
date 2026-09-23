@@ -1,21 +1,25 @@
 /**
- * App-side transferred slider: compact player theme + vertical orientation.
- * The vendor original (`@lumina/ui/slider`, shadcn pristine) is horizontal
- * only with a larger thumb — DO NOT re-theme the vendor file; all player
- * slider customization lives here.
+ * Player-specific slider composed from the shared Base UI primitive. Its
+ * compact player styling and vertical volume mode stay at this app boundary.
  */
 import * as React from "react";
-import * as SliderPrimitive from "@radix-ui/react-slider";
+import { SliderPrimitive } from "@lumina/ui/slider";
 
 import { cn } from "@lumina/ui/utils";
 
 const PlayerSlider = React.forwardRef<
   React.ElementRef<typeof SliderPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof SliderPrimitive.Root> & {
+  SliderPrimitive.Root.Props & {
     orientation?: "horizontal" | "vertical";
   }
 >(function PlayerSlider(
-  { className, orientation = "horizontal", ...props },
+  {
+    className,
+    orientation = "horizontal",
+    "aria-label": ariaLabel,
+    "aria-valuetext": ariaValueText,
+    ...props
+  },
   ref,
 ) {
   return (
@@ -30,22 +34,37 @@ const PlayerSlider = React.forwardRef<
       )}
       {...props}
     >
-      <SliderPrimitive.Track
+      <SliderPrimitive.Control
         className={cn(
-          "relative grow overflow-hidden rounded-full bg-muted",
-          orientation === "horizontal" && "h-1.5 w-full",
-          orientation === "vertical" && "h-full w-1.5",
+          "relative flex w-full touch-none select-none items-center data-[disabled]:opacity-50",
+          orientation === "vertical" && "h-full w-auto flex-col",
         )}
       >
-        <SliderPrimitive.Range
+        <SliderPrimitive.Track
+          data-slot="slider-track"
           className={cn(
-            "absolute bg-primary",
-            orientation === "horizontal" && "h-full",
-            orientation === "vertical" && "w-full",
+            "relative grow overflow-hidden rounded-full bg-muted",
+            orientation === "horizontal" && "h-1.5 w-full",
+            orientation === "vertical" && "h-full w-1.5",
           )}
-        />
-      </SliderPrimitive.Track>
-      <SliderPrimitive.Thumb className="block size-3.5 rounded-full border border-primary/50 bg-primary shadow transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50" />
+        >
+          <SliderPrimitive.Indicator
+            data-slot="slider-range"
+            className={cn(
+              "absolute bg-playback-accent",
+              orientation === "horizontal" && "h-full",
+              orientation === "vertical" && "w-full",
+            )}
+          />
+          <SliderPrimitive.Thumb
+            data-slot="slider-thumb"
+            index={0}
+            aria-label={ariaLabel}
+            aria-valuetext={ariaValueText}
+            className="block size-3.5 shrink-0 rounded-full border border-playback-accent/50 bg-playback-accent shadow transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+          />
+        </SliderPrimitive.Track>
+      </SliderPrimitive.Control>
     </SliderPrimitive.Root>
   );
 });

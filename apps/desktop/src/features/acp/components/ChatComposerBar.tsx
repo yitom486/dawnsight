@@ -2,7 +2,12 @@ import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from 
 import { ArrowUp, ListPlus, Loader2, Zap } from "lucide-react";
 
 import { Button } from "@lumina/ui/button";
+import { Checkbox } from "@lumina/ui/checkbox";
 import { cn } from "@lumina/ui/utils";
+import { Input } from "@lumina/ui/input";
+import { Label } from "@lumina/ui/label";
+import { NativeSelect, NativeSelectOption } from "@lumina/ui/native-select";
+import { Textarea } from "@lumina/ui/textarea";
 
 import type { AcpStatus, ChatImageAttachment, PermissionMode } from "../types";
 import { previewQueuedText, type QueuedPrompt } from "@lumina/chat-ui/promptQueue";
@@ -40,7 +45,7 @@ export type ChatComposerBarHandle = {
 };
 
 const compactSelectClassName =
-  "h-7 max-w-[9.5rem] truncate rounded-md border border-border bg-background px-2 text-[11px] text-foreground outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60";
+  "max-w-[9.5rem] [&_[data-slot=native-select]]:h-7 [&_[data-slot=native-select]]:truncate [&_[data-slot=native-select]]:bg-background [&_[data-slot=native-select]]:px-2 [&_[data-slot=native-select]]:text-[11px] [&_[data-slot=native-select]]:focus-visible:ring-1";
 
 /**
  * 参数化 Agent（cursor）的一个 select 维度。值绑定 agent 下发的 current，
@@ -60,7 +65,8 @@ function CursorDimSelect({
   if (option.kind.kind !== "select") return null;
   const values = option.kind.options;
   return (
-    <select
+    <NativeSelect
+      size="sm"
       className={compactSelectClassName}
       value={currentSelectValue(option)}
       disabled={disabled}
@@ -72,13 +78,13 @@ function CursorDimSelect({
         onPick(next);
       }}
     >
-      <option value="">{emptyLabel}</option>
+      <NativeSelectOption value="">{emptyLabel}</NativeSelectOption>
       {values.map((item) => (
-        <option key={item.value} value={item.value} title={item.description ?? undefined}>
+        <NativeSelectOption key={item.value} value={item.value} title={item.description ?? undefined}>
           {item.name}
-        </option>
+        </NativeSelectOption>
       ))}
-    </select>
+    </NativeSelect>
   );
 }
 
@@ -227,7 +233,7 @@ export const ChatComposerBar = forwardRef<ChatComposerBarHandle, Props>(
               ))}
             </div>
           ) : null}
-          <textarea
+          <Textarea
             ref={textareaRef}
             className={cn(
               "min-h-[72px] w-full resize-none rounded-t-lg bg-transparent px-3 py-2 text-sm",
@@ -263,7 +269,8 @@ export const ChatComposerBar = forwardRef<ChatComposerBarHandle, Props>(
           />
 
           <div className="flex items-center gap-1.5 border-t border-border/70 px-2 py-1.5">
-            <select
+            <NativeSelect
+              size="sm"
               className={cn(compactSelectClassName, "max-w-[7.5rem]")}
               value={permissionMode}
               disabled={controlsDisabled}
@@ -274,9 +281,9 @@ export const ChatComposerBar = forwardRef<ChatComposerBarHandle, Props>(
                 })
               }
             >
-              <option value="auto">自动批准</option>
-              <option value="ask">每次询问</option>
-            </select>
+              <NativeSelectOption value="auto">自动批准</NativeSelectOption>
+              <NativeSelectOption value="ask">每次询问</NativeSelectOption>
+            </NativeSelect>
 
             {cursor.hasCursorDims ? (
               <>
@@ -322,26 +329,24 @@ export const ChatComposerBar = forwardRef<ChatComposerBarHandle, Props>(
                 ) : null}
                 {cursor.dims.fastToggle &&
                 cursor.dims.fastToggle.kind.kind === "boolean" ? (
-                  <label
+                  <Label
                     className="flex shrink-0 cursor-pointer items-center gap-1 px-1 text-[11px] text-muted-foreground hover:text-foreground"
                     title={cursor.dims.fastToggle.description ?? "Fast 模式"}
                   >
-                    <input
-                      type="checkbox"
-                      className="size-3.5 rounded border border-border"
+                    <Checkbox
                       checked={currentBooleanValue(cursor.dims.fastToggle)}
                       disabled={cursor.controlsDisabled}
                       aria-label="Fast"
-                      onChange={(e) => {
+                      onCheckedChange={(checked) => {
                         const id = cursor.dims.fastToggle?.id ?? "";
                         void cursor.applyConfigOption(
                           id,
-                          e.target.checked ? "true" : "false",
+                          checked === true ? "true" : "false",
                         );
                       }}
                     />
                     Fast
-                  </label>
+                  </Label>
                 ) : null}
                 {cursor.dims.fastSelect ? (
                   <CursorDimSelect
@@ -360,7 +365,8 @@ export const ChatComposerBar = forwardRef<ChatComposerBarHandle, Props>(
             ) : (
               <>
                 {hasModelOptions ? (
-                  <select
+                  <NativeSelect
+                    size="sm"
                     className={compactSelectClassName}
                     value={modelId}
                     disabled={controlsDisabled}
@@ -369,16 +375,16 @@ export const ChatComposerBar = forwardRef<ChatComposerBarHandle, Props>(
                       void applyModelSelection({ modelId: e.target.value });
                     }}
                   >
-                    <option value="">Agent 默认</option>
+                    <NativeSelectOption value="">Agent 默认</NativeSelectOption>
                     {modelOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
+                      <NativeSelectOption key={option.value} value={option.value}>
                         {option.name}
-                      </option>
+                      </NativeSelectOption>
                     ))}
-                  </select>
+                  </NativeSelect>
                 ) : (
-                  <input
-                    className={cn(compactSelectClassName, "min-w-[7rem]")}
+                  <Input
+                    className="h-7 min-w-[7rem] max-w-[9.5rem] rounded-md px-2 text-[11px]"
                     value={modelId}
                     disabled={controlsDisabled}
                     placeholder="模型 ID"
@@ -393,7 +399,8 @@ export const ChatComposerBar = forwardRef<ChatComposerBarHandle, Props>(
                 )}
 
                 {hasReasoningOptions ? (
-                  <select
+                  <NativeSelect
+                    size="sm"
                     className={compactSelectClassName}
                     value={reasoningEffort}
                     disabled={controlsDisabled}
@@ -402,13 +409,13 @@ export const ChatComposerBar = forwardRef<ChatComposerBarHandle, Props>(
                       void applyModelSelection({ reasoningEffort: e.target.value });
                     }}
                   >
-                    <option value="">默认</option>
+                    <NativeSelectOption value="">默认</NativeSelectOption>
                     {reasoningOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
+                      <NativeSelectOption key={option.value} value={option.value}>
                         {option.name}
-                      </option>
+                      </NativeSelectOption>
                     ))}
-                  </select>
+                  </NativeSelect>
                 ) : null}
               </>
             )}

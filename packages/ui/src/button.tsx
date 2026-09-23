@@ -1,13 +1,9 @@
 /**
- * VENDOR PRISTINE — DO NOT EDIT.
- * shadcn/ui default style: https://ui.shadcn.com/docs/components/button
- * Customization is forbidden in this file. Adapt at the call site via
- * `className` (merged through cn/tailwind-merge) or in an app-side
- * transferred copy. Mechanical adaptations vs upstream: `@/lib/utils` →
- * `./utils`; `"use client"` omitted (Vite/Tauri, no RSC).
+ * shadcn/ui Base UI implementation, retaining Lumina's existing variants.
+ * Source/API reference: https://ui.shadcn.com/docs/components/base/button
+ * Mechanical adaptations: `cn` is local; app code uses `render` for composition.
  */
-import * as React from "react";
-import { Slot } from "@radix-ui/react-slot";
+import { Button as ButtonPrimitive } from "@base-ui/react/button";
 import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "./utils";
@@ -41,24 +37,26 @@ const buttonVariants = cva(
   },
 );
 
-export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
-  asChild?: boolean;
-}
+export type ButtonProps = Omit<ButtonPrimitive.Props, "className"> & {
+  className?: string;
+} &
+  VariantProps<typeof buttonVariants>;
 
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button";
-    return (
-      <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
-        ref={ref}
-        {...props}
-      />
-    );
-  },
-);
+function Button({
+  className,
+  variant,
+  size,
+  type = "submit",
+  ...props
+}: ButtonProps) {
+  return (
+    <ButtonPrimitive
+      className={cn(buttonVariants({ variant, size, className }))}
+      type={type}
+      {...props}
+    />
+  );
+}
 Button.displayName = "Button";
 
 export { Button, buttonVariants };

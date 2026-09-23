@@ -24,7 +24,7 @@ AI Video Reader 桌面应用。
 - Backend: **Rust**
 - Frontend: **React + TypeScript + Vite**
 - Package manager（**仅开发/CI**）: **bun** — 终端用户安装包不需要 bun / pnpm / Node 才能播放
-- UI: **Tailwind CSS + shadcn/ui**
+- UI: **Tailwind CSS + shadcn/ui on Base UI primitives**；Magic UI 仅按需复制适用组件
 - Client state: **Zustand**
 - Async/server state: **TanStack Query**
 - Player: **libmpv**（`libmpv2`）
@@ -115,7 +115,16 @@ cargo test -p lumina-mcp --features test-support --test chapter_blackbox_stdio
 
 ## UI 与 AI 实现约束
 
-- UI 原语统一使用现有 Radix UI + shadcn/ui；不得在同一套设计系统中引入 Base UI。
+- UI 原语统一使用 `packages/ui` 中的 shadcn/ui + Base UI；业务组件优先组合共享原语。
+- 编写通用交互前，先检查 `packages/ui` 和 shadcn/Magic UI 官方 registry 是否已有适用实现。
+  有则复用并按调用方需求通过 `className` 或薄适配层定制；缺少时优先基于官方组件扩展到
+  `packages/ui`，不要在 feature 内重复造菜单、弹层、选择器、表单控件、焦点管理或键盘交互。
+  自定义只留给 Lumina 业务工作流、布局边界，或经审查确实无法由现有组件承载的行为。
+- Magic UI 是可选的复制式视觉组件来源，不是全量依赖；只加入有明确产品场景的组件，检查
+  运行时依赖、语义主题 token、键盘/读屏行为和 `prefers-reduced-motion`。装饰动效不得成为
+  播放、字幕阅读或 AI 操作可用性的前提，也不得覆盖 libmpv HWND。
+- 新增 UI 运行时依赖前先确认共享包或已有 workspace 已提供该能力；依赖集中声明在实际拥有
+  原语实现的 package，不在 app 和共享 package 重复声明。
 - 颜色不得在业务组件中硬编码十六进制、RGB 或命名色。必须使用语义 CSS 变量；亮色和暗色
   两套 token 都要完整定义。媒体画面黑色属于播放器 surface 的特殊语义，不得借此绕过主题变量。
 - 快捷 AI 操作只能引用版本化的任务提示词，不得把专有提示词散落在 React 组件字符串中。
@@ -133,9 +142,9 @@ cargo test -p lumina-mcp --features test-support --test chapter_blackbox_stdio
 - 日志用 `tracing`；不要刷 position
 - TanStack Query key 跨文件复用时走各 feature 的 `queries.ts` 工厂，不手写字面量
 - 不与其他产品强行统一 lockfile；对齐领域模型与错误形状即可
-- Vendor 原件只读：`packages/ui` 内 shadcn 拷贝以上游 default 风格为准，禁止直接修改；
-  定制只允许调用方 `className`（经 `cn` 合并）或外层转接拷贝；包 Radix 原语的 wrapper
-  必须透传 `ref`（`asChild` 链的硬性契约，丢 ref 会静默杀死浮层定位）
+- Vendor 原件只读：`packages/ui` 内 shadcn/Magic UI 官方拷贝保持上游实现；定制只允许调用方
+  `className`（经 `cn` 合并）或 app-side 转接组件。Base UI 组合使用 `render`，wrapper 必须
+  透传 `ref`、ARIA props 和事件；浮层触发器的 ref 必须落到实际锚点元素。
 
 ## UI design references
 

@@ -105,18 +105,18 @@ export function SeekBar() {
           ))}
         </div>
         <PlayerSlider
-          className="min-w-0 w-full [&_[data-radix-slider-range]]:bg-playback-accent [&_[data-radix-slider-thumb]]:border-playback-accent/50 [&_[data-radix-slider-thumb]]:bg-playback-accent"
+          className="min-w-0 w-full"
           min={0}
           max={Math.max(effectiveDuration, 1)}
           step={100}
-          value={[value]}
+          value={value}
           disabled={!ready}
-          onValueChange={(vals) => {
+          onValueChange={(next) => {
             setSeeking(true);
-            setPreviewTime(vals[0] ?? 0);
+            setPreviewTime(Array.isArray(next) ? (next[0] ?? 0) : next);
           }}
-          onValueCommit={(vals) => {
-            void seek(vals[0] ?? 0);
+          onValueCommitted={(next) => {
+            void seek(Array.isArray(next) ? (next[0] ?? 0) : next);
           }}
           aria-label="进度"
           aria-valuetext={`${formatTime(value)} / ${formatTime(effectiveDuration)}`}

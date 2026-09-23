@@ -109,16 +109,16 @@ describe("TrackControlButtons subtitle menu", () => {
   });
 });
 
-describe("vendor ref forwarding", () => {
-  // 锁 asChild 链的硬性契约：包 Radix 原语的 wrapper 必须透传 ref，
-  // 丢 ref 会静默杀死浮层定位（2026-09-14 三个菜单全灭）。
+describe("shared primitive ref forwarding", () => {
+  // Lock the Base UI render-chain contract: shared wrappers must forward refs,
+  // or floating-layer positioning can fail silently.
   it("Button exposes the DOM node", () => {
     const ref = createRef<HTMLButtonElement>();
     render(<Button ref={ref}>x</Button>);
     expect(ref.current).toBeInstanceOf(HTMLButtonElement);
   });
 
-  it("nested asChild trigger chains deliver the anchor to every layer", () => {
+  it("nested render trigger chains deliver the anchor to every layer", () => {
     let menuEl: Element | null = null;
     let tipEl: Element | null = null;
     render(
@@ -126,20 +126,18 @@ describe("vendor ref forwarding", () => {
         <DropdownMenu>
           <Tooltip>
             <TooltipTrigger
-              asChild
-              ref={(node) => {
+              ref={(node: HTMLElement | null) => {
                 tipEl = node;
               }}
-            >
-              <DropdownMenuTrigger
-                asChild
-                ref={(node) => {
-                  menuEl = node;
-                }}
-              >
-                <Button>x</Button>
-              </DropdownMenuTrigger>
-            </TooltipTrigger>
+              render={
+                <DropdownMenuTrigger
+                  ref={(node: HTMLElement | null) => {
+                    menuEl = node;
+                  }}
+                  render={<Button>x</Button>}
+                />
+              }
+            />
           </Tooltip>
         </DropdownMenu>
       </TooltipProvider>,

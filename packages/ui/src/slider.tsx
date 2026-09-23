@@ -1,34 +1,58 @@
 /**
- * VENDOR PRISTINE — DO NOT EDIT.
- * shadcn/ui default style: https://ui.shadcn.com/docs/components/slider
- * Customization is forbidden in this file. Adapt at the call site via
- * `className` (merged through cn/tailwind-merge) or in an app-side
- * transferred copy. Mechanical adaptations vs upstream: `@/lib/utils` →
- * `./utils`; `"use client"` omitted (Vite/Tauri, no RSC).
+ * shadcn/ui Base UI implementation, retaining Lumina's existing visual API.
+ * Source/API reference: https://ui.shadcn.com/docs/components/base/slider
  */
-import * as React from "react";
-import * as SliderPrimitive from "@radix-ui/react-slider";
+import { Slider as SliderPrimitive } from "@base-ui/react/slider";
 
 import { cn } from "./utils";
 
-const Slider = React.forwardRef<
-  React.ElementRef<typeof SliderPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof SliderPrimitive.Root>
->(({ className, ...props }, ref) => (
-  <SliderPrimitive.Root
-    ref={ref}
-    className={cn(
-      "relative flex w-full touch-none select-none items-center",
-      className,
-    )}
-    {...props}
-  >
-    <SliderPrimitive.Track className="relative h-2 w-full grow overflow-hidden rounded-full bg-secondary">
-      <SliderPrimitive.Range className="absolute h-full bg-primary" />
-    </SliderPrimitive.Track>
-    <SliderPrimitive.Thumb className="block h-5 w-5 rounded-full border-2 border-primary bg-background ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50" />
-  </SliderPrimitive.Root>
-));
-Slider.displayName = SliderPrimitive.Root.displayName;
+function Slider({
+  className,
+  defaultValue,
+  value,
+  min = 0,
+  max = 100,
+  thumbAlignment = "edge",
+  ...props
+}: Omit<SliderPrimitive.Root.Props, "className"> & {
+  className?: string;
+}) {
+  const values = Array.isArray(value)
+    ? value
+    : Array.isArray(defaultValue)
+      ? defaultValue
+      : [value ?? defaultValue ?? min];
 
-export { Slider };
+  return (
+    <SliderPrimitive.Root
+      data-slot="slider"
+      className={cn(
+        "data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full",
+        className,
+      )}
+      defaultValue={defaultValue}
+      value={value}
+      min={min}
+      max={max}
+      thumbAlignment={thumbAlignment}
+      {...props}
+    >
+      <SliderPrimitive.Control className="relative flex w-full touch-none select-none items-center data-[disabled]:opacity-50 data-[orientation=vertical]:h-full data-[orientation=vertical]:w-auto data-[orientation=vertical]:flex-col">
+        <SliderPrimitive.Track className="relative h-2 w-full grow overflow-hidden rounded-full bg-secondary data-[orientation=vertical]:h-full data-[orientation=vertical]:w-2 data-[orientation=vertical]:grow-0">
+          <SliderPrimitive.Indicator className="absolute h-full bg-primary data-[orientation=vertical]:h-auto data-[orientation=vertical]:w-full" />
+        </SliderPrimitive.Track>
+        {values.map((_, index) => (
+          <SliderPrimitive.Thumb
+            data-slot="slider-thumb"
+            key={index}
+            index={index}
+            className="block h-5 w-5 shrink-0 rounded-full border-2 border-primary bg-background ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+          />
+        ))}
+      </SliderPrimitive.Control>
+    </SliderPrimitive.Root>
+  );
+}
+Slider.displayName = "Slider";
+
+export { Slider, SliderPrimitive };

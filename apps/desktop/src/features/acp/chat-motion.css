@@ -18,12 +18,12 @@
   100% {
     box-shadow:
       0 0 0 1px color-mix(in srgb, var(--ring) 28%, transparent),
-      0 0 18px -6px color-mix(in srgb, #6b8cce 22%, transparent);
+      0 0 18px -6px color-mix(in srgb, var(--ai) 22%, transparent);
   }
   50% {
     box-shadow:
-      0 0 0 1px color-mix(in srgb, #8aa4d8 45%, transparent),
-      0 0 28px -2px color-mix(in srgb, #6b8cce 38%, transparent);
+      0 0 0 1px color-mix(in srgb, var(--ai) 45%, transparent),
+      0 0 28px -2px color-mix(in srgb, var(--ai) 38%, transparent);
   }
 }
 
@@ -32,12 +32,12 @@
   100% {
     box-shadow:
       inset 0 0 0 1px color-mix(in srgb, var(--border) 80%, transparent),
-      0 0 16px -8px color-mix(in srgb, #6b8cce 18%, transparent);
+      0 0 16px -8px color-mix(in srgb, var(--ai) 18%, transparent);
   }
   50% {
     box-shadow:
-      inset 0 0 0 1px color-mix(in srgb, #7a94cc 35%, transparent),
-      0 0 22px -4px color-mix(in srgb, #6b8cce 32%, transparent);
+      inset 0 0 0 1px color-mix(in srgb, var(--ai) 35%, transparent),
+      0 0 22px -4px color-mix(in srgb, var(--ai) 32%, transparent);
   }
 }
 
@@ -99,7 +99,7 @@
 }
 
 .chat-composer-active textarea {
-  border-color: color-mix(in srgb, #7a94cc 45%, var(--border));
+  border-color: color-mix(in srgb, var(--ai) 45%, var(--border));
 }
 
 .chat-reply-streaming {
@@ -109,13 +109,13 @@
 .chat-activity-live {
   position: relative;
   overflow: hidden;
-  border-color: color-mix(in srgb, #6b8cce 35%, var(--border)) !important;
+  border-color: color-mix(in srgb, var(--ai) 35%, var(--border)) !important;
   background-image: linear-gradient(
     105deg,
     transparent 0%,
-    color-mix(in srgb, #6b8cce 8%, transparent) 45%,
-    color-mix(in srgb, #8aa4d8 14%, transparent) 50%,
-    color-mix(in srgb, #6b8cce 8%, transparent) 55%,
+    color-mix(in srgb, var(--ai) 8%, transparent) 45%,
+    color-mix(in srgb, var(--ai) 14%, transparent) 50%,
+    color-mix(in srgb, var(--ai) 8%, transparent) 55%,
     transparent 100%
   );
   background-size: 220% 100%;
@@ -146,7 +146,7 @@
   background: linear-gradient(
     90deg,
     transparent,
-    color-mix(in srgb, #8aa4d8 28%, transparent),
+    color-mix(in srgb, var(--ai) 28%, transparent),
     transparent
   );
   animation: chat-tool-scan 1.8s ease-in-out infinite;
@@ -167,11 +167,39 @@
   inset: 0;
   border-radius: 9999px;
   border: 1.5px solid transparent;
-  border-top-color: color-mix(in srgb, #8aa4d8 85%, transparent);
-  border-right-color: color-mix(in srgb, #6b8cce 35%, transparent);
+  border-top-color: color-mix(in srgb, var(--ai) 85%, transparent);
+  border-right-color: color-mix(in srgb, var(--ai) 35%, transparent);
   animation: chat-tool-orbit 1.1s linear infinite;
 }
 
 .chat-stream-caret {
   animation: chat-caret-blink 1s step-end infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-wait-dot,
+  .chat-composer-active,
+  .chat-reply-streaming,
+  .chat-activity-live,
+  .chat-tool-scan-line::after,
+  .chat-tool-orbit::before,
+  .chat-stream-caret {
+    animation: none;
+  }
+
+  .chat-wait-dot {
+    opacity: 0.7;
+  }
+
+  .chat-activity-live {
+    background-image: none;
+  }
+
+  .chat-tool-scan-line::after {
+    display: none;
+  }
+
+  .chat-stream-caret {
+    opacity: 1;
+  }
 }

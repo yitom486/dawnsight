@@ -11,8 +11,9 @@ export function ChatToggleButton({ className }: { className?: string }) {
 
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
+      <TooltipTrigger
+        render={
+          <Button
           type="button"
           variant={chatOpen ? "secondary" : "ghost"}
           size="icon"
@@ -20,11 +21,12 @@ export function ChatToggleButton({ className }: { className?: string }) {
           aria-label={chatOpen ? "收起 AI 对话" : "打开 AI 对话"}
           aria-pressed={chatOpen}
           onClick={toggleChat}
-        >
-          <Sparkles className="size-3.5 text-ai" />
-          <MessageSquare className="size-4" />
-        </Button>
-      </TooltipTrigger>
+          >
+            <Sparkles className="size-3.5 text-ai" />
+            <MessageSquare className="size-4" />
+          </Button>
+        }
+      />
       <TooltipContent>
         {chatOpen ? "收起对话 (Esc)" : "AI 对话"}
       </TooltipContent>

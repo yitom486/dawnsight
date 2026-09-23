@@ -79,20 +79,22 @@ export function ChatToolbar({
           <div className="flex items-center gap-2">
             {canSwitchAgent ? (
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
+                <DropdownMenuTrigger
+                  render={
+                    <button
                     type="button"
                     className="flex h-6 max-w-[11rem] cursor-pointer items-center gap-1 truncate rounded-md border border-transparent bg-transparent px-1 text-[12px] font-medium text-foreground outline-none hover:border-border focus-visible:border-border disabled:cursor-default disabled:opacity-60"
                     disabled={busy || switchDisabled}
                     aria-label="切换 Agent"
                     title="切换 Agent（各家会话记忆独立保留）"
-                  >
-                    <span className="min-w-0 flex-1 truncate text-left">
-                      {agentLabel}
-                    </span>
-                    <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
-                  </button>
-                </DropdownMenuTrigger>
+                    >
+                      <span className="min-w-0 flex-1 truncate text-left">
+                        {agentLabel}
+                      </span>
+                      <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
+                    </button>
+                  }
+                />
                 <DropdownMenuContent
                   align="start"
                   side="bottom"
@@ -106,7 +108,7 @@ export function ChatToolbar({
                         disabled={busy || switchDisabled}
                         aria-current={isActive ? "true" : undefined}
                         className={cn("cursor-pointer gap-2")}
-                        onSelect={() => {
+                        onClick={() => {
                           if (!isActive) {
                             onSwitchProfile(profile.id);
                           }

@@ -47,8 +47,9 @@ export function WorkspaceRail({
           const selected = activeTab === id;
           return (
             <Tooltip key={id}>
-              <TooltipTrigger asChild>
-                <Button
+              <TooltipTrigger
+                render={
+                  <Button
                   type="button"
                   variant="ghost"
                   size="default"
@@ -66,11 +67,12 @@ export function WorkspaceRail({
                     closeChat();
                     onSelect(id);
                   }}
-                >
-                  <Icon className="size-5 shrink-0 transition-transform group-hover:scale-105 max-[700px]:size-4" />
-                  <span className="max-[700px]:sr-only">{label}</span>
-                </Button>
-              </TooltipTrigger>
+                  >
+                    <Icon className="size-5 shrink-0 transition-transform group-hover:scale-105 max-[700px]:size-4" />
+                    <span className="max-[700px]:sr-only">{label}</span>
+                  </Button>
+                }
+              />
               <TooltipContent side="right">{label}</TooltipContent>
             </Tooltip>
           );
@@ -79,8 +81,9 @@ export function WorkspaceRail({
 
       <div className="mt-auto w-full border-t border-border/70 pt-3">
         <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
+          <TooltipTrigger
+            render={
+              <Button
               type="button"
               variant="ghost"
               size="default"
@@ -95,11 +98,12 @@ export function WorkspaceRail({
               aria-current={chatOpen ? "page" : undefined}
               data-active={chatOpen ? "true" : "false"}
               onClick={toggleChat}
-            >
-              <Sparkles className="size-5 shrink-0 transition-transform group-hover:scale-105 max-[700px]:size-4" />
-              <span className="max-[700px]:sr-only">AI 对话</span>
-            </Button>
-          </TooltipTrigger>
+              >
+                <Sparkles className="size-5 shrink-0 transition-transform group-hover:scale-105 max-[700px]:size-4" />
+                <span className="max-[700px]:sr-only">AI 对话</span>
+              </Button>
+            }
+          />
           <TooltipContent side="right">
             {chatOpen ? "收起对话 (Esc)" : "AI 对话"}
           </TooltipContent>

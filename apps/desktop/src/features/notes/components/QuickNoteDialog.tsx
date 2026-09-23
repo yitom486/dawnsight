@@ -3,6 +3,7 @@ import { X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@lumina/ui/button";
+import { Textarea } from "@lumina/ui/textarea";
 import { ScrollArea } from "@lumina/ui/scroll-area";
 import { usePlayerStore } from "@/features/player";
 import { useTrackStore } from "@/features/player/trackStore";
@@ -176,7 +177,7 @@ export function QuickNoteDialog({
         </Button>
       </div>
 
-      <textarea
+      <Textarea
         className="mb-2 min-h-[72px] w-full resize-none rounded-md border border-input bg-background px-2 py-1.5 text-sm"
         placeholder="记录此刻的观感或要点…"
         value={body}

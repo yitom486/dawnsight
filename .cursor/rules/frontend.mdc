@@ -6,7 +6,10 @@ alwaysApply: false
 
 # Frontend
 
-- 包管理器用 bun；UI 用 Tailwind + shadcn/ui。第一版不追求美观。
+- 包管理器用 bun；UI 用 Tailwind + shadcn/ui（Base UI primitives）。
+- 新增通用控件前先检查 `packages/ui` 与 shadcn/Magic UI registry；可复用时优先复用或
+  在官方实现上做薄适配，不在 feature 里重造通用键盘、焦点、菜单、弹层或表单交互。
+- Magic UI 只复制有明确产品场景的组件；依赖保持最少，并支持语义 token 与 reduced motion。
 - 播放器 UI 状态用 Zustand，镜像 Rust 推送的状态；不要本地猜测 Playing/Paused。
 - 异步请求用 TanStack Query；播放控制走 Tauri Command，状态更新走 Channel。
 - 禁止 `<video>`、canvas 逐帧拷贝。画面区域只是 native surface 的占位，React 只做控件：Open / Play / Pause / Seek / Volume / Rate / time / duration。
@@ -18,7 +21,7 @@ alwaysApply: false
 src/App.tsx                 # 组装，不写业务细节
 src/layouts/                # 桌面壳（标题栏等）
 src/features/player/        # 播放器特性：types / api / store / hooks / components
-src/components/ui/          # shadcn
+packages/ui/src/            # shared shadcn/Base UI primitives
 src/lib/                    # 纯工具
 ```
 
