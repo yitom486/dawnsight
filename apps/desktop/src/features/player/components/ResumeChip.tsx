@@ -53,14 +53,16 @@ export function ResumeChip() {
         >
           从头播放
         </Button>
-        <button
+        <Button
           type="button"
-          className="rounded p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+          size="sm"
+          variant="ghost"
+          className="h-6 w-6 shrink-0 rounded p-0.5 text-muted-foreground"
           aria-label="关闭"
           onClick={() => dismissResumeToast()}
         >
           <X className="size-3.5" />
-        </button>
+        </Button>
       </div>
     </div>
   );

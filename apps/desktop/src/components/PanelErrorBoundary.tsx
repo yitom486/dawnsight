@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 
+import { Button } from "@lumina/ui/button";
 import { formatRenderError } from "@/lib/formatRenderError";
 import { reportRenderError } from "@/lib/reportRenderError";
 
@@ -62,13 +63,15 @@ export class PanelErrorBoundary extends Component<PanelErrorBoundaryProps, State
           <p className="max-w-sm text-[11px] leading-relaxed text-muted-foreground">
             {this.props.hint ?? copy.hint}
           </p>
-          <button
+          <Button
             type="button"
-            className="mt-1 rounded-md border border-border px-3 py-1.5 text-xs text-foreground hover:bg-muted"
+            size="sm"
+            variant="outline"
+            className="mt-1 h-auto px-3 py-1.5 text-xs"
             onClick={this.retry}
           >
             重试
-          </button>
+          </Button>
         </div>
       );
     }

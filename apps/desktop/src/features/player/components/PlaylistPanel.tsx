@@ -1,3 +1,4 @@
+import { Button } from "@lumina/ui/button";
 import { ScrollArea } from "@lumina/ui/scroll-area";
 import { cn } from "@lumina/ui/utils";
 
@@ -34,11 +35,13 @@ export function PlaylistPanel() {
           const active = index === playlistIndex;
           return (
             <li key={path}>
-              <button
+              <Button
                 type="button"
+                size="sm"
+                variant="ghost"
                 disabled={busy}
                 className={cn(
-                  "w-full rounded-md px-2 py-1.5 text-left text-sm transition-colors",
+                  "h-auto w-full justify-start gap-0 rounded-md px-2 py-1.5 text-left text-sm font-normal transition-colors",
                   active
                     ? "bg-accent font-medium text-accent-foreground"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -57,7 +60,7 @@ export function PlaylistPanel() {
                   {index + 1}
                 </span>
                 <span className="break-all">{fileName(path)}</span>
-              </button>
+              </Button>
             </li>
           );
         })}
