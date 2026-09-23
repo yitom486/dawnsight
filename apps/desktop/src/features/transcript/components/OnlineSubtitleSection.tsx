@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { Button } from "@lumina/ui/button";
+import { Input } from "@lumina/ui/input";
+import { NativeSelect, NativeSelectOption } from "@lumina/ui/native-select";
 
 import { LANG_PRESETS } from "../../../../../../packages/transcript-ui/src/cueSelectors";
 import {
@@ -248,9 +250,9 @@ export function OnlineSubtitleSection({
           <span className="text-muted-foreground">
             SubDL Key{subdl?.hasKey ? "（已配置）" : "（未配置）"}
           </span>
-          <input
+          <Input
             type="password"
-            className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-50"
+            className="h-8 w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-50"
             value={keyInput}
             disabled={busy}
             placeholder="粘贴 Key 后保存"
@@ -284,8 +286,8 @@ export function OnlineSubtitleSection({
       <div className="flex flex-wrap items-end gap-2">
         <label className="flex min-w-[10rem] flex-[2] flex-col gap-1 text-xs">
           <span className="text-muted-foreground">片名</span>
-          <input
-            className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-50"
+          <Input
+            className="h-8 w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-50"
             value={title}
             disabled={busy}
             aria-label="Title to search subtitles for"
@@ -294,8 +296,8 @@ export function OnlineSubtitleSection({
         </label>
         <label className="flex w-16 flex-col gap-1 text-xs">
           <span className="text-muted-foreground">季</span>
-          <input
-            className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-50"
+          <Input
+            className="h-8 w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-50"
             value={season}
             disabled={busy}
             inputMode="numeric"
@@ -305,8 +307,8 @@ export function OnlineSubtitleSection({
         </label>
         <label className="flex w-16 flex-col gap-1 text-xs">
           <span className="text-muted-foreground">集</span>
-          <input
-            className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-50"
+          <Input
+            className="h-8 w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-50"
             value={episode}
             disabled={busy}
             inputMode="numeric"
@@ -316,19 +318,20 @@ export function OnlineSubtitleSection({
         </label>
         <label className="flex min-w-[7rem] flex-1 flex-col gap-1 text-xs">
           <span className="text-muted-foreground">优先语言</span>
-          <select
-            className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-50"
+          <NativeSelect
+            size="sm"
+            className="w-full"
             value={targetLang}
             disabled={busy}
             aria-label="Preferred subtitle language"
             onChange={(e) => setTargetLang(e.target.value)}
           >
             {LANG_PRESETS.map((lang) => (
-              <option key={lang.value} value={lang.value}>
+              <NativeSelectOption key={lang.value} value={lang.value}>
                 {lang.label}
-              </option>
+              </NativeSelectOption>
             ))}
-          </select>
+          </NativeSelect>
         </label>
         <Button
           type="button"

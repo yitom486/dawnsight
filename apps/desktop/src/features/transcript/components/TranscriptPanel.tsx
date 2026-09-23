@@ -24,6 +24,10 @@ import { useUiStore } from "@/features/player/uiStore";
 import { useTrackStore } from "@/features/player/trackStore";
 import { getCachedYtdlResolve } from "@/features/ytdl";
 import { Button } from "@lumina/ui/button";
+import { Checkbox } from "@lumina/ui/checkbox";
+import { Field, FieldLabel } from "@lumina/ui/field";
+import { Input } from "@lumina/ui/input";
+import { NativeSelect, NativeSelectOption } from "@lumina/ui/native-select";
 import { Progress } from "@lumina/ui/progress";
 import { ScrollArea } from "@lumina/ui/scroll-area";
 import { cn } from "@lumina/ui/utils";
@@ -777,8 +781,9 @@ export function TranscriptPanel({
 
         <label className="flex flex-col gap-1 text-xs">
           <span className="text-muted-foreground">文稿对应字幕轨</span>
-          <select
-            className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-50"
+          <NativeSelect
+            size="sm"
+            className="w-full"
             value={choiceId ?? ""}
             disabled={choices.length === 0 || busy}
             onChange={(e) => {
@@ -792,15 +797,15 @@ export function TranscriptPanel({
             aria-label="Subtitle track for transcript"
           >
             {choices.length === 0 ? (
-              <option value="">无可用字幕</option>
+              <NativeSelectOption value="">无可用字幕</NativeSelectOption>
             ) : (
               choices.map((choice: SubtitleChoice) => (
-                <option key={choice.id} value={choice.id}>
+                <NativeSelectOption key={choice.id} value={choice.id}>
                   {choice.label}
-                </option>
+                </NativeSelectOption>
               ))
             )}
-          </select>
+          </NativeSelect>
         </label>
 
           </>
@@ -819,36 +824,38 @@ export function TranscriptPanel({
         <div className="flex flex-wrap items-end gap-2">
           <label className="flex min-w-[7rem] flex-1 flex-col gap-1 text-xs">
             <span className="text-muted-foreground">ASR 范围</span>
-            <select
-              className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-50"
+            <NativeSelect
+              size="sm"
+              className="w-full"
               value={asrScope}
               disabled={busy}
               onChange={(e) => setAsrScope(e.target.value as AsrScope)}
               aria-label="ASR transcription scope"
             >
-              <option value="full">整片</option>
-              <option value="chapter" disabled={chapters.length === 0}>
+              <NativeSelectOption value="full">整片</NativeSelectOption>
+              <NativeSelectOption value="chapter" disabled={chapters.length === 0}>
                 当前章节
                 {chapters.length === 0 ? "（无章节）" : ""}
-              </option>
-            </select>
+              </NativeSelectOption>
+            </NativeSelect>
           </label>
           {asrModels.length > 0 ? (
             <label className="flex min-w-[8rem] flex-1 flex-col gap-1 text-xs">
               <span className="text-muted-foreground">转写模型</span>
-              <select
-                className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-50"
+              <NativeSelect
+                size="sm"
+                className="w-full"
                 value={asrModelId}
                 disabled={busy}
                 onChange={(e) => setAsrModelId(e.target.value)}
                 aria-label="ASR model"
               >
                 {asrModels.map((model) => (
-                  <option key={model.id} value={model.id}>
+                  <NativeSelectOption key={model.id} value={model.id}>
                     {model.id}
-                  </option>
+                  </NativeSelectOption>
                 ))}
-              </select>
+              </NativeSelect>
             </label>
           ) : null}
           <Button
@@ -926,8 +933,9 @@ export function TranscriptPanel({
               <span className="text-muted-foreground">
                 {asrAvailable ? "下载更多模型" : "一键安装转写"}
               </span>
-              <select
-                className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-50"
+              <NativeSelect
+                size="sm"
+                className="w-full"
                 value={installModelId}
                 disabled={busy}
                 onChange={(e) => setInstallModelId(e.target.value)}
@@ -953,12 +961,12 @@ export function TranscriptPanel({
                       },
                     ]
                 ).map((item) => (
-                  <option key={item.id} value={item.id}>
+                  <NativeSelectOption key={item.id} value={item.id}>
                     {item.label}
                     {"installed" in item && item.installed ? " · 已安装" : ""}
-                  </option>
+                  </NativeSelectOption>
                 ))}
-              </select>
+              </NativeSelect>
             </label>
             <Button
               type="button"
@@ -980,25 +988,27 @@ export function TranscriptPanel({
         <div className="flex flex-wrap items-end gap-2 rounded-md border border-border/70 bg-muted/20 p-2">
           <label className="flex min-w-[7rem] flex-1 flex-col gap-1 text-xs">
             <span className="text-muted-foreground">翻译目标语言</span>
-            <select
-              className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-50"
+            <NativeSelect
+              size="sm"
+              className="w-full"
               value={targetLang}
               disabled={busy}
               onChange={(e) => setTargetLang(e.target.value)}
               aria-label="Target language for subtitle translation"
             >
               {LANG_PRESETS.map((lang) => (
-                <option key={lang.value} value={lang.value}>
+                <NativeSelectOption key={lang.value} value={lang.value}>
                   {lang.label}
-                </option>
+                </NativeSelectOption>
               ))}
-            </select>
+            </NativeSelect>
           </label>
           {workshopModels.hasModelOptions ? (
             <label className="flex min-w-[8rem] flex-1 flex-col gap-1 text-xs">
               <span className="text-muted-foreground">翻译模型</span>
-              <select
-                className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-50"
+              <NativeSelect
+                size="sm"
+                className="w-full"
                 value={workshopModels.modelId}
                 disabled={busy}
                 onChange={(e) =>
@@ -1006,19 +1016,19 @@ export function TranscriptPanel({
                 }
                 aria-label="Subtitle translation model"
               >
-                <option value="">默认</option>
+                <NativeSelectOption value="">默认</NativeSelectOption>
                 {workshopModels.modelOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
+                  <NativeSelectOption key={option.value} value={option.value}>
                     {option.name}
-                  </option>
+                  </NativeSelectOption>
                 ))}
-              </select>
+              </NativeSelect>
             </label>
           ) : (
             <label className="flex min-w-[8rem] flex-1 flex-col gap-1 text-xs">
               <span className="text-muted-foreground">翻译模型 ID</span>
-              <input
-                className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-50"
+              <Input
+                className="h-8 w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-50"
                 value={workshopModels.modelId}
                 disabled={busy}
                 placeholder="如 gpt-5.6-luna"
@@ -1032,8 +1042,9 @@ export function TranscriptPanel({
           {workshopModels.hasReasoningOptions ? (
             <label className="flex min-w-[6rem] flex-1 flex-col gap-1 text-xs">
               <span className="text-muted-foreground">思考程度</span>
-              <select
-                className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-50"
+              <NativeSelect
+                size="sm"
+                className="w-full"
                 value={workshopModels.reasoningEffort}
                 disabled={busy}
                 onChange={(e) =>
@@ -1043,13 +1054,13 @@ export function TranscriptPanel({
                 }
                 aria-label="Subtitle translation reasoning effort"
               >
-                <option value="">默认</option>
+                <NativeSelectOption value="">默认</NativeSelectOption>
                 {workshopModels.reasoningOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
+                  <NativeSelectOption key={option.value} value={option.value}>
                     {option.name}
-                  </option>
+                  </NativeSelectOption>
                 ))}
-              </select>
+              </NativeSelect>
             </label>
           ) : null}
           <Button
@@ -1062,24 +1073,32 @@ export function TranscriptPanel({
           >
             {translateBusy ? "翻译中…" : "翻译字幕"}
           </Button>
-          <label className="flex items-center gap-1 text-xs text-muted-foreground">
-            <input
-              type="checkbox"
+          <Field orientation="horizontal" className="w-fit items-center gap-1">
+            <Checkbox
+              id="transcript-backfill-glossary"
               checked={backfillGlossary}
               disabled={busy}
-              onChange={(e) => patchWorkshopSettings({ backfillGlossary: e.target.checked })}
+              onCheckedChange={(checked) =>
+                patchWorkshopSettings({ backfillGlossary: checked })
+              }
             />
-            回填译名表
-          </label>
-          <label className="flex items-center gap-1 text-xs text-muted-foreground">
-            <input
-              type="checkbox"
+            <FieldLabel htmlFor="transcript-backfill-glossary" className="w-fit text-xs text-muted-foreground">
+              回填译名表
+            </FieldLabel>
+          </Field>
+          <Field orientation="horizontal" className="w-fit items-center gap-1">
+            <Checkbox
+              id="transcript-glossary-review-mode"
               checked={glossaryReviewMode}
               disabled={busy}
-              onChange={(e) => patchWorkshopSettings({ glossaryReviewMode: e.target.checked })}
+              onCheckedChange={(checked) =>
+                patchWorkshopSettings({ glossaryReviewMode: checked })
+              }
             />
-            审核模式
-          </label>
+            <FieldLabel htmlFor="transcript-glossary-review-mode" className="w-fit text-xs text-muted-foreground">
+              审核模式
+            </FieldLabel>
+          </Field>
           <Button
             type="button"
             variant="outline"
@@ -1090,15 +1109,19 @@ export function TranscriptPanel({
           >
             {proofreadBusy ? "校对中…" : "校对字幕"}
           </Button>
-          <label className="flex items-center gap-1 text-xs text-muted-foreground">
-            <input
-              type="checkbox"
+          <Field orientation="horizontal" className="w-fit items-center gap-1">
+            <Checkbox
+              id="transcript-strip-sound-tags"
               checked={stripSoundTags}
               disabled={busy}
-              onChange={(e) => patchWorkshopSettings({ stripSoundTags: e.target.checked })}
+              onCheckedChange={(checked) =>
+                patchWorkshopSettings({ stripSoundTags: checked })
+              }
             />
-            去音效标签
-          </label>
+            <FieldLabel htmlFor="transcript-strip-sound-tags" className="w-fit text-xs text-muted-foreground">
+              去音效标签
+            </FieldLabel>
+          </Field>
         </div>
         {proofreadProgress || proofreadError ? (
           <p className="text-[11px] leading-snug text-muted-foreground">
