@@ -879,13 +879,15 @@ export function TranscriptPanel({
             {asrBusy ? "生成中…" : "生成字幕 (ASR)"}
           </Button>
           {asrTranscript ? (
-            <button
+            <Button
               type="button"
-              className="text-xs text-muted-foreground underline"
+              size="sm"
+              variant="ghost"
+              className="h-auto rounded-none px-0 py-0 text-xs text-muted-foreground underline"
               onClick={() => setAsrTranscript(null)}
             >
               回到字幕文稿
-            </button>
+            </Button>
           ) : null}
         </div>
         {asrScope === "chapter" ? (
@@ -1173,15 +1175,17 @@ export function TranscriptPanel({
       </div>
 
       {!workshopOnly && (listCollapsed ? (
-        <button
+        <Button
           type="button"
-          className="mx-2 mt-1 shrink-0 rounded-md border border-border/50 px-2 py-1.5 text-left text-xs text-muted-foreground"
+          size="sm"
+          variant="ghost"
+          className="h-auto mx-2 mt-1 shrink-0 rounded-md border border-border/50 px-2 py-1.5 text-left text-xs text-muted-foreground"
           aria-expanded={false}
           aria-label="展开文稿列表"
           onClick={() => setListCollapsed(false)}
         >
           文稿已收起{transcript ? `（${transcript.cues.length} 句）` : ""} · 点击展开
-        </button>
+        </Button>
       ) : (
       <ScrollArea className="min-h-96 shrink-0 flex-1">
         <div
@@ -1238,10 +1242,12 @@ export function TranscriptPanel({
                     id={`cue-${i}`}
                     className="group flex items-stretch gap-1"
                   >
-                    <button
+                    <Button
                       type="button"
+                      size="sm"
+                      variant="ghost"
                       className={cn(
-                        "min-w-0 flex-1 rounded-md px-2 py-1.5 text-left text-sm transition-colors",
+                        "h-auto min-w-0 flex-1 rounded-md px-2 py-1.5 text-left text-sm font-normal transition-colors",
                         active
                           ? "bg-accent font-medium text-accent-foreground"
                           : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -1257,7 +1263,7 @@ export function TranscriptPanel({
                         {formatTime(cue.startMs)}
                       </span>
                       {cue.text}
-                    </button>
+                    </Button>
                     <Button
                       type="button"
                       size="sm"

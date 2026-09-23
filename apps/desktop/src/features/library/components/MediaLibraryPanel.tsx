@@ -691,7 +691,7 @@ function LibrarySettingsContent() {
         </div>
       </details>
 
-      {error ? <p className="text-destructive" role="alert">{error}{" "}<button type="button" className="underline" aria-label="关闭错误提示" onClick={() => setError(null)}>关闭</button></p> : null}
+      {error ? <p className="text-destructive" role="alert">{error}{" "}<Button type="button" size="sm" variant="ghost" className="h-auto rounded-none px-0 py-0 text-destructive underline" aria-label="关闭错误提示" onClick={() => setError(null)}>关闭</Button></p> : null}
       {matchedGroups.length > 0 ? (
         <section className="min-h-0 space-y-2">
           <p className="font-medium">已匹配分组（{matchedGroups.length}）</p>
@@ -1228,7 +1228,7 @@ function PendingGroupCard({ pending, title, preview, disabled, directDisabled, o
         await doConfirm(outcome.candidate, FULL_TMDB_FIELDS, "一键匹配成功");
       });
     }}>{busy === "auto" ? "匹配中…" : "一键匹配"}</Button></div>
-    <div className="flex items-center gap-2"><Button size="sm" variant="outline" disabled={!title.trim() || directDisabled || isBusy} onClick={() => { setDirect(null); void run("search", async () => { setDirect(await onSearchTitle(title)); }); }}>{busy === "search" ? "查询中…" : "手动选"}</Button><Button size="sm" variant="outline" disabled={disabled || isBusy} onClick={() => void run("preview", onPreview)}>{busy === "preview" ? "识别中…" : "智能识别"}</Button><button type="button" className="text-muted-foreground underline" disabled={!title.trim() || isBusy} onClick={() => void run("save", async () => { await onSaveTitle(title); setNotice("标题已保存（未联网）"); })}>{busy === "save" ? "保存中…" : "仅存标题不上网"}</button></div>
+    <div className="flex items-center gap-2"><Button size="sm" variant="outline" disabled={!title.trim() || directDisabled || isBusy} onClick={() => { setDirect(null); void run("search", async () => { setDirect(await onSearchTitle(title)); }); }}>{busy === "search" ? "查询中…" : "手动选"}</Button><Button size="sm" variant="outline" disabled={disabled || isBusy} onClick={() => void run("preview", onPreview)}>{busy === "preview" ? "识别中…" : "智能识别"}</Button><Button type="button" size="sm" variant="ghost" className="h-auto rounded-none px-0 py-0 text-muted-foreground underline" disabled={!title.trim() || isBusy} onClick={() => void run("save", async () => { await onSaveTitle(title); setNotice("标题已保存（未联网）"); })}>{busy === "save" ? "保存中…" : "仅存标题不上网"}</Button></div>
     {direct ? <div className="space-y-1 rounded bg-muted/40 p-2">
       <p className="text-muted-foreground">只把你输入的标题发给 TMDb；勾选要拉取的字段后确认。</p>
       <div className="flex flex-wrap gap-2 text-muted-foreground">

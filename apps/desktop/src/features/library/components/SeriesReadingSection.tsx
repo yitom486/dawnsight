@@ -113,23 +113,27 @@ export function SeriesReadingSection() {
               key={`${episode.season}-${episode.episode}`}
               className="group flex items-center gap-1.5"
             >
-              <button
+              <Button
                 type="button"
+                size="sm"
+                variant="ghost"
                 onClick={() => open(episode.path)}
                 title={current ? "正在播放" : `打开${episodeLabel(episode)}`}
                 className={cn(
-                  "min-w-0 flex-1 truncate rounded px-1.5 py-1 text-left text-xs",
+                  "h-auto min-w-0 flex-1 truncate rounded px-1.5 py-1 text-left text-xs",
                   current
                     ? "bg-accent font-medium text-accent-foreground"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground",
                 )}
               >
                 {episodeLabel(episode)}
-              </button>
+              </Button>
               <StatusChip status={state} />
-              <button
+              <Button
                 type="button"
-                className="shrink-0 rounded px-1.5 py-0.5 text-[10px] text-muted-foreground opacity-70 hover:bg-muted hover:text-foreground group-hover:opacity-100"
+                size="sm"
+                variant="ghost"
+                className="h-auto shrink-0 rounded px-1.5 py-0.5 text-[10px] text-muted-foreground opacity-70 hover:bg-muted hover:text-foreground group-hover:opacity-100"
                 title={state === "done" ? "撤销完成" : "标记完成"}
                 onClick={() =>
                   state === "done"
@@ -138,7 +142,7 @@ export function SeriesReadingSection() {
                 }
               >
                 {state === "done" ? "撤销" : "完成"}
-              </button>
+              </Button>
             </li>
           );
         })}
