@@ -1,6 +1,12 @@
 import { useState } from "react";
 
 import { cn } from "@lumina/ui";
+import { Button } from "@lumina/ui/button";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@lumina/ui/collapsible";
 
 import { hasActiveToolActivity, isToolRunning, waitingLabel } from "../activityStatus";
 import {
@@ -42,13 +48,15 @@ export function ChatActivityFeed({
     >
       {collapsible && onRequestCollapse ? (
         <div className="flex justify-end">
-          <button
+          <Button
             type="button"
-            className="text-[10px] text-muted-foreground hover:text-foreground"
+            size="sm"
+            variant="ghost"
+            className="h-auto px-0 py-0 text-[10px] font-normal text-muted-foreground hover:bg-transparent hover:text-foreground"
             onClick={onRequestCollapse}
           >
             收起工具轨迹
-          </button>
+          </Button>
         </div>
       ) : null}
       {activities.map((item) => (
@@ -134,87 +142,100 @@ function ToolActivityRow({
     Boolean(parsedDetail && parsedDetail.length > 0 && (failed || succeeded));
 
   return (
-    <div
-      className={cn(
-        "flex items-start gap-2 rounded-md px-1 py-1",
-        live && running && "chat-tool-row-active",
-        failed && "bg-destructive/5",
-        succeeded && !failed && "bg-success/5",
-      )}
-    >
-      {live && running ? (
-        <div className="chat-tool-scan-line" aria-hidden />
-      ) : null}
-      <span className="relative mt-0.5 shrink-0">
-        {live && running ? (
-          <span className="chat-tool-orbit" aria-hidden />
-        ) : (
-          <span
-            className={cn(
-              "block size-2 rounded-full",
-              toolStatusColor(item.status, live && running),
-            )}
-          />
+    <Collapsible open={detailOpen} onOpenChange={setDetailOpen}>
+      <div
+        className={cn(
+          "flex items-start gap-2 rounded-md px-1 py-1",
+          live && running && "chat-tool-row-active",
+          failed && "bg-destructive/5",
+          succeeded && !failed && "bg-success/5",
         )}
-      </span>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <p className="font-medium text-foreground/90">
-              {item.title ?? item.toolCallId ?? "工具"}
-            </p>
-            {item.status ? (
-              <p
-                className={cn(
-                  "text-[10px]",
-                  failed && "text-destructive",
-                  succeeded && "text-success",
-                  !failed && !succeeded && "text-muted-foreground",
-                )}
-              >
-                {toolStatusLabel(item.status)}
+      >
+        {live && running ? (
+          <div className="chat-tool-scan-line" aria-hidden />
+        ) : null}
+        <span className="relative mt-0.5 shrink-0">
+          {live && running ? (
+            <span className="chat-tool-orbit" aria-hidden />
+          ) : (
+            <span
+              className={cn(
+                "block size-2 rounded-full",
+                toolStatusColor(item.status, live && running),
+              )}
+            />
+          )}
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="font-medium text-foreground/90">
+                {item.title ?? item.toolCallId ?? "工具"}
               </p>
+              {item.status ? (
+                <p
+                  className={cn(
+                    "text-[10px]",
+                    failed && "text-destructive",
+                    succeeded && "text-success",
+                    !failed && !succeeded && "text-muted-foreground",
+                  )}
+                >
+                  {toolStatusLabel(item.status)}
+                </p>
+              ) : null}
+            </div>
+            {canExpand ? (
+              <CollapsibleTrigger
+                render={
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-auto shrink-0 px-0 py-0 text-[10px] font-normal text-muted-foreground hover:bg-transparent hover:text-foreground"
+                  />
+                }
+              >
+                {detailOpen ? "收起" : failed ? "查看原因" : "查看输出"}
+              </CollapsibleTrigger>
             ) : null}
           </div>
-          {canExpand ? (
-            <button
-              type="button"
-              className="shrink-0 text-[10px] text-muted-foreground hover:text-foreground"
-              onClick={() => setDetailOpen((open) => !open)}
+
+          {failed && failureHint ? (
+            <p className="mt-0.5 whitespace-pre-wrap break-words text-[10px] leading-relaxed text-destructive/90">
+              {failureHint}
+            </p>
+          ) : summary && (!collapsible || detailOpen || live || running) ? (
+            <p
+              className={cn(
+                "mt-0.5 whitespace-pre-wrap break-words text-[10px] leading-relaxed text-muted-foreground",
+                collapsible &&
+                  !detailOpen &&
+                  !live &&
+                  canExpand &&
+                  "line-clamp-2",
+              )}
             >
-              {detailOpen ? "收起" : failed ? "查看原因" : "查看输出"}
-            </button>
+              {summary}
+            </p>
+          ) : null}
+
+          {parsedDetail ? (
+            <CollapsibleContent>
+              <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded border border-border/60 bg-background/80 p-2 text-[10px] leading-relaxed text-muted-foreground">
+                {parsedDetail}
+              </pre>
+            </CollapsibleContent>
+          ) : null}
+
+          {!collapsible && item.text && !failed && !detailOpen && !summary ? (
+            <p className="mt-0.5 line-clamp-4 whitespace-pre-wrap break-words text-[10px] leading-relaxed text-muted-foreground">
+              {parsedDetail ?? item.text}
+            </p>
           ) : null}
         </div>
-
-        {failed && failureHint ? (
-          <p className="mt-0.5 whitespace-pre-wrap break-words text-[10px] leading-relaxed text-destructive/90">
-            {failureHint}
-          </p>
-        ) : summary && (!collapsible || detailOpen || live || running) ? (
-          <p
-            className={cn(
-              "mt-0.5 whitespace-pre-wrap break-words text-[10px] leading-relaxed text-muted-foreground",
-              collapsible && !detailOpen && !live && canExpand && "line-clamp-2",
-            )}
-          >
-            {summary}
-          </p>
-        ) : null}
-
-        {detailOpen && parsedDetail ? (
-          <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded border border-border/60 bg-background/80 p-2 text-[10px] leading-relaxed text-muted-foreground">
-            {parsedDetail}
-          </pre>
-        ) : null}
-
-        {!collapsible && item.text && !failed && !detailOpen && !summary ? (
-          <p className="mt-0.5 line-clamp-4 whitespace-pre-wrap break-words text-[10px] leading-relaxed text-muted-foreground">
-            {parsedDetail ?? item.text}
-          </p>
-        ) : null}
       </div>
-    </div>
+    </Collapsible>
   );
 }
 
