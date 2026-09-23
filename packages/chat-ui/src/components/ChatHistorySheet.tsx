@@ -112,10 +112,12 @@ export function ChatHistorySheet({
                     row.sessionId === activeSessionId && "bg-muted/40",
                   )}
                 >
-                  <button
+                  <Button
                     type="button"
+                    size="sm"
+                    variant="ghost"
                     className={cn(
-                      "min-w-0 flex-1 text-left",
+                      "h-auto min-w-0 flex-1 flex-col items-stretch justify-start gap-0 rounded-none px-0 py-0 text-left font-normal hover:bg-transparent focus-visible:ring-offset-0",
                       disabled && "cursor-not-allowed opacity-70",
                     )}
                     disabled={disabled}
@@ -132,7 +134,7 @@ export function ChatHistorySheet({
                         正在回答，请稍后再切换对话
                       </p>
                     ) : null}
-                  </button>
+                  </Button>
                   <Button
                     size="icon"
                     variant="ghost"
