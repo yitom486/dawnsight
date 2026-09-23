@@ -1,7 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, Clock3, Sparkles } from "lucide-react";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useState } from "react";
 
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@lumina/ui/collapsible";
 import {
   parseAssistantBlocksText,
   type AssistantAction,
@@ -136,7 +141,6 @@ function WatchFeedSlotCard({
   onAssistantAction?: (action: AssistantAction) => void;
 }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
-  const contentId = useId();
 
   // A new chapter is a new state snapshot. Make the current record visible,
   // while keeping the user's explicit collapse choice during stable renders.
@@ -150,56 +154,49 @@ function WatchFeedSlotCard({
       data-watch-feed-slot={slot}
       data-watch-feed-item-id={item.id}
     >
-      <button
-        type="button"
-        className="flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
-        aria-expanded={expanded}
-        aria-controls={contentId}
-        onClick={() => setExpanded((value) => !value)}
-      >
-        <Sparkles className="size-3.5 shrink-0 text-primary" aria-hidden />
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-xs font-medium text-foreground">
-            {slotLabel(slot)}
+      <Collapsible open={expanded} onOpenChange={setExpanded}>
+        <CollapsibleTrigger className="flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset">
+          <Sparkles className="size-3.5 shrink-0 text-primary" aria-hidden />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-xs font-medium text-foreground">
+              {slotLabel(slot)}
+            </span>
+            <span className="block truncate text-[10px] text-muted-foreground">
+              {slotHint(slot)}
+            </span>
           </span>
-          <span className="block truncate text-[10px] text-muted-foreground">
-            {slotHint(slot)}
+          <span className="shrink-0 text-[10px] text-muted-foreground">
+            {spoilerLevelLabel(item.spoilerLevel)}
           </span>
-        </span>
-        <span className="shrink-0 text-[10px] text-muted-foreground">
-          {spoilerLevelLabel(item.spoilerLevel)}
-        </span>
-        <ChevronDown
-          className={`size-3.5 shrink-0 text-muted-foreground transition-transform ${
-            expanded ? "rotate-180" : ""
-          }`}
-          aria-hidden
-        />
-      </button>
-
-      {expanded ? (
-        <div
-          id={contentId}
-          className="max-h-48 overflow-y-auto border-t border-border/70 px-3 py-2 text-xs"
-        >
-          <div className="mb-1.5 flex items-center gap-1.5 text-[10px] text-muted-foreground">
-            <Clock3 className="size-3" aria-hidden />
-            <span>{formatItemRange(item)}</span>
-          </div>
-          <PersistedWatchFeedContent
-            item={item}
-            onAssistantAction={onAssistantAction}
+          <ChevronDown
+            className={`size-3.5 shrink-0 text-muted-foreground transition-transform ${
+              expanded ? "rotate-180" : ""
+            }`}
+            aria-hidden
           />
-          {item.screenshotRefs.length > 0 || item.coverRef ? (
-            <p className="mt-2 border-t border-border/70 pt-2 text-[10px] text-muted-foreground">
-              {item.coverRef ? "含章节封面引用" : null}
-              {item.screenshotRefs.length > 0
-                ? `${item.coverRef ? " · " : ""}含 ${item.screenshotRefs.length} 个画面引用`
-                : null}
-            </p>
-          ) : null}
-        </div>
-      ) : null}
+        </CollapsibleTrigger>
+
+        {expanded ? (
+          <CollapsibleContent className="max-h-48 overflow-y-auto border-t border-border/70 px-3 py-2 text-xs">
+            <div className="mb-1.5 flex items-center gap-1.5 text-[10px] text-muted-foreground">
+              <Clock3 className="size-3" aria-hidden />
+              <span>{formatItemRange(item)}</span>
+            </div>
+            <PersistedWatchFeedContent
+              item={item}
+              onAssistantAction={onAssistantAction}
+            />
+            {item.screenshotRefs.length > 0 || item.coverRef ? (
+              <p className="mt-2 border-t border-border/70 pt-2 text-[10px] text-muted-foreground">
+                {item.coverRef ? "含章节封面引用" : null}
+                {item.screenshotRefs.length > 0
+                  ? `${item.coverRef ? " · " : ""}含 ${item.screenshotRefs.length} 个画面引用`
+                  : null}
+              </p>
+            ) : null}
+          </CollapsibleContent>
+        ) : null}
+      </Collapsible>
     </section>
   );
 }

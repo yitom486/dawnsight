@@ -3,6 +3,11 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@lumina/ui/button";
 import { Checkbox } from "@lumina/ui/checkbox";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@lumina/ui/collapsible";
 import { Field as SharedField, FieldLabel } from "@lumina/ui/field";
 import { Input } from "@lumina/ui/input";
 import { Label } from "@lumina/ui/label";
@@ -107,199 +112,197 @@ export function AgentSettingsPanel({
 
   return (
     <ChatColumn className="shrink-0 border-t border-border py-2">
-      <button
-        type="button"
-        className="flex w-full items-center justify-between text-[11px] text-muted-foreground hover:text-foreground"
-        onClick={() => setOpen((value) => !value)}
-      >
-        <span>Agent 设置</span>
-        <span>{open ? "收起 ▲" : "展开 ▼"}</span>
-      </button>
+      <Collapsible open={open} onOpenChange={setOpen}>
+        <CollapsibleTrigger className="flex w-full items-center justify-between text-[11px] text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <span>Agent 设置</span>
+          <span>{open ? "收起 ▲" : "展开 ▼"}</span>
+        </CollapsibleTrigger>
 
-      {open ? (
-        <div className="mt-2 space-y-3">
-          <Field label="Agent" htmlFor="agent-profile">
-            <NativeSelect
-              id="agent-profile"
-              size="sm"
-              className="w-full"
-              value={activeProfileId}
-              disabled={controlsDisabled}
-              onChange={(e) => {
-                if (e.target.value === activeProfileId || controlsDisabled) return;
-                switchActiveProfileId(e.target.value);
-                // Model ids are agent-specific (e.g. GPT-5.6 belongs to
-                // Codex); never leak a saved selection into another agent.
-                // permissionMode/thinkingLevel 保持现状不变（全局偏好，
-                // 切 profile 是否保留待产品确认，不擅自改语义）。
-                patchSettings({ modelId: "", reasoningEffort: "" });
-                refreshStatus();
-              }}
-            >
-              {profileList.map((profile) => (
-                <NativeSelectOption key={profile.id} value={profile.id}>
-                  {profileLabel(profile)}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
-          </Field>
+        {open ? (
+          <CollapsibleContent className="mt-2 space-y-3">
+            <Field label="Agent" htmlFor="agent-profile">
+              <NativeSelect
+                id="agent-profile"
+                size="sm"
+                className="w-full"
+                value={activeProfileId}
+                disabled={controlsDisabled}
+                onChange={(e) => {
+                  if (e.target.value === activeProfileId || controlsDisabled) return;
+                  switchActiveProfileId(e.target.value);
+                  // Model ids are agent-specific (e.g. GPT-5.6 belongs to
+                  // Codex); never leak a saved selection into another agent.
+                  // permissionMode/thinkingLevel 保持现状不变（全局偏好，
+                  // 切 profile 是否保留待产品确认，不擅自改语义）。
+                  patchSettings({ modelId: "", reasoningEffort: "" });
+                  refreshStatus();
+                }}
+              >
+                {profileList.map((profile) => (
+                  <NativeSelectOption key={profile.id} value={profile.id}>
+                    {profileLabel(profile)}
+                  </NativeSelectOption>
+                ))}
+              </NativeSelect>
+            </Field>
 
-          {activeProfileId === "custom" ? (
-            <div className="flex gap-2">
-              <Input
-                className="h-8 min-w-0 flex-1 rounded-md border border-border bg-background px-2 text-xs"
-                placeholder="自定义 Agent 命令"
-                value={customCommand}
-                onChange={(e) => setCustomCommand(e.target.value)}
-              />
+            {activeProfileId === "custom" ? (
+              <div className="flex gap-2">
+                <Input
+                  className="h-8 min-w-0 flex-1 rounded-md border border-border bg-background px-2 text-xs"
+                  placeholder="自定义 Agent 命令"
+                  value={customCommand}
+                  onChange={(e) => setCustomCommand(e.target.value)}
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={!customCommand.trim() || controlsDisabled}
+                  onClick={saveCustomProfile}
+                >
+                  保存
+                </Button>
+              </div>
+            ) : null}
+
+            {canDiscover ? (
               <Button
                 size="sm"
                 variant="outline"
-                disabled={!customCommand.trim() || controlsDisabled}
-                onClick={saveCustomProfile}
-              >
-                保存
-              </Button>
-            </div>
-          ) : null}
-
-          {canDiscover ? (
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-7 w-full text-[11px]"
-              disabled={controlsDisabled}
-              onClick={() => {
-                void discoverModels();
-              }}
-            >
-              {discoverBusy ? "正在检测可用模型…" : "检测可用模型"}
-            </Button>
-          ) : null}
-
-          <Field label="模式" htmlFor="agent-mode">
-            <NativeSelect
-              id="agent-mode"
-              size="sm"
-              className="w-full"
-              value={agentMode}
-              disabled={controlsDisabled}
-              onChange={(e) => patchSettings({ agentMode: e.target.value })}
-            >
-              {AGENT_MODES.map((mode) => (
-                <NativeSelectOption key={mode.id} value={mode.id}>
-                  {mode.label}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
-          </Field>
-
-          <Field label="思考展示" htmlFor="agent-thinking-level">
-            <NativeSelect
-              id="agent-thinking-level"
-              size="sm"
-              className="w-full"
-              value={thinkingLevel}
-              disabled={controlsDisabled}
-              onChange={(e) =>
-                patchSettings({
-                  thinkingLevel: e.target.value as ThinkingLevel,
-                })
-              }
-            >
-              <NativeSelectOption value="hidden">隐藏</NativeSelectOption>
-              <NativeSelectOption value="minimal">流式时显示，完成后收起</NativeSelectOption>
-              <NativeSelectOption value="verbose">始终保留思考/工具轨迹</NativeSelectOption>
-            </NativeSelect>
-          </Field>
-
-          <Field label="台词上下文窗口" htmlFor="agent-transcript-window">
-            <NativeSelect
-              id="agent-transcript-window"
-              size="sm"
-              className="w-full"
-              value={transcriptWindowPreset}
-              disabled={controlsDisabled}
-              onChange={(e) =>
-                patchSettings({
-                  transcriptWindowPreset: e.target.value as TranscriptWindowPreset,
-                })
-              }
-            >
-              {TRANSCRIPT_WINDOW_PRESET_OPTIONS.map((option) => (
-                <NativeSelectOption key={option.value} value={option.value}>
-                  {option.label}（前后各 {option.radiusSec} 秒）
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
-            <p className="text-[10px] leading-relaxed text-muted-foreground">
-              下一轮提问时建议 Agent 读取当前播放点前后的台词范围。
-            </p>
-          </Field>
-
-          <div className="space-y-1">
-            <Label
-              htmlFor="agent-vision-capable"
-              className="flex cursor-pointer items-center gap-2 text-xs text-foreground"
-            >
-              <Checkbox
-                id="agent-vision-capable"
-                checked={visionCapable}
+                className="h-7 w-full text-[11px]"
                 disabled={controlsDisabled}
-                onCheckedChange={(checked) => {
-                  const nextVisionCapable = checked === true;
-                  patchSettings({ visionCapable: nextVisionCapable });
-                  if (sessionConnected) {
-                    void acpSyncMcpCapabilities({
-                      cwd: sessionCwd,
-                      clientSettings: clientSettingsFromStore({
-                        ...useAcpSettingsStore.getState(),
-                        visionCapable: nextVisionCapable,
-                      }),
-                    });
-                  }
+                onClick={() => {
+                  void discoverModels();
                 }}
-              />
-              启用画面截图工具（需视图模型）
-            </Label>
-            <p className="text-[10px] leading-relaxed text-muted-foreground">
-              以发送消息时的播放进度为锚点；默认单帧；前后秒数按约 1 帧/秒采样（单侧最多
-              7 秒、共最多 15 帧）；640px JPEG；工具返回后本地即删。关闭后 MCP
-              不再暴露截图工具；若 Agent 仍看不到变化，请点「新对话」。
-            </p>
-          </div>
+              >
+                {discoverBusy ? "正在检测可用模型…" : "检测可用模型"}
+              </Button>
+            ) : null}
 
-          {controlError ? (
-            <p className="text-[10px] leading-relaxed text-destructive">
-              {controlError}
-            </p>
-          ) : null}
+            <Field label="模式" htmlFor="agent-mode">
+              <NativeSelect
+                id="agent-mode"
+                size="sm"
+                className="w-full"
+                value={agentMode}
+                disabled={controlsDisabled}
+                onChange={(e) => patchSettings({ agentMode: e.target.value })}
+              >
+                {AGENT_MODES.map((mode) => (
+                  <NativeSelectOption key={mode.id} value={mode.id}>
+                    {mode.label}
+                  </NativeSelectOption>
+                ))}
+              </NativeSelect>
+            </Field>
 
-          {status?.codexPath ? (
-            <p className="text-[10px] leading-relaxed text-muted-foreground">
-              本机 Codex：{status.codexPath}
-            </p>
-          ) : null}
+            <Field label="思考展示" htmlFor="agent-thinking-level">
+              <NativeSelect
+                id="agent-thinking-level"
+                size="sm"
+                className="w-full"
+                value={thinkingLevel}
+                disabled={controlsDisabled}
+                onChange={(e) =>
+                  patchSettings({
+                    thinkingLevel: e.target.value as ThinkingLevel,
+                  })
+                }
+              >
+                <NativeSelectOption value="hidden">隐藏</NativeSelectOption>
+                <NativeSelectOption value="minimal">流式时显示，完成后收起</NativeSelectOption>
+                <NativeSelectOption value="verbose">始终保留思考/工具轨迹</NativeSelectOption>
+              </NativeSelect>
+            </Field>
 
-          {status?.codexConfigFound === false && activeProfileId === "codex" ? (
-            <p className="text-[10px] leading-relaxed text-muted-foreground">
-              未检测到 %USERPROFILE%\.codex 配置；若已在终端登录 Codex，请重启 Lumina 后再试。
-            </p>
-          ) : null}
+            <Field label="台词上下文窗口" htmlFor="agent-transcript-window">
+              <NativeSelect
+                id="agent-transcript-window"
+                size="sm"
+                className="w-full"
+                value={transcriptWindowPreset}
+                disabled={controlsDisabled}
+                onChange={(e) =>
+                  patchSettings({
+                    transcriptWindowPreset: e.target.value as TranscriptWindowPreset,
+                  })
+                }
+              >
+                {TRANSCRIPT_WINDOW_PRESET_OPTIONS.map((option) => (
+                  <NativeSelectOption key={option.value} value={option.value}>
+                    {option.label}（前后各 {option.radiusSec} 秒）
+                  </NativeSelectOption>
+                ))}
+              </NativeSelect>
+              <p className="text-[10px] leading-relaxed text-muted-foreground">
+                下一轮提问时建议 Agent 读取当前播放点前后的台词范围。
+              </p>
+            </Field>
 
-          {status?.hint ? (
-            <p className="text-[11px] leading-relaxed text-muted-foreground">
-              {status.hint}
-            </p>
-          ) : null}
+            <div className="space-y-1">
+              <Label
+                htmlFor="agent-vision-capable"
+                className="flex cursor-pointer items-center gap-2 text-xs text-foreground"
+              >
+                <Checkbox
+                  id="agent-vision-capable"
+                  checked={visionCapable}
+                  disabled={controlsDisabled}
+                  onCheckedChange={(checked) => {
+                    const nextVisionCapable = checked === true;
+                    patchSettings({ visionCapable: nextVisionCapable });
+                    if (sessionConnected) {
+                      void acpSyncMcpCapabilities({
+                        cwd: sessionCwd,
+                        clientSettings: clientSettingsFromStore({
+                          ...useAcpSettingsStore.getState(),
+                          visionCapable: nextVisionCapable,
+                        }),
+                      });
+                    }
+                  }}
+                />
+                启用画面截图工具（需视图模型）
+              </Label>
+              <p className="text-[10px] leading-relaxed text-muted-foreground">
+                以发送消息时的播放进度为锚点；默认单帧；前后秒数按约 1 帧/秒采样（单侧最多
+                7 秒、共最多 15 帧）；640px JPEG；工具返回后本地即删。关闭后 MCP
+                不再暴露截图工具；若 Agent 仍看不到变化，请点「新对话」。
+              </p>
+            </div>
 
-          {showResponsesNote && status?.responsesOnlyNote ? (
-            <p className="text-[10px] leading-relaxed text-muted-foreground">
-              {status.responsesOnlyNote}
-            </p>
-          ) : null}
-        </div>
-      ) : null}
+            {controlError ? (
+              <p className="text-[10px] leading-relaxed text-destructive">
+                {controlError}
+              </p>
+            ) : null}
+
+            {status?.codexPath ? (
+              <p className="text-[10px] leading-relaxed text-muted-foreground">
+                本机 Codex：{status.codexPath}
+              </p>
+            ) : null}
+
+            {status?.codexConfigFound === false && activeProfileId === "codex" ? (
+              <p className="text-[10px] leading-relaxed text-muted-foreground">
+                未检测到 %USERPROFILE%\.codex 配置；若已在终端登录 Codex，请重启 Lumina 后再试。
+              </p>
+            ) : null}
+
+            {status?.hint ? (
+              <p className="text-[11px] leading-relaxed text-muted-foreground">
+                {status.hint}
+              </p>
+            ) : null}
+
+            {showResponsesNote && status?.responsesOnlyNote ? (
+              <p className="text-[10px] leading-relaxed text-muted-foreground">
+                {status.responsesOnlyNote}
+              </p>
+            ) : null}
+          </CollapsibleContent>
+        ) : null}
+      </Collapsible>
     </ChatColumn>
   );
 }

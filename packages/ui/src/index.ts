@@ -3,6 +3,7 @@
 export * from "./utils";
 export * from "./button";
 export * from "./checkbox";
+export * from "./collapsible";
 export * from "./combobox";
 export * from "./field";
 export * from "./input";

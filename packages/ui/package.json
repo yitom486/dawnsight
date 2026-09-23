@@ -25,6 +25,10 @@
       "types": "./src/checkbox.tsx",
       "default": "./src/checkbox.tsx"
     },
+    "./collapsible": {
+      "types": "./src/collapsible.tsx",
+      "default": "./src/collapsible.tsx"
+    },
     "./field": {
       "types": "./src/field.tsx",
       "default": "./src/field.tsx"

@@ -2,6 +2,11 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Suspense, lazy, useState } from "react";
 
 import { Button } from "@lumina/ui/button";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@lumina/ui/collapsible";
 import { cn } from "@lumina/ui/utils";
 import { errorMessage, formatTime } from "@/lib/format";
 
@@ -226,30 +231,30 @@ export function ChatTurnView({
       </div>
 
       <div className="w-full">
-        {presentationMode === "development" &&
-        visibleActivities.length > 0 &&
-        !showActivityFeed ? (
-          <button
-            type="button"
-            className="mb-2 text-[11px] text-muted-foreground hover:text-foreground"
-            onClick={() => setToolsOpen(true)}
-          >
-            {toolCount > 0
-              ? `查看本轮调试记录（${toolCount} 个工具）`
-              : "查看本轮调试记录"}
-          </button>
-        ) : null}
+        {visibleActivities.length > 0 ? (
+          <Collapsible open={showActivityFeed} onOpenChange={setToolsOpen}>
+            {presentationMode === "development" && !showActivityFeed ? (
+              <CollapsibleTrigger className="mb-2 text-[11px] text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                {toolCount > 0
+                  ? `查看本轮调试记录（${toolCount} 个工具）`
+                  : "查看本轮调试记录"}
+              </CollapsibleTrigger>
+            ) : null}
 
-        {showActivityFeed ? (
-          <ChatActivityFeed
-            activities={visibleActivities}
-            streaming={isStreaming}
-            collapsible={!isStreaming}
-            liveLabel={releaseLiveLabel}
-            onRequestCollapse={
-              !isStreaming ? () => setToolsOpen(false) : undefined
-            }
-          />
+            {showActivityFeed ? (
+              <CollapsibleContent>
+                <ChatActivityFeed
+                  activities={visibleActivities}
+                  streaming={isStreaming}
+                  collapsible={!isStreaming}
+                  liveLabel={releaseLiveLabel}
+                  onRequestCollapse={
+                    !isStreaming ? () => setToolsOpen(false) : undefined
+                  }
+                />
+              </CollapsibleContent>
+            ) : null}
+          </Collapsible>
         ) : null}
 
         <div
