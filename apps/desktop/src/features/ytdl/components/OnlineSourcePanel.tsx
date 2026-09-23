@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { Button } from "@lumina/ui/button";
+import { Input } from "@lumina/ui/input";
 import { ytdlResolveKey } from "@lumina/query-keys";
 import { OnlineSourceSettings } from "@/features/ytdl/components/OnlineSourceSettings";
 import { usePlayerStore } from "@/features/player";
@@ -105,12 +106,13 @@ function OnlineSettingsContent() {
           粘贴完整链接后点「打开链接」。公开视频通常可直接播；若提示需要登录，请用下方「导入
           cookies.txt」（不是 Google 一键授权）。
         </p>
-        <input
+        <Input
+          aria-label="在线视频 URL"
           type="url"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="https://www.youtube.com/watch?v=…"
-          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="h-auto w-full rounded-md px-3 py-2 text-sm"
           disabled={busy}
           onKeyDown={(e) => {
             if (e.key === "Enter") {

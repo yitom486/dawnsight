@@ -1,3 +1,5 @@
+import { Field as SharedField, FieldContent, FieldDescription, FieldLabel } from "@lumina/ui/field";
+import { Switch } from "@lumina/ui/switch";
 import { QualitySelect } from "@/features/player/components/QualitySelect";
 import { usePlayerStore } from "@/features/player";
 import { useUiStore } from "@/features/player/uiStore";
@@ -16,20 +18,24 @@ export function PlaybackInterfaceSettingsPanel() {
           播放显示和当前媒体相关的界面偏好。播放器仍由原生播放服务负责。
         </p>
       </div>
-      <label className="flex items-center justify-between gap-3 rounded-md border border-border/70 bg-muted/20 px-3 py-2 text-sm">
-        <span>
-          <span className="block font-medium">全屏播放</span>
-          <span className="mt-0.5 block text-xs text-muted-foreground">
+      <SharedField
+        orientation="horizontal"
+        className="items-center justify-between gap-3 rounded-md border border-border/70 bg-muted/20 px-3 py-2 text-sm"
+      >
+        <FieldContent className="gap-0">
+          <FieldLabel htmlFor="playback-fullscreen" className="font-medium">
+            全屏播放
+          </FieldLabel>
+          <FieldDescription className="mt-0.5 text-xs">
             使用原生窗口全屏，不覆盖播放器画面。
-          </span>
-        </span>
-        <input
-          type="checkbox"
+          </FieldDescription>
+        </FieldContent>
+        <Switch
+          id="playback-fullscreen"
           checked={fullscreen}
-          onChange={(event) => void setFullscreen(event.target.checked)}
-          aria-label="全屏播放"
+          onCheckedChange={(checked) => void setFullscreen(checked)}
         />
-      </label>
+      </SharedField>
       {sourceKind === "remote" ? (
         <div className="flex items-center justify-between gap-3 rounded-md border border-border/70 bg-muted/20 px-3 py-2 text-sm">
           <span>

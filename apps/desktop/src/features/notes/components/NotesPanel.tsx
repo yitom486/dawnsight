@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@lumina/ui/button";
+import { Checkbox } from "@lumina/ui/checkbox";
+import { Field as SharedField, FieldLabel } from "@lumina/ui/field";
 import { Textarea } from "@lumina/ui/textarea";
 import { ScrollArea } from "@lumina/ui/scroll-area";
 import { usePlayerStore } from "@/features/player";
@@ -261,25 +263,29 @@ export function NotesPanel() {
           onChange={(e) => setBody(e.target.value)}
         />
 
-        <label className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-          <input
-            type="checkbox"
+        <SharedField orientation="horizontal" className="mt-2 w-fit items-center gap-2">
+          <Checkbox
+            id="notes-include-quotes"
             checked={includeQuotes}
             disabled={!canAttachQuotes}
-            onChange={(e) => setIncludeQuotes(e.target.checked)}
+            onCheckedChange={(checked) => setIncludeQuotes(checked === true)}
           />
-          附带台词引用
-          {!canAttachQuotes ? "（需先选择字幕轨）" : null}
-        </label>
+          <FieldLabel htmlFor="notes-include-quotes" className="w-fit text-xs text-muted-foreground">
+            附带台词引用
+            {!canAttachQuotes ? "（需先选择字幕轨）" : null}
+          </FieldLabel>
+        </SharedField>
 
-        <label className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-          <input
-            type="checkbox"
+        <SharedField orientation="horizontal" className="mt-2 w-fit items-center gap-2">
+          <Checkbox
+            id="notes-include-frame"
             checked={includeFrame}
-            onChange={(e) => setIncludeFrame(e.target.checked)}
+            onCheckedChange={(checked) => setIncludeFrame(checked === true)}
           />
-          附带当前画面
-        </label>
+          <FieldLabel htmlFor="notes-include-frame" className="w-fit text-xs text-muted-foreground">
+            附带当前画面
+          </FieldLabel>
+        </SharedField>
 
         {includeQuotes && canAttachQuotes ? (
           <div className="mt-2 space-y-2 rounded-md border border-border/60 p-2">

@@ -2,10 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@lumina/ui/button";
+import { NativeSelect, NativeSelectOption } from "@lumina/ui/native-select";
 
 import { getNoteFrame } from "../api";
 import { errorMessage, formatTime } from "@/lib/format";
-import { cn } from "@lumina/ui/utils";
 
 import { exportNoteRecapCard } from "../api";
 import {
@@ -123,16 +123,16 @@ export function RecapCardDialog({ note, mediaPath, open, onClose }: Props) {
           style={{ aspectRatio: `${size.width} / ${size.height}` }}
         />
         <div className="flex items-center gap-2">
-          <select
-            className={cn(
-              "h-8 rounded-md border border-border bg-background px-2 text-xs",
-            )}
+          <NativeSelect
+            aria-label="打卡卡片比例"
+            size="sm"
+            className="w-[4.5rem]"
             value={ratio}
             onChange={(event) => setRatio(event.target.value as RecapCardRatio)}
           >
-            <option value="3:4">3:4</option>
-            <option value="9:16">9:16</option>
-          </select>
+            <NativeSelectOption value="3:4">3:4</NativeSelectOption>
+            <NativeSelectOption value="9:16">9:16</NativeSelectOption>
+          </NativeSelect>
           <Button size="sm" disabled={busy} onClick={() => void exportCard()}>
             {busy ? "导出中…" : "导出 PNG"}
           </Button>

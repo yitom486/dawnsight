@@ -3,6 +3,8 @@ import { X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@lumina/ui/button";
+import { Checkbox } from "@lumina/ui/checkbox";
+import { Field as SharedField, FieldLabel } from "@lumina/ui/field";
 import { Textarea } from "@lumina/ui/textarea";
 import { ScrollArea } from "@lumina/ui/scroll-area";
 import { usePlayerStore } from "@/features/player";
@@ -191,16 +193,18 @@ export function QuickNoteDialog({
         }}
       />
 
-      <label className="mb-1 flex items-center gap-2 text-[11px] text-muted-foreground">
-        <input
-          type="checkbox"
+      <SharedField orientation="horizontal" className="mb-1 w-fit items-center gap-2">
+        <Checkbox
+          id="quick-note-include-quotes"
           checked={includeQuotes}
           disabled={!canAttachQuotes || saveMutation.isPending}
-          onChange={(event) => setIncludeQuotes(event.target.checked)}
+          onCheckedChange={(checked) => setIncludeQuotes(checked === true)}
         />
-        附带台词引用
-        {!canAttachQuotes ? "（需先选择字幕轨）" : null}
-      </label>
+        <FieldLabel htmlFor="quick-note-include-quotes" className="w-fit text-[11px] text-muted-foreground">
+          附带台词引用
+          {!canAttachQuotes ? "（需先选择字幕轨）" : null}
+        </FieldLabel>
+      </SharedField>
 
       {includeQuotes && canAttachQuotes ? (
         <div className="mb-2 space-y-1.5 rounded-md border border-border/60 p-2">
