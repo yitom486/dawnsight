@@ -3,6 +3,10 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@lumina/ui/button";
+import { Checkbox } from "@lumina/ui/checkbox";
+import { Field as SharedField, FieldLabel } from "@lumina/ui/field";
+import { Input } from "@lumina/ui/input";
+import { NativeSelect, NativeSelectOption } from "@lumina/ui/native-select";
 import { Progress } from "@lumina/ui/progress";
 import { profilesHintFromStore } from "@lumina/chat-ui/defaultAgentProfiles";
 import { useAcpProfilesStore } from "@lumina/chat-ui/acpProfilesStore";
@@ -431,9 +435,23 @@ function LibrarySettingsContent() {
             停止
           </Button>
         </div>
-        <label className="block text-muted-foreground">扫描周期（秒）
-          <input className="ml-2 h-7 w-16 rounded border border-border bg-background px-1" type="number" min={5} value={pollIntervalSecs} onChange={(event) => patchSettings({ pollIntervalSecs: Math.max(5, Number(event.target.value) || 5) })} />
-        </label>
+        <SharedField orientation="horizontal" className="w-fit items-center gap-2 text-muted-foreground">
+          <FieldLabel htmlFor="library-scan-poll-interval" className="text-xs">
+            扫描周期（秒）
+          </FieldLabel>
+          <Input
+            id="library-scan-poll-interval"
+            className="ml-2 h-7 w-16 rounded border border-border bg-background px-1 text-sm"
+            type="number"
+            min={5}
+            value={pollIntervalSecs}
+            onChange={(event) =>
+              patchSettings({
+                pollIntervalSecs: Math.max(5, Number(event.target.value) || 5),
+              })
+            }
+          />
+        </SharedField>
         {scanProgress ? <ScanProgressCard event={scanProgress} busy={startMutation.isPending} /> : null}
         <p className="text-muted-foreground">扫描和本地索引不需要连接 Agent 或配置 TMDb；智能匹配时才会使用它们。</p>
         {statusQuery.data?.lastScanError ? <div className="space-y-2 rounded-md border border-destructive/50 bg-destructive/10 p-2 text-destructive" role="alert">
@@ -446,19 +464,201 @@ function LibrarySettingsContent() {
       <details className="rounded-md border border-border p-2">
         <summary className="cursor-pointer font-medium">智能匹配设置</summary>
         <div className="mt-2 space-y-2">
-          <Field label="智能匹配来源"><select className="h-7 w-full rounded border border-border bg-background px-2" value={resolverProvider} onChange={(e) => { setValidation(null); setModelConnection(null); setAgentConnection(null); patchSettings({ resolverProvider: e.target.value as "acpAgent" | "directApi" }); }}><option value="directApi">独立模型服务（推荐）</option><option value="acpAgent">复用 Lumina Agent（高级）</option></select></Field>
+          <Field label="智能匹配来源" id="library-resolver-provider">
+            <NativeSelect
+              id="library-resolver-provider"
+              size="sm"
+              className="w-full"
+              value={resolverProvider}
+              onChange={(e) => {
+                setValidation(null);
+                setModelConnection(null);
+                setAgentConnection(null);
+                patchSettings({
+                  resolverProvider: e.target.value as "acpAgent" | "directApi",
+                });
+              }}
+            >
+              <NativeSelectOption value="directApi">
+                独立模型服务（推荐）
+              </NativeSelectOption>
+              <NativeSelectOption value="acpAgent">
+                复用 Lumina Agent（高级）
+              </NativeSelectOption>
+            </NativeSelect>
+          </Field>
           {resolverProvider === "acpAgent" ? <>
-            <Field label="用于智能匹配的 Agent"><select className="h-7 w-full rounded border border-border bg-background px-2" value={selectedAgentProfileId} onChange={(e) => { setValidation(null); setAgentConnection(null); patchSettings({ agentProfileId: e.target.value, agentModelId: "", agentReasoningEffort: "" }); }}>{acpProfiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.name}</option>)}</select></Field>
+            <Field label="用于智能匹配的 Agent" id="library-agent-profile">
+              <NativeSelect
+                id="library-agent-profile"
+                size="sm"
+                className="w-full"
+                value={selectedAgentProfileId}
+                onChange={(e) => {
+                  setValidation(null);
+                  setAgentConnection(null);
+                  patchSettings({
+                    agentProfileId: e.target.value,
+                    agentModelId: "",
+                    agentReasoningEffort: "",
+                  });
+                }}
+              >
+                {acpProfiles.map((profile) => (
+                  <NativeSelectOption key={profile.id} value={profile.id}>
+                    {profile.name}
+                  </NativeSelectOption>
+                ))}
+              </NativeSelect>
+            </Field>
             <div className="space-y-1"><Button size="sm" variant="outline" disabled={!selectedAgentProfileId || discoverAgentModelsMutation.isPending} onClick={() => discoverAgentModelsMutation.mutate()}>{discoverAgentModelsMutation.isPending ? "连接中" : agentModelId ? "刷新 Agent 模型列表" : "连接 Agent 并获取模型"}</Button>{agentConnection ? <p className={agentConnection.connected ? "text-emerald-500" : "text-destructive"}>{agentConnection.message}</p> : agentModelId ? <p className="text-muted-foreground">已保存媒体匹配模型：{agentModelId}{agentReasoningEffort ? ` · ${agentReasoningEffort}` : ""}。重启后可直接智能匹配；仅在更换模型时需要刷新列表。</p> : <p className="text-muted-foreground">先连接 Agent，再选择本次媒体匹配使用的模型；不会复用或改写聊天会话。</p>}</div>
-            {showAgentModelPicker && agentModelOptions.length ? <><Field label="用于媒体匹配的模型"><select className="h-7 w-full rounded border border-border bg-background px-2" value={agentModelId} onChange={(e) => { setValidation(null); patchSettings({ agentModelId: e.target.value }); }}><option value="">请选择模型</option>{agentModelOptions.map((option) => <option key={option.value} value={option.value}>{option.name}</option>)}</select></Field><p className="text-muted-foreground">文件名解析是轻量任务：优先选择账户可用的低成本/mini 模型，而非最长任务或旗舰模型。</p>{agentReasoningOptions.length ? <Field label="推理强度"><select className="h-7 w-full rounded border border-border bg-background px-2" value={agentReasoningEffort} onChange={(e) => { setValidation(null); patchSettings({ agentReasoningEffort: e.target.value }); }}><option value="">使用模型默认值</option>{agentReasoningOptions.map((option) => <option key={option.value} value={option.value}>{option.name}</option>)}</select></Field> : null}<p className="text-muted-foreground">建议设为 low 或 minimal（若该模型提供），以降低文件名匹配的延迟与成本。</p></> : null}
+            {showAgentModelPicker && agentModelOptions.length ? <>
+              <Field label="用于媒体匹配的模型" id="library-agent-model">
+                <NativeSelect
+                  id="library-agent-model"
+                  size="sm"
+                  className="w-full"
+                  value={agentModelId}
+                  onChange={(e) => {
+                    setValidation(null);
+                    patchSettings({ agentModelId: e.target.value });
+                  }}
+                >
+                  <NativeSelectOption value="">请选择模型</NativeSelectOption>
+                  {agentModelOptions.map((option) => (
+                    <NativeSelectOption key={option.value} value={option.value}>
+                      {option.name}
+                    </NativeSelectOption>
+                  ))}
+                </NativeSelect>
+              </Field>
+              <p className="text-muted-foreground">文件名解析是轻量任务：优先选择账户可用的低成本/mini 模型，而非最长任务或旗舰模型。</p>
+              {agentReasoningOptions.length ? (
+                <Field label="推理强度" id="library-agent-reasoning">
+                  <NativeSelect
+                    id="library-agent-reasoning"
+                    size="sm"
+                    className="w-full"
+                    value={agentReasoningEffort}
+                    onChange={(e) => {
+                      setValidation(null);
+                      patchSettings({ agentReasoningEffort: e.target.value });
+                    }}
+                  >
+                    <NativeSelectOption value="">
+                      使用模型默认值
+                    </NativeSelectOption>
+                    {agentReasoningOptions.map((option) => (
+                      <NativeSelectOption key={option.value} value={option.value}>
+                        {option.name}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                </Field>
+              ) : null}
+              <p className="text-muted-foreground">建议设为 low 或 minimal（若该模型提供），以降低文件名匹配的延迟与成本。</p>
+            </> : null}
             <p className="text-muted-foreground">每次识别创建独立短会话，发出请求前会应用这里选定的模型与推理强度；不读取或写入 AI 对话历史，也不允许工具、文件系统或终端访问。</p>
           </> : <>
-            <Field label="模型服务地址"><input value={modelBaseUrl} onChange={(e) => { setValidation(null); setModelConnection(null); patchSettings({ modelBaseUrl: e.target.value }); }} placeholder="https://…/v1" /></Field>
-            <Field label="模型 API Key（留空则沿用已保存密钥）"><input type="password" autoComplete="off" value={modelApiKey} onChange={(e) => { setValidation(null); setModelConnection(null); setModelApiKey(e.target.value); }} placeholder={credentialStatusQuery.data?.modelApiKeySaved ? "已保存到此设备" : "输入后保存到此设备"} /></Field>
+            <Field label="模型服务地址" id="library-model-base-url">
+              <Input
+                id="library-model-base-url"
+                className="h-7 w-full rounded border border-border bg-background px-2 text-sm"
+                value={modelBaseUrl}
+                onChange={(e) => {
+                  setValidation(null);
+                  setModelConnection(null);
+                  patchSettings({ modelBaseUrl: e.target.value });
+                }}
+                placeholder="https://…/v1"
+              />
+            </Field>
+            <Field label="模型 API Key（留空则沿用已保存密钥）" id="library-model-api-key">
+              <Input
+                id="library-model-api-key"
+                className="h-7 w-full rounded border border-border bg-background px-2 text-sm"
+                type="password"
+                autoComplete="off"
+                value={modelApiKey}
+                onChange={(e) => {
+                  setValidation(null);
+                  setModelConnection(null);
+                  setModelApiKey(e.target.value);
+                }}
+                placeholder={credentialStatusQuery.data?.modelApiKeySaved ? "已保存到此设备" : "输入后保存到此设备"}
+              />
+            </Field>
             <div className="space-y-1"><Button size="sm" variant="outline" disabled={!modelBaseUrl.trim() || (!modelApiKey.trim() && !credentialStatusQuery.data?.modelApiKeySaved) || discoverModelsMutation.isPending} onClick={() => discoverModelsMutation.mutate()}>{modelApiKey.trim() ? "保存并连接" : "连接并获取模型"}</Button>{modelConnection ? <p className={modelConnection.connected ? "text-emerald-500" : "text-destructive"}>{modelConnection.message}</p> : <p className="text-muted-foreground">连接成功后再选择模型；模型服务和聊天 Agent 的配置彼此独立。</p>}</div>
-            {showDirectModelPicker ? <Field label="用于媒体匹配的模型">{modelConnection?.connected && modelConnection.models.length ? <select className="h-7 w-full rounded border border-border bg-background px-2" value={selectedModelOption} onChange={(e) => { setValidation(null); patchSettings({ modelId: e.target.value === "__manual__" ? "" : e.target.value }); }}><option value="">请选择模型</option>{modelConnection.models.map((model) => <option key={model} value={model}>{model}</option>)}<option value="__manual__">手动输入模型 ID</option></select> : null}{(!modelConnection?.connected || !modelConnection.models.length || selectedModelOption === "__manual__") ? <input value={modelId} onChange={(e) => { setValidation(null); patchSettings({ modelId: e.target.value }); }} placeholder="输入兼容服务的模型 ID" /> : null}</Field> : null}
+            {showDirectModelPicker ? (
+              <Field
+                label="用于媒体匹配的模型"
+                id={
+                  !modelConnection?.connected ||
+                  !modelConnection.models.length ||
+                  selectedModelOption === "__manual__"
+                    ? "library-model-id"
+                    : "library-model-choice"
+                }
+              >
+                {modelConnection?.connected && modelConnection.models.length ? (
+                  <NativeSelect
+                    id="library-model-choice"
+                    size="sm"
+                    className="w-full"
+                    value={selectedModelOption}
+                    onChange={(e) => {
+                      setValidation(null);
+                      patchSettings({
+                        modelId: e.target.value === "__manual__" ? "" : e.target.value,
+                      });
+                    }}
+                  >
+                    <NativeSelectOption value="">请选择模型</NativeSelectOption>
+                    {modelConnection.models.map((model) => (
+                      <NativeSelectOption key={model} value={model}>
+                        {model}
+                      </NativeSelectOption>
+                    ))}
+                    <NativeSelectOption value="__manual__">
+                      手动输入模型 ID
+                    </NativeSelectOption>
+                  </NativeSelect>
+                ) : null}
+                {(!modelConnection?.connected ||
+                  !modelConnection.models.length ||
+                  selectedModelOption === "__manual__") ? (
+                  <Input
+                    id="library-model-id"
+                    className="h-7 w-full rounded border border-border bg-background px-2 text-sm"
+                    value={modelId}
+                    onChange={(e) => {
+                      setValidation(null);
+                      patchSettings({ modelId: e.target.value });
+                    }}
+                    placeholder="输入兼容服务的模型 ID"
+                  />
+                ) : null}
+              </Field>
+            ) : null}
           </>}
-          <Field label={tmdbTokenSaved && !tmdbAccessToken.trim() ? "TMDb Read Access Token（已保存到此设备）" : "TMDb Read Access Token（留空则不更新）"}><input type="password" autoComplete="off" value={tmdbAccessToken} onChange={(e) => { setValidation(null); setTmdbValidation(null); setTmdbAccessToken(e.target.value); }} placeholder={tmdbTokenSaved ? "已保存，无需重新输入；仅在更换 Token 时填写" : "输入后保存到此设备"} /></Field>
+          <Field
+            label={tmdbTokenSaved && !tmdbAccessToken.trim() ? "TMDb Read Access Token（已保存到此设备）" : "TMDb Read Access Token（留空则不更新）"}
+            id="library-tmdb-token"
+          >
+            <Input
+              id="library-tmdb-token"
+              className="h-7 w-full rounded border border-border bg-background px-2 text-sm"
+              type="password"
+              autoComplete="off"
+              value={tmdbAccessToken}
+              onChange={(e) => {
+                setValidation(null);
+                setTmdbValidation(null);
+                setTmdbAccessToken(e.target.value);
+              }}
+              placeholder={tmdbTokenSaved ? "已保存，无需重新输入；仅在更换 Token 时填写" : "输入后保存到此设备"}
+            />
+          </Field>
           <div className="space-y-1 text-muted-foreground">
             <p>密钥保存在当前 Windows 用户的系统安全凭据中，不会写入 `.lumina`、项目文件或浏览器设置。</p>
             <p>{tmdbAccessToken.trim() ? "已输入新 TMDb Token，点击“保存到此设备”后才会长期保存。" : tmdbTokenSaved ? "TMDb Token 已安全保存到此设备，可直接用于 TMDb 匹配与维基补充，无需重新输入。" : "尚未保存 TMDb Token。"}</p>
@@ -473,7 +673,21 @@ function LibrarySettingsContent() {
             {tmdbValidation ? <div className="rounded bg-muted/40 p-2"><ValidationItem label="TMDb" item={tmdbValidation} /></div> : null}
             <p>验证不会发送视频、字幕、笔记、文件名或绝对路径；“验证全部配置”会产生一次极小的模型或 Agent 调用，TMDb 单独验证不会。</p>
           </div>
-          <label className="flex gap-2 leading-relaxed text-muted-foreground"><input type="checkbox" checked={privacyAcknowledged} onChange={(e) => patchSettings({ privacyAcknowledged: e.target.checked })} />允许将文件名和相对目录名发送到所选解析器；不会发送视频、字幕、笔记或绝对路径。</label>
+          <SharedField orientation="horizontal" className="items-start gap-2 text-muted-foreground">
+            <Checkbox
+              id="library-privacy-acknowledgement"
+              checked={privacyAcknowledged}
+              onCheckedChange={(checked) =>
+                patchSettings({ privacyAcknowledged: checked === true })
+              }
+            />
+            <FieldLabel
+              htmlFor="library-privacy-acknowledgement"
+              className="text-xs leading-relaxed text-muted-foreground"
+            >
+              允许将文件名和相对目录名发送到所选解析器；不会发送视频、字幕、笔记或绝对路径。
+            </FieldLabel>
+          </SharedField>
         </div>
       </details>
 
@@ -1001,7 +1215,7 @@ function PendingGroupCard({ pending, title, preview, disabled, directDisabled, o
   return <div className="space-y-2 rounded-md border border-border p-2">
     <p className="font-medium">{pending.group.displayName}</p>
     <p className="text-muted-foreground">{pending.group.files.length} 个文件 · {pending.group.kind === "series" ? "剧集候选" : "电影候选"}</p>
-    <div className="flex gap-1"><input className="h-7 min-w-0 flex-1 rounded border border-border bg-background px-2" value={title} placeholder="输入作品名后一键匹配" disabled={isBusy} onChange={(e) => onTitle(e.target.value)} /><Button size="sm" disabled={!title.trim() || directDisabled || isBusy} onClick={() => {
+    <div className="flex gap-1"><Input aria-label="媒体匹配标题" className="h-7 min-w-0 flex-1 rounded border border-border bg-background px-2 text-sm" value={title} placeholder="输入作品名后一键匹配" disabled={isBusy} onChange={(e) => onTitle(e.target.value)} /><Button size="sm" disabled={!title.trim() || directDisabled || isBusy} onClick={() => {
       setDirect(null);
       void run("auto", async () => {
         const outcome = await onOneClickMatch(title);
@@ -1018,9 +1232,34 @@ function PendingGroupCard({ pending, title, preview, disabled, directDisabled, o
     {direct ? <div className="space-y-1 rounded bg-muted/40 p-2">
       <p className="text-muted-foreground">只把你输入的标题发给 TMDb；勾选要拉取的字段后确认。</p>
       <div className="flex flex-wrap gap-2 text-muted-foreground">
-        <label className="flex items-center gap-1"><input type="checkbox" checked disabled />基本信息（含简介，必需）</label>
-        <label className="flex items-center gap-1"><input type="checkbox" checked={withCast} disabled={isBusy} onChange={(e) => setWithCast(e.target.checked)} />演员阵容</label>
-        <label className="flex items-center gap-1"><input type="checkbox" checked={withEpisodes} disabled={isBusy} onChange={(e) => setWithEpisodes(e.target.checked)} />分集信息</label>
+        <SharedField orientation="horizontal" className="w-fit items-center gap-1">
+          <Checkbox id="library-match-basic-fields" checked disabled />
+          <FieldLabel htmlFor="library-match-basic-fields" className="w-fit text-xs text-muted-foreground">
+            基本信息（含简介，必需）
+          </FieldLabel>
+        </SharedField>
+        <SharedField orientation="horizontal" className="w-fit items-center gap-1">
+          <Checkbox
+            id="library-match-cast"
+            checked={withCast}
+            disabled={isBusy}
+            onCheckedChange={(checked) => setWithCast(checked === true)}
+          />
+          <FieldLabel htmlFor="library-match-cast" className="w-fit text-xs text-muted-foreground">
+            演员阵容
+          </FieldLabel>
+        </SharedField>
+        <SharedField orientation="horizontal" className="w-fit items-center gap-1">
+          <Checkbox
+            id="library-match-episodes"
+            checked={withEpisodes}
+            disabled={isBusy}
+            onCheckedChange={(checked) => setWithEpisodes(checked === true)}
+          />
+          <FieldLabel htmlFor="library-match-episodes" className="w-fit text-xs text-muted-foreground">
+            分集信息
+          </FieldLabel>
+        </SharedField>
       </div>
       {direct.length === 0 ? <p className="text-muted-foreground">TMDb 没有返回候选，换个标题再试。</p> : null}
       {direct.map((candidate) => <div key={`${candidate.mediaType}:${candidate.tmdbId}`} className="flex items-center justify-between gap-2"><span className="min-w-0 truncate">[{candidate.mediaType === "tv" ? "剧集" : "电影"}] {candidate.title}{candidate.year ? ` (${candidate.year})` : ""}</span><Button size="sm" variant="outline" disabled={directDisabled || isBusy} onClick={() => void confirmCandidate(candidate, { basic: true, cast: withCast, episodes: withEpisodes }, "已确认")}>{busy === "apply" && applyingId === candidate.tmdbId ? "写入中…" : "确认拉取"}</Button></div>)}
@@ -1033,6 +1272,21 @@ function PendingGroupCard({ pending, title, preview, disabled, directDisabled, o
   </div>;
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <label className="block space-y-1 text-muted-foreground"><span>{label}</span><span className="block [&_input]:h-7 [&_input]:w-full [&_input]:rounded [&_input]:border [&_input]:border-border [&_input]:bg-background [&_input]:px-2">{children}</span></label>;
+function Field({
+  label,
+  id,
+  children,
+}: {
+  label: string;
+  id: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <SharedField className="gap-1">
+      <FieldLabel htmlFor={id} className="text-xs text-muted-foreground">
+        {label}
+      </FieldLabel>
+      {children}
+    </SharedField>
+  );
 }
