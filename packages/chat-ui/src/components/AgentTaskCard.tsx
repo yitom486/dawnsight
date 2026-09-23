@@ -1,6 +1,7 @@
 import { Check, CircleAlert, CircleDot, Clock3, X } from "lucide-react";
 
 import { cn } from "@lumina/ui";
+import { Progress } from "@lumina/ui/progress";
 
 import type {
   AgentTaskStatus,
@@ -49,18 +50,13 @@ export function AgentTaskCard({ block }: Props) {
             <span>进度</span>
             <span>{Math.round(block.progress)}%</span>
           </div>
-          <div
-            className="h-1.5 overflow-hidden rounded-full bg-muted"
-            role="progressbar"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={block.progress}
-          >
-            <div
-              className="h-full rounded-full bg-primary transition-[width]"
-              style={{ width: `${block.progress}%` }}
-            />
-          </div>
+          <Progress
+            value={block.progress}
+            min={0}
+            max={100}
+            aria-label="进度"
+            className="w-full gap-0 [&_[data-slot=progress-track]]:rounded-full [&_[data-slot=progress-indicator]]:rounded-full [&_[data-slot=progress-indicator]]:transition-[width]"
+          />
         </div>
       ) : null}
     </section>
