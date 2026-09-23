@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useEffect, useMemo, useState } from "react";
 
+import { Alert } from "@lumina/ui/alert";
 import { Button } from "@lumina/ui/button";
 import { Checkbox } from "@lumina/ui/checkbox";
 import { Field as SharedField, FieldLabel } from "@lumina/ui/field";
@@ -454,11 +455,27 @@ function LibrarySettingsContent() {
         </SharedField>
         {scanProgress ? <ScanProgressCard event={scanProgress} busy={startMutation.isPending} /> : null}
         <p className="text-muted-foreground">扫描和本地索引不需要连接 Agent 或配置 TMDb；智能匹配时才会使用它们。</p>
-        {statusQuery.data?.lastScanError ? <div className="space-y-2 rounded-md border border-destructive/50 bg-destructive/10 p-2 text-destructive" role="alert">
-          <p>上一次扫描失败：{statusQuery.data.lastScanError.message}</p>
-          <p className="text-muted-foreground">守护服务会在下个扫描周期自动重试；你也可以立即重试。</p>
-          <Button size="sm" variant="outline" disabled={scanNowMutation.isPending || !statusQuery.data.roots.length} onClick={() => scanNowMutation.mutate()}>{scanNowMutation.isPending ? "重试中" : "立即重试"}</Button>
-        </div> : null}
+        {statusQuery.data?.lastScanError ? (
+          <Alert
+            variant="destructive"
+            className="space-y-2 rounded-md border-destructive/50 bg-destructive/10 p-2 text-destructive"
+          >
+            <p>上一次扫描失败：{statusQuery.data.lastScanError.message}</p>
+            <p className="text-muted-foreground">
+              守护服务会在下个扫描周期自动重试；你也可以立即重试。
+            </p>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={
+                scanNowMutation.isPending || !statusQuery.data.roots.length
+              }
+              onClick={() => scanNowMutation.mutate()}
+            >
+              {scanNowMutation.isPending ? "重试中" : "立即重试"}
+            </Button>
+          </Alert>
+        ) : null}
       </section>
 
       <details className="rounded-md border border-border p-2">
@@ -856,7 +873,16 @@ function formatScanTime(timestamp: number): string {
 }
 
 function ScanProgressCard({ event, busy }: { event: LibraryScanEvent; busy: boolean }) {
-  if (event.type === "Failed") return <div className="rounded-md border border-destructive/50 bg-destructive/10 p-2 text-destructive" role="alert">首次扫描失败：{event.payload.message}</div>;
+  if (event.type === "Failed") {
+    return (
+      <Alert
+        variant="destructive"
+        className="rounded-md border-destructive/50 bg-destructive/10 p-2 text-destructive"
+      >
+        首次扫描失败：{event.payload.message}
+      </Alert>
+    );
+  }
   if (event.type === "Finished") return <div className="rounded-md border border-emerald-500/40 bg-emerald-500/10 p-2 text-emerald-500">首次扫描完成：已索引 {event.payload.indexedFiles} 个文件，发现 {event.payload.pendingGroups} 个待匹配分组。</div>;
   const rootCount = event.payload.rootCount;
   const rootsCompleted = event.type === "Progress" ? event.payload.rootsCompleted : 0;

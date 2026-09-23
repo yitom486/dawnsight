@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
+import { Alert } from "@lumina/ui/alert";
 import { Button } from "@lumina/ui/button";
 import { Input } from "@lumina/ui/input";
 import { ytdlResolveKey } from "@lumina/query-keys";
@@ -137,9 +138,9 @@ function OnlineSettingsContent() {
           ) : null}
         </div>
         {openFailed ? (
-          <div
-            className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
-            role="alert"
+          <Alert
+            variant="destructive"
+            className="rounded-md border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
           >
             <p className="font-medium">未能打开在线视频</p>
             <p className="mt-1 leading-relaxed">{error?.message}</p>
@@ -147,7 +148,7 @@ function OnlineSettingsContent() {
               若提示登录或登录态失败：用浏览器扩展导出 cookies.txt → 下方导入 →
               测试可读 → 再打开链接。失败时左侧可能仍显示上一段画面。
             </p>
-          </div>
+          </Alert>
         ) : null}
         {playingRemote ? (
           <div className="space-y-1 text-[11px] text-muted-foreground">

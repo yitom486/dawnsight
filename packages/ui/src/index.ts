@@ -15,6 +15,7 @@ export * from "./separator";
 export * from "./switch";
 export * from "./textarea";
 export * from "./tooltip";
+export * from "./alert";
 export * from "./alert-dialog";
 export * from "./dropdown-menu";
 export * from "./scroll-area";
