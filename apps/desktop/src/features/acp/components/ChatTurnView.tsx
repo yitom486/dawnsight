@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Suspense, lazy, useState } from "react";
 
+import { Button } from "@lumina/ui/button";
 import { cn } from "@lumina/ui/utils";
 import { errorMessage, formatTime } from "@/lib/format";
 
@@ -65,13 +66,15 @@ function SaveAnswerNote({ turn }: { turn: ChatTurn }) {
   }
   if (!confirming) {
     return (
-      <button
+      <Button
         type="button"
-        className="mt-2 text-[11px] text-muted-foreground hover:text-foreground"
+        size="sm"
+        variant="ghost"
+        className="mt-2 h-auto rounded-none px-0 py-0 text-[11px] font-normal text-muted-foreground hover:bg-transparent hover:text-foreground"
         onClick={() => setConfirming(true)}
       >
         存为批注
-      </button>
+      </Button>
     );
   }
   return (
@@ -106,9 +109,11 @@ function ConfirmSaveNote({
       <span className="text-muted-foreground">
         保存到 {formatTime(anchorMs)} 的批注？
       </span>
-      <button
+      <Button
         type="button"
-        className="font-medium text-info hover:text-info-foreground disabled:opacity-50"
+        size="sm"
+        variant="ghost"
+        className="h-auto rounded-none px-0 py-0 font-medium text-info hover:bg-transparent hover:text-info-foreground disabled:opacity-50"
         disabled={busy}
         onClick={() => {
           void (async () => {
@@ -140,15 +145,17 @@ function ConfirmSaveNote({
         }}
       >
         {busy ? "保存中…" : "保存"}
-      </button>
-      <button
+      </Button>
+      <Button
         type="button"
-        className="text-muted-foreground hover:text-foreground"
+        size="sm"
+        variant="ghost"
+        className="h-auto rounded-none px-0 py-0 text-[11px] font-normal text-muted-foreground hover:bg-transparent hover:text-foreground"
         disabled={busy}
         onClick={onCancel}
       >
         取消
-      </button>
+      </Button>
       {error ? <span className="text-destructive">{error}</span> : null}
     </span>
   );

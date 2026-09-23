@@ -165,13 +165,15 @@ export const ChatComposerBar = forwardRef<ChatComposerBarHandle, Props>(
                 排队 {queue.length} 条 · 当前回合结束后自动发送
               </p>
               {onClearQueue ? (
-                <button
+                <Button
                   type="button"
-                  className="text-[10px] text-muted-foreground hover:text-foreground"
+                  size="sm"
+                  variant="ghost"
+                  className="h-auto rounded-none px-0 py-0 text-[10px] font-normal text-muted-foreground hover:bg-transparent hover:text-foreground"
                   onClick={onClearQueue}
                 >
                   清空
-                </button>
+                </Button>
               ) : null}
             </div>
             <ul className="space-y-1">
@@ -189,14 +191,16 @@ export const ChatComposerBar = forwardRef<ChatComposerBarHandle, Props>(
                       : previewQueuedText(item.text)}
                   </span>
                   {onRemoveQueued ? (
-                    <button
+                    <Button
                       type="button"
-                      className="shrink-0 text-[10px] text-muted-foreground hover:text-destructive"
+                      size="sm"
+                      variant="ghost"
+                      className="h-auto shrink-0 rounded-none px-0 py-0 text-[10px] font-normal text-muted-foreground hover:bg-transparent hover:text-destructive"
                       aria-label="移除排队"
                       onClick={() => onRemoveQueued(item.id)}
                     >
                       移除
-                    </button>
+                    </Button>
                   ) : null}
                 </li>
               ))}
@@ -220,14 +224,16 @@ export const ChatComposerBar = forwardRef<ChatComposerBarHandle, Props>(
                     className="size-14 rounded-md border border-border object-cover"
                   />
                   {onRemoveAttachment ? (
-                    <button
+                    <Button
                       type="button"
+                      size="sm"
+                      variant="ghost"
                       aria-label="移除图片"
-                      className="absolute -right-1.5 -top-1.5 flex size-4 items-center justify-center rounded-full bg-muted text-[10px] leading-none text-muted-foreground hover:text-destructive"
+                      className="absolute -right-1.5 -top-1.5 flex size-4 items-center justify-center rounded-full bg-muted p-0 text-[10px] font-normal leading-none text-muted-foreground hover:bg-muted hover:text-destructive"
                       onClick={() => onRemoveAttachment(attachment.id)}
                     >
                       ×
-                    </button>
+                    </Button>
                   ) : null}
                 </div>
               ))}

@@ -81,18 +81,20 @@ export function ChatToolbar({
               <DropdownMenu>
                 <DropdownMenuTrigger
                   render={
-                    <button
-                    type="button"
-                    className="flex h-6 max-w-[11rem] cursor-pointer items-center gap-1 truncate rounded-md border border-transparent bg-transparent px-1 text-[12px] font-medium text-foreground outline-none hover:border-border focus-visible:border-border disabled:cursor-default disabled:opacity-60"
-                    disabled={busy || switchDisabled}
-                    aria-label="切换 Agent"
-                    title="切换 Agent（各家会话记忆独立保留）"
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 max-w-[11rem] cursor-pointer truncate rounded-md border border-transparent bg-transparent px-1 text-[12px] font-medium text-foreground outline-none hover:bg-transparent hover:border-border focus-visible:border-border focus-visible:ring-0 disabled:cursor-default disabled:opacity-60"
+                      disabled={busy || switchDisabled}
+                      aria-label="切换 Agent"
+                      title="切换 Agent（各家会话记忆独立保留）"
                     >
                       <span className="min-w-0 flex-1 truncate text-left">
                         {agentLabel}
                       </span>
                       <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
-                    </button>
+                    </Button>
                   }
                 />
                 <DropdownMenuContent

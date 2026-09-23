@@ -262,10 +262,12 @@ export function QuickNoteDialog({
                       {formatCueLabel(cue)}
                     </span>
                     {checked ? (
-                      <button
+                      <Button
                         type="button"
+                        size="sm"
+                        variant="ghost"
                         className={cn(
-                          "shrink-0 rounded px-1 text-[9px]",
+                          "h-auto shrink-0 rounded px-1 py-0 text-[9px]",
                           isAnchor
                             ? "bg-primary text-primary-foreground"
                             : "text-muted-foreground hover:bg-muted",
@@ -279,7 +281,7 @@ export function QuickNoteDialog({
                         }}
                       >
                         锚
-                      </button>
+                      </Button>
                     ) : null}
                   </label>
                 );
