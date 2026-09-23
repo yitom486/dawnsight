@@ -13,8 +13,8 @@ import { mediaInfoKey } from "@lumina/query-keys";
 import { resolveEpisodeFile } from "@/features/library/api";
 import { usePlayerStore } from "@/features/player";
 import { useProgressStore } from "@lumina/player-ui";
+import { Button } from "@lumina/ui/button";
 import { errorMessage, formatTime } from "@/lib/format";
-import { cn } from "@lumina/ui/utils";
 
 import {
   parseEvidenceSegments,
@@ -130,26 +130,28 @@ export function EvidenceCitation({ cite: ref }: { cite: EvidenceRef }) {
 
   if (sameMedia && !confirming) {
     return (
-      <button
+      <Button
         type="button"
-        className="font-medium text-sky-400 underline underline-offset-2 hover:text-sky-300"
+        size="sm"
+        variant="ghost"
+        className="h-auto rounded-none px-0 py-0 font-medium text-sky-400 underline underline-offset-2 hover:bg-transparent hover:text-sky-300"
         title={`跳转到 ${formatRefTime(ref)}`}
         onClick={() => {
           void usePlayerStore.getState().seek(ref.startMs);
         }}
       >
         {ref.label}
-      </button>
+      </Button>
     );
   }
 
   return (
     <span className="inline-flex flex-wrap items-center gap-1">
-      <button
+      <Button
         type="button"
-        className={cn(
-          "font-medium text-sky-400 underline underline-offset-2 hover:text-sky-300",
-        )}
+        size="sm"
+        variant="ghost"
+        className="h-auto rounded-none px-0 py-0 font-medium text-sky-400 underline underline-offset-2 hover:bg-transparent hover:text-sky-300"
         title={
           sameMedia
             ? `跳转到 ${formatRefTime(ref)}`
@@ -165,15 +167,17 @@ export function EvidenceCitation({ cite: ref }: { cite: EvidenceRef }) {
         }}
       >
         {ref.label}
-      </button>
+      </Button>
       {confirming && !sameMedia ? (
         <span className="inline-flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 text-xs">
           <span className="text-muted-foreground">
             切换媒体并保存当前位置？
           </span>
-          <button
+          <Button
             type="button"
-            className="font-medium text-sky-400 hover:text-sky-300"
+            size="sm"
+            variant="ghost"
+            className="h-auto rounded-none px-0 py-0 font-medium text-sky-400 hover:bg-transparent hover:text-sky-300"
             onClick={() => {
               void (async () => {
                 try {
@@ -199,17 +203,19 @@ export function EvidenceCitation({ cite: ref }: { cite: EvidenceRef }) {
             }}
           >
             切换
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            className="text-muted-foreground hover:text-foreground"
+            size="sm"
+            variant="ghost"
+            className="h-auto rounded-none px-0 py-0 text-xs font-normal text-muted-foreground hover:bg-transparent hover:text-foreground"
             onClick={() => {
               setConfirming(false);
               setJumpError(null);
             }}
           >
             取消
-          </button>
+          </Button>
           {jumpError ? (
             <span className="text-destructive">{jumpError}</span>
           ) : null}

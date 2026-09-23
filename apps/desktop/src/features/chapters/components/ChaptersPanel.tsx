@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
+import { Button } from "@lumina/ui/button";
+
 import { useMediaInfoQuery } from "@/features/media";
 import { usePlayerStore } from "@/features/player";
 import { ytdlResolveKey } from "@lumina/query-keys";
@@ -191,9 +193,10 @@ function EmptyChaptersState({
         <p>{description}</p>
         <p>点击后会创建独立章节 Agent 任务，结合字幕与按需画面生成语义章节。</p>
       </div>
-      <button
+      <Button
         type="button"
-        className="rounded-md bg-primary px-3 py-1.5 text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
+        size="sm"
+        className="h-auto rounded-md px-3 py-1.5 text-xs font-normal"
         disabled={!canStartAiSegmentation}
         onClick={handleStartAiSegmentation}
       >
@@ -209,7 +212,7 @@ function EmptyChaptersState({
                   aiSegmentationStatus === "failed"
                 ? "AI 分段失败"
               : "开始 AI 分段"}
-      </button>
+      </Button>
       {needsAgentConfiguration &&
       (aiSegmentationStatus === "unavailable" ||
         aiSegmentationStatus === "pending" ||
@@ -277,13 +280,15 @@ function ChapterList({
           positionMs >= chapter.startMs &&
           (chapter.endMs == null || positionMs < chapter.endMs);
         return (
-          <button
+          <Button
             key={`${chapter.id}-${chapter.startMs}`}
             type="button"
+            size="sm"
+            variant="ghost"
             className={
               active
-                ? "flex w-full items-start gap-2 rounded-md bg-accent px-2 py-1.5 text-left text-xs"
-                : "flex w-full items-start gap-2 rounded-md px-2 py-1.5 text-left text-xs hover:bg-muted"
+                ? "h-auto w-full items-start gap-2 rounded-md bg-accent px-2 py-1.5 text-left text-xs font-normal hover:bg-accent"
+                : "h-auto w-full items-start gap-2 rounded-md px-2 py-1.5 text-left text-xs font-normal hover:bg-muted"
             }
             onClick={() => void seek(chapter.startMs)}
           >
@@ -293,7 +298,7 @@ function ChapterList({
             <span className="min-w-0 flex-1">
               {chapter.title?.trim() || `章节 ${index + 1}`}
             </span>
-          </button>
+          </Button>
         );
       })}
     </div>
@@ -330,13 +335,15 @@ function ChapterDraftList({
       {chapters.map((chapter, index) => {
         const active = positionMs >= chapter.startMs && positionMs < chapter.endMs;
         return (
-          <button
+          <Button
             key={`${chapter.id}-${chapter.updatedAtMs}`}
             type="button"
+            size="sm"
+            variant="ghost"
             className={
               active
-                ? "flex w-full items-start gap-2 rounded-md bg-accent px-2 py-1.5 text-left text-xs"
-                : "flex w-full items-start gap-2 rounded-md px-2 py-1.5 text-left text-xs hover:bg-muted"
+                ? "h-auto w-full items-start gap-2 rounded-md bg-accent px-2 py-1.5 text-left text-xs font-normal hover:bg-accent"
+                : "h-auto w-full items-start gap-2 rounded-md px-2 py-1.5 text-left text-xs font-normal hover:bg-muted"
             }
             aria-pressed={selectedChapter?.id === chapter.id}
             onClick={() => {
@@ -355,7 +362,7 @@ function ChapterDraftList({
                 {chapterDraftStatusLabel(chapter.status)}
               </span>
             </span>
-          </button>
+          </Button>
         );
       })}
       {selectedChapter ? (

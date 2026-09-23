@@ -49,18 +49,20 @@ function NoteFrameThumb({ noteId, atMs }: { noteId: string; atMs: number }) {
   const data = frameQuery.data;
   if (!data) return null;
   return (
-    <button
+    <Button
       type="button"
+      size="sm"
+      variant="ghost"
       title={`跳转到 ${formatTime(atMs)} 的画面`}
       onClick={() => void seek(atMs)}
-      className="shrink-0 overflow-hidden rounded border border-border hover:border-primary"
+      className="h-auto shrink-0 overflow-hidden rounded border border-border p-0 hover:border-primary"
     >
       <img
         src={`data:${data.mime};base64,${data.data}`}
         alt={`批注画面 ${formatTime(atMs)}`}
         className="h-12 w-auto"
       />
-    </button>
+    </Button>
   );
 }
 
@@ -292,20 +294,26 @@ export function NotesPanel() {
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-[11px] text-muted-foreground">引用方式</span>
               <div className="flex rounded-md border border-border p-0.5 text-[11px]">
-                <button
+                <Button
                   type="button"
+                  size="sm"
+                  variant="ghost"
+                  aria-pressed={quoteMode === "auto"}
                   className={cn(
-                    "rounded px-2 py-0.5",
+                    "h-auto rounded px-2 py-0.5 text-[11px] font-normal hover:bg-transparent",
                     quoteMode === "auto" && "bg-muted font-medium",
                   )}
                   onClick={() => setQuoteMode("auto")}
                 >
                   自动（最近三句）
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  size="sm"
+                  variant="ghost"
+                  aria-pressed={quoteMode === "manual"}
                   className={cn(
-                    "rounded px-2 py-0.5",
+                    "h-auto rounded px-2 py-0.5 text-[11px] font-normal hover:bg-transparent",
                     quoteMode === "manual" && "bg-muted font-medium",
                   )}
                   onClick={() => {
@@ -316,7 +324,7 @@ export function NotesPanel() {
                   }}
                 >
                   手动勾选
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -376,10 +384,12 @@ export function NotesPanel() {
                             {formatCueLabel(cue)}
                           </span>
                           {checked ? (
-                            <button
+                            <Button
                               type="button"
+                              size="sm"
+                              variant="ghost"
                               className={cn(
-                                "shrink-0 rounded px-1 text-[10px]",
+                                "h-auto shrink-0 rounded px-1 py-0 text-[10px]",
                                 isAnchor
                                   ? "bg-primary text-primary-foreground"
                                   : "text-muted-foreground hover:bg-muted",
@@ -395,7 +405,7 @@ export function NotesPanel() {
                               }}
                             >
                               锚
-                            </button>
+                            </Button>
                           ) : null}
                         </label>
                       );
@@ -472,29 +482,36 @@ export function NotesPanel() {
             className="flex flex-col gap-1 rounded-md border border-border px-2 py-1.5 text-xs"
           >
             <div className="flex items-start gap-2">
-              <button
+              <Button
                 type="button"
-                className="shrink-0 font-mono text-primary hover:underline"
+                size="sm"
+                variant="ghost"
+                className="h-auto shrink-0 rounded-none px-0 py-0 font-mono text-primary hover:bg-transparent hover:underline"
                 onClick={() => void seek(note.positionMs)}
               >
                 {formatTime(note.positionMs)}
-              </button>
+              </Button>
               <p className="min-w-0 flex-1 whitespace-pre-wrap">{note.body}</p>
-              <button
+              <Button
                 type="button"
-                className="shrink-0 text-muted-foreground hover:text-primary"
+                size="sm"
+                variant="ghost"
+                className="h-auto shrink-0 rounded-none px-0 py-0 text-xs font-normal text-muted-foreground hover:bg-transparent hover:text-primary"
                 title="生成打卡卡片"
                 onClick={() => setRecapCardNoteId(note.id)}
               >
                 卡
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
-                className="shrink-0 text-muted-foreground hover:text-destructive"
+                size="sm"
+                variant="ghost"
+                className="h-auto shrink-0 rounded-none px-0 py-0 text-xs font-normal text-muted-foreground hover:bg-transparent hover:text-destructive"
+                aria-label="删除批注"
                 onClick={() => deleteMutation.mutate(note.id)}
               >
                 删
-              </button>
+              </Button>
             </div>
             {note.quotes?.length ? (
               <div className="border-l-2 border-muted pl-2 text-[11px] text-muted-foreground">
