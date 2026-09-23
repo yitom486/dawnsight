@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@lumina/ui/button";
 import { Checkbox } from "@lumina/ui/checkbox";
+import { Field as SharedField, FieldLabel } from "@lumina/ui/field";
 import { Input } from "@lumina/ui/input";
 import { Label } from "@lumina/ui/label";
 import { NativeSelect, NativeSelectOption } from "@lumina/ui/native-select";
@@ -313,15 +314,15 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <div className="space-y-1">
-      <Label
+    <SharedField className="gap-1">
+      <FieldLabel
         htmlFor={htmlFor}
-        className="block text-[10px] font-medium uppercase tracking-wide text-muted-foreground"
+        className="w-full text-[10px] font-medium uppercase tracking-wide text-muted-foreground"
       >
         {label}
-      </Label>
+      </FieldLabel>
       {children}
-    </div>
+    </SharedField>
   );
 }
 

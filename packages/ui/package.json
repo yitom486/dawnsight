@@ -25,6 +25,10 @@
       "types": "./src/checkbox.tsx",
       "default": "./src/checkbox.tsx"
     },
+    "./field": {
+      "types": "./src/field.tsx",
+      "default": "./src/field.tsx"
+    },
     "./combobox": {
       "types": "./src/combobox.tsx",
       "default": "./src/combobox.tsx"
@@ -40,6 +44,10 @@
     "./native-select": {
       "types": "./src/native-select.tsx",
       "default": "./src/native-select.tsx"
+    },
+    "./progress": {
+      "types": "./src/progress.tsx",
+      "default": "./src/progress.tsx"
     },
     "./slider": {
       "types": "./src/slider.tsx",

@@ -3,6 +3,7 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@lumina/ui/button";
+import { Progress } from "@lumina/ui/progress";
 import { profilesHintFromStore } from "@lumina/chat-ui/defaultAgentProfiles";
 import { useAcpProfilesStore } from "@lumina/chat-ui/acpProfilesStore";
 import { usePlayerStore } from "@/features/player";
@@ -646,7 +647,25 @@ function ScanProgressCard({ event, busy }: { event: LibraryScanEvent; busy: bool
   const rootCount = event.payload.rootCount;
   const rootsCompleted = event.type === "Progress" ? event.payload.rootsCompleted : 0;
   const indexedFiles = event.type === "Progress" ? event.payload.indexedFiles : 0;
-  return <div className="rounded-md border border-border bg-muted/40 p-2 text-muted-foreground" role="status"><p>{busy ? "正在首次扫描媒体目录…" : "正在准备扫描…"}</p><p>目录进度：{rootsCompleted} / {rootCount} · 已发现 {indexedFiles} 个视频文件</p><div className="mt-1 h-1 overflow-hidden rounded bg-border"><div className="h-full bg-primary transition-all" style={{ width: `${rootCount ? Math.max(8, rootsCompleted / rootCount * 100) : 8}%` }} /></div></div>;
+  const progressValue = rootCount
+    ? Math.min(100, Math.max(8, (rootsCompleted / rootCount) * 100))
+    : 8;
+  return (
+    <div
+      className="rounded-md border border-border bg-muted/40 p-2 text-muted-foreground"
+      role="status"
+    >
+      <p>{busy ? "正在首次扫描媒体目录…" : "正在准备扫描…"}</p>
+      <p>
+        目录进度：{rootsCompleted} / {rootCount} · 已发现 {indexedFiles} 个视频文件
+      </p>
+      <Progress
+        value={progressValue}
+        aria-label="目录扫描进度"
+        className="mt-1 w-full [&_[data-slot=progress-track]]:h-1 [&_[data-slot=progress-track]]:bg-border"
+      />
+    </div>
+  );
 }
 
 function ValidationItem({ label, item }: { label: string; item: CredentialValidationResult["model"] }) {

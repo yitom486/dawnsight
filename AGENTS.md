@@ -11,7 +11,7 @@ AI Video Reader 桌面应用。
 
 - 架构唯一依据是 `.plan/L0-monorepo-target-architecture.md` 与
   `.plan/L1-monorepo-migration.md`；L2 任务只能细化它们，不能替换它们。
-- M0–M9 是已完成的检查点，不代表整个目标架构迁移已经结束；当前总体状态仍为
+- M0–M10 是已完成的检查点，不代表整个目标架构迁移已经结束；当前总体状态仍为
   `doing`，后续工作必须继续沿原定依赖方向、边界和迁移顺序推进。
 - 不得为了目录对称强行移动跨域编排、Tauri/native、libmpv、IPC 或真实桌面状态；
   任何暂缓项必须在对应 `.plan/` 文档中记录原因和下一步，不得私自改成“已完成”。

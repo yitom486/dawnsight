@@ -24,6 +24,7 @@ import { useUiStore } from "@/features/player/uiStore";
 import { useTrackStore } from "@/features/player/trackStore";
 import { getCachedYtdlResolve } from "@/features/ytdl";
 import { Button } from "@lumina/ui/button";
+import { Progress } from "@lumina/ui/progress";
 import { ScrollArea } from "@lumina/ui/scroll-area";
 import { cn } from "@lumina/ui/utils";
 
@@ -1129,21 +1130,12 @@ export function TranscriptPanel({
         {(translateBusy || proofreadBusy) &&
         batchCount &&
         batchCount.total > 0 ? (
-          <div
-            className="h-1 overflow-hidden rounded bg-border"
-            role="progressbar"
-            aria-valuenow={Math.min(batchCount.done, batchCount.total)}
-            aria-valuemin={0}
-            aria-valuemax={batchCount.total}
+          <Progress
+            className="w-full [&_[data-slot=progress-track]]:h-1 [&_[data-slot=progress-track]]:bg-border"
+            value={Math.min(batchCount.done, batchCount.total)}
+            max={batchCount.total}
             aria-label="字幕批处理进度"
-          >
-            <div
-              className="h-full bg-primary transition-all"
-              style={{
-                width: `${Math.min(100, (batchCount.done / batchCount.total) * 100)}%`,
-              }}
-            />
-          </div>
+          />
         ) : null}
         {!asrAvailable && asrStatusQuery.data ? (
           <p className="text-[11px] leading-snug text-muted-foreground">
