@@ -162,7 +162,7 @@ describe("mapLoadedTranscript", () => {
 
   it("replaces an assembled chapter_recap prompt with its human label", () => {
     const assembled = [
-      "Lumina task: chapter_recap",
+      "Dawnsight task: chapter_recap",
       "Prompt version: v1",
       "Output contract: chapter_recap.v1",
       "",
@@ -190,13 +190,13 @@ describe("mapLoadedTranscript", () => {
     expect(turns).toHaveLength(1);
     expect(turns[0]?.userText).toBe("本段总结");
     expect(turns[0]?.userText).not.toMatch(
-      /Lumina task:|file:\/\/|D:|Role:|Objective:/,
+      /Dawnsight task:|file:\/\/|D:|Role:|Objective:/,
     );
   });
 
   it("falls back to 快捷 AI 操作 for an unknown assembled task", () => {
     const assembled = [
-      "Lumina task: some_future_task",
+      "Dawnsight task: some_future_task",
       "",
       "Role:",
       "You are a helpful assistant.",
@@ -209,15 +209,15 @@ describe("mapLoadedTranscript", () => {
     ]);
     expect(turns).toHaveLength(1);
     expect(turns[0]?.userText).toBe("快捷 AI 操作");
-    expect(turns[0]?.userText).not.toMatch(/Lumina task:|D:|demo\.mp4/);
+    expect(turns[0]?.userText).not.toMatch(/Dawnsight task:|D:|demo\.mp4/);
   });
 
   it("leaves ordinary user text untouched", () => {
     expect(stripTranscriptScaffolding("这段讲了什么？")).toBe(
       "这段讲了什么？",
     );
-    expect(stripTranscriptScaffolding("请问 Lumina task: 是什么意思？")).toBe(
-      "请问 Lumina task: 是什么意思？",
+    expect(stripTranscriptScaffolding("请问 Dawnsight task: 是什么意思？")).toBe(
+      "请问 Dawnsight task: 是什么意思？",
     );
     const turns = mapLoadedTranscript([
       { role: "user", text: "这段讲了什么？" },

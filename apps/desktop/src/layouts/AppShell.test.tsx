@@ -74,6 +74,25 @@ describe("AboutButton", () => {
     });
   });
 
+  it("opens the github repo page from the about dialog", async () => {
+    vi.mocked(getVersion).mockResolvedValue("0.4.0");
+    vi.mocked(openUrl).mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    render(
+      <TooltipProvider>
+        <AppShell>
+          <div />
+        </AppShell>
+      </TooltipProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "关于 Dawnsight" }));
+    await user.click(await screen.findByRole("button", { name: "GitHub 仓库" }));
+    expect(openUrl).toHaveBeenCalledWith(
+      "https://github.com/yitom486/dawnsight",
+    );
+  });
+
   it("opens the release page from the about dialog", async () => {
     vi.mocked(getVersion).mockResolvedValue("0.3.0");
     vi.mocked(openUrl).mockResolvedValue(undefined);
@@ -89,7 +108,7 @@ describe("AboutButton", () => {
     await user.click(screen.getByRole("button", { name: "关于 Dawnsight" }));
     await user.click(await screen.findByRole("button", { name: "下载更新" }));
     expect(openUrl).toHaveBeenCalledWith(
-      "https://github.com/yitom486/lumina-app/releases",
+      "https://github.com/yitom486/dawnsight-app/releases",
     );
   });
 });

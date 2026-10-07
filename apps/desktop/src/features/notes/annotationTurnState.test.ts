@@ -40,7 +40,7 @@ function makeProposeTurn(
         id: `tool-${id}`,
         kind: "tool",
         toolCallId: id,
-        title: "mcp.lumina.dawnsight_propose_video_annotation",
+        title: "mcp.dawnsight.dawnsight_propose_video_annotation",
         status: "completed",
       },
     ],

@@ -10,7 +10,9 @@ use serde::{Deserialize, Serialize};
 use crate::error::LibraryError;
 
 #[cfg(windows)]
-const SERVICE_NAME: &str = "com.lumina.desktop.media-metadata";
+const SERVICE_NAME: &str = "com.dawnsight.desktop.media-metadata";
+#[cfg(windows)]
+const LEGACY_SERVICE_NAME: &str = "com.lumina.desktop.media-metadata";
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -113,7 +115,20 @@ mod platform {
     pub(super) fn read(kind: CredentialKind) -> Result<Option<String>, LibraryError> {
         match entry(kind)?.get_password() {
             Ok(value) if !value.trim().is_empty() => Ok(Some(value)),
-            Ok(_) | Err(KeyringError::NoEntry) => Ok(None),
+            Ok(_) | Err(KeyringError::NoEntry) => {
+                // Try migrating from legacy service name if present
+                if let Ok(legacy_entry) =
+                    Entry::new(super::LEGACY_SERVICE_NAME, kind.account_name())
+                {
+                    if let Ok(legacy_value) = legacy_entry.get_password() {
+                        if !legacy_value.trim().is_empty() {
+                            let _ = save(kind, &legacy_value);
+                            return Ok(Some(legacy_value));
+                        }
+                    }
+                }
+                Ok(None)
+            }
             Err(error) => Err(LibraryError::credential_access_failed(Some(&format!(
                 "credential read: {error}"
             )))),

@@ -293,14 +293,14 @@ fn handle_app_exit(app: &tauri::AppHandle) {
     }
     let backend = app.clone();
     let _ = thread::Builder::new()
-        .name("lumina-shutdown".into())
+        .name("dawnsight-shutdown".into())
         .spawn(move || shutdown_backend(&backend));
     schedule_force_exit();
 }
 
 fn schedule_force_exit() {
     let _ = thread::Builder::new()
-        .name("lumina-force-exit".into())
+        .name("dawnsight-force-exit".into())
         .spawn(move || {
             thread::sleep(Duration::from_millis(FORCE_EXIT.grace_ms));
             tracing::warn!("forcing process exit after shutdown grace period");
@@ -324,18 +324,18 @@ fn init_tracing() {
     let build_appender = |directory: &std::path::Path| {
         tracing_appender::rolling::RollingFileAppender::builder()
             .rotation(tracing_appender::rolling::Rotation::DAILY)
-            .filename_prefix("lumina.log")
+            .filename_prefix("dawnsight.log")
             .build(directory)
     };
     let file_target = match build_appender(&dir) {
         Ok(appender) => Some((appender, dir.clone())),
         Err(primary_error) => {
-            let fallback_dir = std::env::temp_dir().join("lumina").join("logs");
+            let fallback_dir = std::env::temp_dir().join("dawnsight").join("logs");
             let _ = std::fs::create_dir_all(&fallback_dir);
             match build_appender(&fallback_dir) {
                 Ok(appender) => {
                     eprintln!(
-                        "Lumina file logging fell back to {} after {} was unavailable: {}",
+                        "Dawnsight file logging fell back to {} after {} was unavailable: {}",
                         fallback_dir.display(),
                         dir.display(),
                         primary_error
@@ -344,7 +344,7 @@ fn init_tracing() {
                 }
                 Err(fallback_error) => {
                     eprintln!(
-                        "Lumina file logging unavailable for {} and {}: {}; {}",
+                        "Dawnsight file logging unavailable for {} and {}: {}; {}",
                         dir.display(),
                         fallback_dir.display(),
                         primary_error,
@@ -358,7 +358,7 @@ fn init_tracing() {
 
     let stdout_layer = tracing_subscriber::fmt::layer().with_writer(std::io::stdout);
     if let Some((file_appender, active_dir)) = file_target {
-        // Daily-rotated `lumina.log.<date>` next to a live stdout layer; ANSI off in files.
+        // Daily-rotated `dawnsight.log.<date>` next to a live stdout layer; ANSI off in files.
         let (file_writer, guard) = tracing_appender::non_blocking(file_appender);
         let _ = LOG_GUARD.set(guard);
         let file_layer = tracing_subscriber::fmt::layer()

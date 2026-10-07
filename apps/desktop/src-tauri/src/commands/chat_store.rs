@@ -242,7 +242,15 @@ fn hint_dto(record: AcpSessionHintRecord) -> ChatSessionHintDto {
 fn database_path() -> Result<PathBuf, ChatStoreError> {
     let base = super::system::data_dir()
         .ok_or_else(|| ChatStoreError::internal("application data directory unavailable"))?;
-    Ok(base.join("lumina").join("lumina.sqlite3"))
+    let new_path = base.join("dawnsight").join("dawnsight.sqlite3");
+    let legacy_path = base.join("lumina").join("lumina.sqlite3");
+    if !new_path.exists() && legacy_path.exists() {
+        if let Some(parent) = new_path.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+        let _ = std::fs::copy(&legacy_path, &new_path);
+    }
+    Ok(new_path)
 }
 
 fn open_database() -> Result<Database, ChatStoreError> {
@@ -336,7 +344,7 @@ mod tests {
         let storage = ChatStoreError::storage(DatabaseError {
             code: dawnsight_library::DatabaseErrorCode::OpenFailed,
             message: "无法打开应用数据存储".to_string(),
-            details: Some("open C:\\private\\lumina.sqlite3: sqlite detail".to_string()),
+            details: Some("open C:\\private\\dawnsight.sqlite3: sqlite detail".to_string()),
         });
         assert_eq!(storage.code, "StorageError");
         assert_eq!(storage.message, "聊天记录暂时不可用，请重试");

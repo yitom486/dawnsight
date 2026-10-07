@@ -33,7 +33,9 @@ pub(crate) fn initialize_crash_diagnostics() {
     write_marker(false, None, None, None);
     install_native_exception_filter();
     if previous_unclean {
-        tracing::warn!("previous Lumina session ended unexpectedly; recovery notice is available");
+        tracing::warn!(
+            "previous Dawnsight session ended unexpectedly; recovery notice is available"
+        );
     }
 }
 
@@ -188,12 +190,12 @@ unsafe extern "system" fn native_exception_filter(
     0
 }
 
-/// Directory for daily-rotated file logs (`lumina.log.<date>`).
+/// Directory for daily-rotated file logs (`dawnsight.log.<date>`).
 /// Falls back to the OS temp dir when no data dir is known — never fails,
 /// so a missing data dir can never hide diagnostics.
 pub(crate) fn log_dir() -> PathBuf {
     data_dir()
-        .map(|base| base.join("lumina").join("logs"))
+        .map(|base| base.join("dawnsight").join("logs"))
         .unwrap_or_else(std::env::temp_dir)
 }
 
@@ -231,17 +233,17 @@ mod tests {
     fn test_marker_path() -> PathBuf {
         let sequence = TEST_MARKER_SEQUENCE.fetch_add(1, Ordering::Relaxed);
         std::env::temp_dir().join(format!(
-            "lumina-system-marker-{}-{sequence}.json",
+            "dawnsight-system-marker-{}-{sequence}.json",
             std::process::id()
         ))
     }
 
     #[test]
-    fn log_dir_never_fails_and_points_at_lumina_logs() {
+    fn log_dir_never_fails_and_points_at_dawnsight_logs() {
         let dir = log_dir();
         assert!(!dir.as_os_str().is_empty());
         let name = dir.file_name().and_then(|n| n.to_str()).unwrap_or_default();
-        // Either the lumina logs dir or the OS temp fallback.
+        // Either the dawnsight logs dir or the OS temp fallback.
         assert!(name == "logs" || dir == std::env::temp_dir());
     }
 

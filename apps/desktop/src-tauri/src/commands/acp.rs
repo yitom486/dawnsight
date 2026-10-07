@@ -1149,7 +1149,7 @@ mod tests {
             Err(error) => panic!("expected task prompt, got {error}"),
         };
 
-        assert!(prompt.contains("Lumina task: chapter_outlook"));
+        assert!(prompt.contains("Dawnsight task: chapter_outlook"));
         assert!(prompt.contains("current_position"));
         assert!(prompt.contains("请关注人物关系"));
         assert!(prompt.contains("episode-01.mp4"));
@@ -1164,7 +1164,7 @@ mod tests {
         };
 
         assert!(!prompt.contains("不要加入这段话"));
-        assert!(prompt.contains("Lumina task: plot_summary"));
+        assert!(prompt.contains("Dawnsight task: plot_summary"));
     }
 
     #[test]
@@ -1251,7 +1251,7 @@ mod tests {
         assert_eq!(calls[0], initial);
         assert!(calls[1].contains("Validation retry"));
         assert!(calls[1].contains("invalid_json"));
-        assert!(!calls[1].contains("Lumina task:"));
+        assert!(!calls[1].contains("Dawnsight task:"));
     }
 
     #[test]
@@ -1277,7 +1277,7 @@ mod tests {
         assert_eq!(calls[0], initial);
         for retry in calls.iter().skip(1) {
             assert!(retry.contains("Validation retry"));
-            assert!(!retry.contains("Lumina task:"));
+            assert!(!retry.contains("Dawnsight task:"));
         }
     }
 

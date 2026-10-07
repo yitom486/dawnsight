@@ -6,8 +6,8 @@ import type { LoadedTranscriptEvent } from "./api";
 
 const TOOL_PRIORITY_MARKER = "【工具优先】";
 const PLAYBACK_MARKER = "【当前播放】";
-const ASSEMBLED_TASK_PREFIX = "Lumina task:";
-const ASSEMBLED_TASK_FIRST_LINE_PATTERN = /^Lumina task:\s*([A-Za-z0-9_-]+)/;
+const ASSEMBLED_TASK_PREFIX = "Dawnsight task:";
+const ASSEMBLED_TASK_FIRST_LINE_PATTERN = /^(?:Dawnsight|Lumina) task:\s*([A-Za-z0-9_-]+)/;
 const ASSEMBLED_TASK_FALLBACK_LABEL = "快捷 AI 操作";
 const TOOL_ID_PATTERN = /lumina_[a-z_]+/;
 const MARKDOWN_FILE_LINK_PATTERN = /\[[^\]]*\]\(file:\/\/[^)]*\)/g;
@@ -49,7 +49,7 @@ const PLAYBACK_DETAIL_PREFIXES = [
 ];
 
 /**
- * 快捷任务发给 Agent 的是完整组装 prompt（首行 `Lumina task: <task_id>`，
+ * 快捷任务发给 Agent 的是完整组装 prompt（首行 `Dawnsight task: <task_id>`，
  * 内含 role/objective/rules 与本地媒体绝对路径），它作为 user 消息存在
  * Agent 线程里。历史回放必须整条替换为人类标签，原文整体丢弃（含本地
  * 路径），绝不能露出英文 prompt。

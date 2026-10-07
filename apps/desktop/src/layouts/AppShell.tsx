@@ -23,9 +23,10 @@ import { ChatToggleButton } from "@dawnsight/chat-ui/components/ChatToggleButton
 import { usePlayerStore, useUiStore } from "@/features/player";
 import { errorMessage } from "@/lib/format";
 import { getStartupNotice, revealLogDir, type SystemStartupNotice } from "@/lib/system";
-import luminaLogo from "../../src-tauri/icons/lumina-cat-source.png";
+import dawnsightLogo from "../../src-tauri/icons/dawnsight-cat-source.png";
 
-const RELEASES_URL = "https://github.com/yitom486/lumina-app/releases";
+const RELEASES_URL = "https://github.com/yitom486/dawnsight-app/releases";
+const REPO_URL = "https://github.com/yitom486/dawnsight";
 
 type AppShellProps = {
   children: ReactNode;
@@ -106,6 +107,12 @@ export function AboutButton() {
     };
   }, []);
 
+  const openRepo = () => {
+    void openUrl(REPO_URL).catch((error: unknown) => {
+      usePlayerStore.getState().setStatusMessage(errorMessage(error));
+    });
+  };
+
   const openReleases = () => {
     void openUrl(RELEASES_URL).catch((error: unknown) => {
       usePlayerStore.getState().setStatusMessage(errorMessage(error));
@@ -145,6 +152,9 @@ export function AboutButton() {
           AI 对话放在同一个阅读工作流里。
         </p>
         <AlertDialogFooter>
+          <Button type="button" variant="outline" onClick={openRepo}>
+            GitHub 仓库
+          </Button>
           <Button type="button" variant="outline" onClick={openReleases}>
             下载更新
           </Button>
@@ -208,13 +218,13 @@ export function AppShell({ children }: AppShellProps) {
         >
           <div className="flex min-w-0 shrink-0 items-center gap-2.5">
             <img
-              src={luminaLogo}
+              src={dawnsightLogo}
               alt="Dawnsight"
               className="size-9 rounded-xl border border-ai/40 object-cover shadow-sm"
             />
             <div className="flex min-w-0 items-baseline gap-2">
               <p className="text-base font-semibold tracking-tight text-surface-foreground">
-                Lumina
+                Dawnsight
               </p>
               <p className="hidden text-xs text-muted-foreground sm:inline">
                 AI Video Reader

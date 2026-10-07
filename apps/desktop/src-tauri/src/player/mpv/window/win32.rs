@@ -87,8 +87,8 @@ impl VideoSurface {
         let hwnd = unsafe {
             CreateWindowExW(
                 Default::default(),
-                w!("LuminaMpvSurface"),
-                w!("lumina-mpv-surface"),
+                w!("DawnsightMpvSurface"),
+                w!("dawnsight-mpv-surface"),
                 WS_CHILD | WS_CLIPSIBLINGS,
                 0,
                 0,
@@ -227,7 +227,7 @@ fn ensure_window_class() -> Result<(), PlayerError> {
         hInstance: module.into(),
         hCursor: cursor,
         hbrBackground: HBRUSH(std::ptr::null_mut()),
-        lpszClassName: w!("LuminaMpvSurface"),
+        lpszClassName: w!("DawnsightMpvSurface"),
         ..Default::default()
     };
 

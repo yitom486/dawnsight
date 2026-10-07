@@ -565,7 +565,7 @@ async function verifyAgentPriority(snapshotPath, workspace) {
 }
 
 const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "dawnsight-mcp-priority-"));
-const snapshotPath = path.join(workspace, ".lumina", "agent-context.json");
+const snapshotPath = path.join(workspace, ".dawnsight", "agent-context.json");
 fs.mkdirSync(path.dirname(snapshotPath), { recursive: true });
 fs.writeFileSync(snapshotPath, JSON.stringify(snapshotFixture()));
 

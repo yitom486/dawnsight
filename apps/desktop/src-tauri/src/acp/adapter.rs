@@ -74,7 +74,7 @@ impl SessionEnvironment for AppSessionEnvironment {
             env.push(serde_json::json!({
                 "name": crate::mcp::DIAGNOSTIC_LOG_ENV,
                 "value": crate::commands::system::log_dir()
-                    .join("lumina-mcp.log")
+                    .join("dawnsight-mcp.log")
                     .to_string_lossy(),
             }));
             env.push(serde_json::json!({

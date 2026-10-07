@@ -832,7 +832,15 @@ fn task_key(request: &ChapterSegmentationRequest) -> String {
 pub(super) fn database_path() -> Result<PathBuf, ChapterCommandError> {
     let base = super::system::data_dir()
         .ok_or_else(|| ChapterCommandError::internal("application data directory unavailable"))?;
-    Ok(base.join("lumina").join("lumina.sqlite3"))
+    let new_path = base.join("dawnsight").join("dawnsight.sqlite3");
+    let legacy_path = base.join("lumina").join("lumina.sqlite3");
+    if !new_path.exists() && legacy_path.exists() {
+        if let Some(parent) = new_path.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+        let _ = std::fs::copy(&legacy_path, &new_path);
+    }
+    Ok(new_path)
 }
 
 pub(super) fn open_database() -> Result<Database, ChapterCommandError> {

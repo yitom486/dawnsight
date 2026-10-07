@@ -83,7 +83,7 @@ fn every_versioned_repository_task_composes_from_typed_slots() {
         assert_eq!(composed.retry_count(), 0);
         assert!(composed
             .initial_prompt()
-            .contains(&format!("Lumina task: {task_id}")));
+            .contains(&format!("Dawnsight task: {task_id}")));
         assert!(composed
             .initial_prompt()
             .contains(&format!("Prompt version: v{}", PROMPT_REPOSITORY_VERSION)));
@@ -225,7 +225,7 @@ fn validation_retries_append_only_the_current_report_and_stop_after_three_same_e
     };
     assert!(first_delta.as_str().contains("first-report-only"));
     assert!(!first_delta.as_str().contains("media:integration:1"));
-    assert!(!first_delta.as_str().contains("Lumina task:"));
+    assert!(!first_delta.as_str().contains("Dawnsight task:"));
 
     let second_report = ValidationReport::single(issue(
         "invalid_interval",
