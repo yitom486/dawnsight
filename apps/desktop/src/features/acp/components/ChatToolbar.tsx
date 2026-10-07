@@ -1,6 +1,7 @@
 import { Check, ChevronDown, History, Plus, StickyNote } from "lucide-react";
 import { useRef } from "react";
 
+import { Badge } from "@lumina/ui/badge";
 import { Button } from "@lumina/ui/button";
 import {
   DropdownMenu,
@@ -120,7 +121,7 @@ export function ChatToolbar({
                           className={cn(
                             "size-1.5 shrink-0 rounded-full",
                             profile.available
-                              ? "bg-emerald-500"
+                              ? "bg-success"
                               : "bg-muted-foreground/50",
                           )}
                         />
@@ -140,13 +141,14 @@ export function ChatToolbar({
                 {agentLabel}
               </span>
             )}
-            <span
+            <Badge
+              variant="secondary"
               className={cn(
-                "inline-flex min-w-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px]",
+                "h-auto min-w-0 gap-1 rounded-full px-2 py-0.5 text-[10px]",
                 connectionState === "connected" &&
-                  "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
+                  "bg-success/15 text-success",
                 connectionState === "connecting" &&
-                  "bg-amber-500/15 text-amber-700 dark:text-amber-400",
+                  "bg-warning/15 text-warning",
                 connectionState === "error" &&
                   "bg-destructive/15 text-destructive",
                 (connectionState === "idle" ||
@@ -157,9 +159,8 @@ export function ChatToolbar({
               <span
                 className={cn(
                   "h-1.5 w-1.5 shrink-0 rounded-full",
-                  connectionState === "connected" && "bg-emerald-500",
-                  connectionState === "connecting" &&
-                    "animate-pulse bg-amber-500",
+                  connectionState === "connected" && "bg-success",
+                  connectionState === "connecting" && "animate-pulse bg-warning",
                   connectionState === "error" && "bg-destructive",
                   (connectionState === "idle" ||
                     connectionState === "unavailable") &&
@@ -167,7 +168,7 @@ export function ChatToolbar({
                 )}
               />
               {CONNECTION_LABEL[connectionState]}
-            </span>
+            </Badge>
           </div>
           {chatTitle ? (
             <p className="mt-1 truncate text-[11px] text-muted-foreground">

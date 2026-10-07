@@ -21,6 +21,10 @@
       "types": "./src/button.tsx",
       "default": "./src/button.tsx"
     },
+    "./badge": {
+      "types": "./src/badge.tsx",
+      "default": "./src/badge.tsx"
+    },
     "./checkbox": {
       "types": "./src/checkbox.tsx",
       "default": "./src/checkbox.tsx"

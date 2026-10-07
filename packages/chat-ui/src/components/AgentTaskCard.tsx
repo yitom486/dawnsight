@@ -1,5 +1,6 @@
 import { Check, CircleAlert, CircleDot, Clock3, X } from "lucide-react";
 
+import { Badge } from "@lumina/ui/badge";
 import { cn } from "@lumina/ui";
 import { Progress } from "@lumina/ui/progress";
 
@@ -33,9 +34,12 @@ export function AgentTaskCard({ block }: Props) {
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="font-medium text-foreground">{block.title}</h3>
-            <span className={statusClassName(block.status)}>
+            <Badge
+              variant="secondary"
+              className={statusClassName(block.status)}
+            >
               {STATUS_LABELS[block.status]}
-            </span>
+            </Badge>
           </div>
           {block.message ? (
             <p className="mt-1 whitespace-pre-wrap break-words text-xs leading-relaxed text-muted-foreground">
@@ -80,7 +84,7 @@ function StatusIcon({ status }: { status: AgentTaskStatus }) {
 
 function statusClassName(status: AgentTaskStatus): string {
   return cn(
-    "rounded-full px-2 py-0.5 text-[11px] font-medium",
+    "h-auto rounded-full px-2 py-0.5 text-[11px] font-medium",
     status === "running" && "bg-primary/10 text-primary",
     status === "succeeded" && "bg-primary/10 text-primary",
     status === "failed" && "bg-destructive/10 text-destructive",

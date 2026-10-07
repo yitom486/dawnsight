@@ -11,7 +11,7 @@
   },
   "aliases": {
     "components": "#components",
-    "utils": "@lumina/ui/utils",
+    "utils": "#lib/utils",
     "ui": "#components",
     "lib": "#lib",
     "hooks": "#hooks"
