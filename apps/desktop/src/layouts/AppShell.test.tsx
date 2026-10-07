@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useChatUiStore } from "@dawnsight/chat-ui/chatUiStore";
 import { TooltipProvider } from "@dawnsight/ui/tooltip";
+import { useUiStore } from "@/features/player";
 
 import { AppShell } from "./AppShell";
 
@@ -38,6 +39,9 @@ beforeEach(() => {
     chatMounted: false,
     chatOpen: false,
     acpResponding: false,
+  });
+  useUiStore.setState({
+    aboutOpen: false,
   });
 });
 

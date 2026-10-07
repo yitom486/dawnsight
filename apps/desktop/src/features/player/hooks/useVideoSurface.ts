@@ -21,8 +21,9 @@ export function nativeSurfaceMode(
   status: string,
   currentFile: string | null,
   settingsWorkspace = false,
+  aboutOpen = false,
 ): NativeSurfaceMode {
-  if (settingsWorkspace) return "hide";
+  if (aboutOpen || settingsWorkspace) return "hide";
   if (!runtimeSynced) return "preserve";
   if (!currentFile) return "hide";
   return (
@@ -73,12 +74,14 @@ export function useVideoSurface() {
   const fullscreen = useUiStore((s) => s.fullscreen);
   const sidebarTab = useUiStore((s) => s.sidebarTab);
   const chatOpen = useChatUiStore((s) => s.chatOpen);
+  const aboutOpen = useUiStore((s) => s.aboutOpen);
   const settingsWorkspace = !fullscreen && sidebarTab === "settings";
   const mode = nativeSurfaceMode(
     runtimeSynced,
     status,
     currentFile,
     settingsWorkspace,
+    aboutOpen,
   );
 
   if (!queueBoundsRef.current) {
@@ -99,6 +102,7 @@ export function useVideoSurface() {
       state.status,
       state.currentFile,
       !uiState.fullscreen && uiState.sidebarTab === "settings",
+      uiState.aboutOpen,
     );
 
     // During mount/HMR, the native player can still be showing valid pixels.
@@ -133,11 +137,11 @@ export function useVideoSurface() {
 
   useLayoutEffect(() => {
     return scheduleBoundsRefresh(reportBounds);
-  }, [reportBounds, fullscreen, sidebarTab, chatOpen]);
+  }, [reportBounds, fullscreen, sidebarTab, chatOpen, aboutOpen]);
 
   useEffect(() => {
     void reportBounds();
-  }, [reportBounds, mode, status, currentFile, sidebarTab]);
+  }, [reportBounds, mode, status, currentFile, sidebarTab, aboutOpen]);
 
   useEffect(() => {
     void reportBounds();

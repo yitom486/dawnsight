@@ -22,4 +22,8 @@ describe("nativeSurfaceMode", () => {
   it("hides the HWND while Settings owns the primary workspace", () => {
     expect(nativeSurfaceMode(true, "Playing", "movie.mp4", true)).toBe("hide");
   });
+
+  it("hides the HWND while About dialog is open", () => {
+    expect(nativeSurfaceMode(true, "Playing", "movie.mp4", false, true)).toBe("hide");
+  });
 });

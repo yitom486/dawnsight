@@ -18,6 +18,8 @@ export type SidebarTab =
 type UiState = {
   fullscreen: boolean;
   sidebarTab: SidebarTab;
+  aboutOpen: boolean;
+  setAboutOpen: (open: boolean) => void;
   setSidebarTab: (tab: SidebarTab) => void;
   syncFullscreen: () => Promise<void>;
   setFullscreen: (value: boolean) => Promise<void>;
@@ -45,6 +47,12 @@ export const useUiStore = create<UiState>((set, get) => {
   return {
     fullscreen: false,
     sidebarTab: "transcript",
+    aboutOpen: false,
+
+    setAboutOpen: (aboutOpen) => {
+      set({ aboutOpen });
+      refreshSurfaceBounds();
+    },
 
     setSidebarTab: (sidebarTab) => {
       set({ sidebarTab });

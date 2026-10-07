@@ -12,7 +12,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@dawnsight/ui/alert-dialog";
 import { Button } from "@dawnsight/ui/button";
 import {
@@ -98,6 +97,9 @@ function LogDirButton() {
 /** About dialog: product intro + runtime version + update entry. */
 export function AboutButton() {
   const [version, setVersion] = useState("…");
+  const aboutOpen = useUiStore((s) => s.aboutOpen);
+  const setAboutOpen = useUiStore((s) => s.setAboutOpen);
+
   useEffect(() => {
     let cancelled = false;
     void getVersion()
@@ -125,48 +127,63 @@ export function AboutButton() {
   };
 
   return (
-    <AlertDialog>
+    <>
       <Tooltip>
         <TooltipTrigger
           render={
-            <AlertDialogTrigger
-              render={
-                <Button
+            <Button
               type="button"
               variant="ghost"
-              size="icon" className="size-8"
+              size="icon"
+              className="size-8"
+              onClick={() => setAboutOpen(true)}
               aria-label="关于 Dawnsight"
-                >
-                  <Info className="size-4" />
-                </Button>
-              }
-            />
+            >
+              <Info className="size-4" />
+            </Button>
           }
         />
         <TooltipContent>关于 Dawnsight</TooltipContent>
       </Tooltip>
-      {/* vendor 还原后默认 bg-background/max-w-lg；转出层保留原深色窄版。 */}
-      <AlertDialogContent className="border-border bg-card max-w-md">
-        <AlertDialogHeader>
-          <AlertDialogTitle>Dawnsight · AI Video Reader</AlertDialogTitle>
-          <AlertDialogDescription>版本 {version}</AlertDialogDescription>
-        </AlertDialogHeader>
-        <p className="text-sm text-muted-foreground">
-          桌面端 AI
-          观影阅读器：用原生播放器播放本地视频，把字幕文稿、章节、笔记与可选的
-          AI 对话放在同一个阅读工作流里。
-        </p>
-        <AlertDialogFooter>
-          <Button type="button" variant="outline" onClick={openRepo}>
-            GitHub 仓库
-          </Button>
-          <Button type="button" variant="outline" onClick={openReleases}>
-            下载更新
-          </Button>
-          <AlertDialogAction>知道了</AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+
+      <AlertDialog open={aboutOpen} onOpenChange={setAboutOpen}>
+        <AlertDialogContent className="border-border bg-card max-w-md shadow-2xl">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3">
+              <img
+                src={dawnsightLogo}
+                alt="Dawnsight Logo"
+                className="size-10 rounded-xl border border-ai/40 object-cover shadow-sm pointer-events-none"
+              />
+              <div className="flex flex-col text-left">
+                <AlertDialogTitle className="text-base font-semibold text-foreground">
+                  Dawnsight · AI Video Reader
+                </AlertDialogTitle>
+                <AlertDialogDescription className="text-xs text-muted-foreground">
+                  版本 {version}
+                </AlertDialogDescription>
+              </div>
+            </div>
+          </AlertDialogHeader>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            桌面端 AI
+            观影阅读器：用原生播放器播放本地视频，把字幕文稿、章节、笔记与可选的
+            AI 对话放在同一个阅读工作流里。
+          </p>
+          <AlertDialogFooter className="mt-4 flex flex-row items-center justify-end gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={openRepo}>
+              GitHub 仓库
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={openReleases}>
+              下载更新
+            </Button>
+            <AlertDialogAction size="sm" onClick={() => setAboutOpen(false)}>
+              知道了
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 
