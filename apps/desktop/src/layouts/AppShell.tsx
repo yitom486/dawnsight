@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { FileText, Info, Maximize2, Minimize2 } from "lucide-react";
 import { getVersion } from "@tauri-apps/api/app";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { openUrl } from "@tauri-apps/plugin-opener";
 
 import {
@@ -31,6 +32,10 @@ const REPO_URL = "https://github.com/yitom486/dawnsight";
 type AppShellProps = {
   children: ReactNode;
 };
+
+import { WindowControls } from "./WindowControls";
+
+export { WindowControls };
 
 export function FullscreenToggleButton() {
   const fullscreen = useUiStore((s) => s.fullscreen);
@@ -214,16 +219,28 @@ export function AppShell({ children }: AppShellProps) {
       {!fullscreen ? (
         <header
           aria-label="应用标题栏"
-          className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-surface-elevated px-3 shadow-sm"
+          data-tauri-drag-region
+          onDoubleClick={async (e) => {
+            if ((e.target as HTMLElement).closest("button, a, input, [role='button'], [data-tauri-drag-region='none']")) return;
+            try {
+              await getCurrentWindow().toggleMaximize();
+            } catch {
+              // Ignored in non-Tauri / test environments
+            }
+          }}
+          className="flex h-11 shrink-0 select-none items-center justify-between border-b border-border bg-surface-elevated pl-3 pr-0 shadow-sm"
         >
-          <div className="flex min-w-0 shrink-0 items-center gap-2.5">
+          <div
+            className="flex min-w-0 shrink-0 items-center gap-2.5 cursor-default"
+            data-tauri-drag-region
+          >
             <img
               src={dawnsightLogo}
               alt="Dawnsight"
-              className="size-9 rounded-xl border border-ai/40 object-cover shadow-sm"
+              className="size-7 rounded-lg border border-ai/40 object-cover shadow-sm pointer-events-none"
             />
-            <div className="flex min-w-0 items-baseline gap-2">
-              <p className="text-base font-semibold tracking-tight text-surface-foreground">
+            <div className="flex min-w-0 items-baseline gap-2" data-tauri-drag-region>
+              <p className="text-sm font-semibold tracking-tight text-surface-foreground">
                 Dawnsight
               </p>
               <p className="hidden text-xs text-muted-foreground sm:inline">
@@ -231,9 +248,12 @@ export function AppShell({ children }: AppShellProps) {
               </p>
             </div>
           </div>
-          <div aria-hidden="true" className="h-6 w-px shrink-0 bg-border" />
-          <div className="flex min-w-0 flex-1 items-center justify-center gap-2 text-xs text-muted-foreground">
-            <span className="truncate" title={fileLabel ?? undefined}>
+          <div aria-hidden="true" className="h-4 w-px shrink-0 bg-border/80" />
+          <div
+            className="flex min-w-0 flex-1 items-center justify-center gap-2 px-3 text-xs text-muted-foreground cursor-default"
+            data-tauri-drag-region
+          >
+            <span className="truncate" title={fileLabel ?? undefined} data-tauri-drag-region>
               {fileLabel ?? "未打开文件"}
             </span>
             {fileFormat ? (
@@ -248,11 +268,13 @@ export function AppShell({ children }: AppShellProps) {
               </span>
             ) : null}
           </div>
-          <div className="flex shrink-0 items-center gap-0.5">
+          <div className="flex h-full shrink-0 items-center gap-0.5" data-tauri-drag-region="none">
             <ChatToggleButton />
             <LogDirButton />
             <AboutButton />
             <FullscreenToggleButton />
+            <div aria-hidden="true" className="mx-1 h-4 w-px bg-border/80" />
+            <WindowControls />
           </div>
         </header>
       ) : null}
