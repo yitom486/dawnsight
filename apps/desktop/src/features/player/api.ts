@@ -3,7 +3,7 @@
 import { Channel, invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 
-import type { PlayerEvent, PlayerSnapshot } from "@lumina/contracts";
+import type { PlayerEvent, PlayerSnapshot } from "@dawnsight/contracts";
 
 const VIDEO_FILTERS = [
   {

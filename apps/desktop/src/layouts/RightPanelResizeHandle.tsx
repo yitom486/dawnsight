@@ -5,8 +5,8 @@ import {
   MAX_DOCK_WIDTH,
   MIN_DOCK_WIDTH,
   useChatUiStore,
-} from "@lumina/chat-ui/chatUiStore";
-import { cn } from "@lumina/ui/utils";
+} from "@dawnsight/chat-ui/chatUiStore";
+import { cn } from "@dawnsight/ui/utils";
 
 const KEY_STEP = 12;
 

@@ -5,4 +5,4 @@
 
 pub mod adapter;
 
-pub use lumina_library::*;
+pub use dawnsight_library::*;

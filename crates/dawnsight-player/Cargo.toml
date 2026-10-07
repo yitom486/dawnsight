@@ -1,0 +1,15 @@
+[package]
+name = "dawnsight-player"
+version = "0.4.0"
+description = "PlayerService, libmpv playback, and playback state machine for Dawnsight"
+edition = "2021"
+
+[dependencies]
+dawnsight-core.workspace = true
+serde = { version = "1", features = ["derive"] }
+tracing = "0.1"
+libmpv2 = "6"
+libmpv2-sys = "4"
+
+[dev-dependencies]
+serde_json = "1"

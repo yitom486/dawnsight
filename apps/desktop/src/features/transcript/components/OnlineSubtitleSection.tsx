@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
-import { Button } from "@lumina/ui/button";
-import { Input } from "@lumina/ui/input";
-import { NativeSelect, NativeSelectOption } from "@lumina/ui/native-select";
+import { Button } from "@dawnsight/ui/button";
+import { Input } from "@dawnsight/ui/input";
+import { NativeSelect, NativeSelectOption } from "@dawnsight/ui/native-select";
 
 import { LANG_PRESETS } from "../../../../../../packages/transcript-ui/src/cueSelectors";
 import {

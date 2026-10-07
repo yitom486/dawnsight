@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-import type { Cue } from "@lumina/contracts";
+import type { Cue } from "@dawnsight/contracts";
 
 import {
   cueIndicesInListRange,

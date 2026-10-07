@@ -3,8 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { FileText } from "lucide-react";
 
-import { TooltipProvider } from "@lumina/ui/tooltip";
-import { useChatUiStore } from "@lumina/chat-ui/chatUiStore";
+import { TooltipProvider } from "@dawnsight/ui/tooltip";
+import { useChatUiStore } from "@dawnsight/chat-ui/chatUiStore";
 
 import { WorkspaceRail } from "./WorkspaceRail";
 

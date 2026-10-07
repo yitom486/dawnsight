@@ -1,7 +1,7 @@
-import { isToolSucceeded } from "@lumina/chat-ui/toolStatus";
+import { isToolSucceeded } from "@dawnsight/chat-ui/toolStatus";
 import type { AcpEvent, ChatActivity, ChatTurn } from "@/features/acp/types";
 
-export const PROPOSE_ANNOTATION_TOOL = "lumina_propose_video_annotation";
+export const PROPOSE_ANNOTATION_TOOL = "dawnsight_propose_video_annotation";
 
 export function isProposeAnnotationTool(title?: string | null): boolean {
   if (!title?.trim()) return false;

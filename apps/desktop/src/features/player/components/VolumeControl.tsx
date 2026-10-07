@@ -1,9 +1,9 @@
 import { useRef, useState } from "react";
 import { Volume2, VolumeX } from "lucide-react";
 
-import { Button } from "@lumina/ui/button";
+import { Button } from "@dawnsight/ui/button";
 import { PlayerSlider } from "./PlayerSlider";
-import { cn } from "@lumina/ui/utils";
+import { cn } from "@dawnsight/ui/utils";
 
 import { usePlayerStore } from "../store";
 

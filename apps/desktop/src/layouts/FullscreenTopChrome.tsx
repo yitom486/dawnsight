@@ -1,4 +1,4 @@
-import { ChatToggleButton } from "@lumina/chat-ui/components/ChatToggleButton";
+import { ChatToggleButton } from "@dawnsight/chat-ui/components/ChatToggleButton";
 
 import { FullscreenToggleButton } from "./AppShell";
 

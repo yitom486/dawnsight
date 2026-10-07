@@ -1,15 +1,15 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
-import { Button } from "@lumina/ui/button";
-import { ScrollArea } from "@lumina/ui/scroll-area";
-import { Textarea } from "@lumina/ui/textarea";
+import { Button } from "@dawnsight/ui/button";
+import { ScrollArea } from "@dawnsight/ui/scroll-area";
+import { Textarea } from "@dawnsight/ui/textarea";
 import { errorMessage, formatTime } from "@/lib/format";
-import { cn } from "@lumina/ui/utils";
+import { cn } from "@dawnsight/ui/utils";
 
 import { createNote, dismissAnnotationProposal } from "../api";
-import type { VideoAnnotationProposal } from "@lumina/contracts";
-import { notesKey } from "@lumina/query-keys";
+import type { VideoAnnotationProposal } from "@dawnsight/contracts";
+import { notesKey } from "@dawnsight/query-keys";
 
 type Props = {
   proposal: VideoAnnotationProposal;

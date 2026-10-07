@@ -9,9 +9,9 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { usePlayerStore } from "@/features/player";
-import { useAcpProfilesStore } from "@lumina/chat-ui/acpProfilesStore";
-import { useAcpSessionStore } from "@lumina/chat-ui/acpSessionStore";
-import { useAcpSettingsStore } from "@lumina/chat-ui/acpSettingsStore";
+import { useAcpProfilesStore } from "@dawnsight/chat-ui/acpProfilesStore";
+import { useAcpSessionStore } from "@dawnsight/chat-ui/acpSessionStore";
+import { useAcpSettingsStore } from "@dawnsight/chat-ui/acpSettingsStore";
 
 import { AcpPanel, handleAssistantAction } from "./AcpPanel";
 
@@ -196,7 +196,7 @@ describe("AcpPanel", () => {
 
   it("does not trigger infinite re-renders with persisted profiles", async () => {
     localStorage.setItem(
-      "lumina-acp-profiles",
+      "dawnsight-acp-profiles",
       JSON.stringify({
         state: {
           activeProfileId: "codex",

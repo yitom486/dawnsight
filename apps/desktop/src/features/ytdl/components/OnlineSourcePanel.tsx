@@ -3,10 +3,10 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
-import { Alert } from "@lumina/ui/alert";
-import { Button } from "@lumina/ui/button";
-import { Input } from "@lumina/ui/input";
-import { ytdlResolveKey } from "@lumina/query-keys";
+import { Alert } from "@dawnsight/ui/alert";
+import { Button } from "@dawnsight/ui/button";
+import { Input } from "@dawnsight/ui/input";
+import { ytdlResolveKey } from "@dawnsight/query-keys";
 import { OnlineSourceSettings } from "@/features/ytdl/components/OnlineSourceSettings";
 import { usePlayerStore } from "@/features/player";
 import { getCachedYtdlResolve } from "../api";

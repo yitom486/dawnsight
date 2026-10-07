@@ -5,7 +5,7 @@ import {
   mergeToolDetail,
   toolFailureHint,
   toolStatusLabel,
-} from "@lumina/chat-ui/toolStatus";
+} from "@dawnsight/chat-ui/toolStatus";
 
 describe("toolStatus", () => {
   it("maps failed status to Chinese label", () => {

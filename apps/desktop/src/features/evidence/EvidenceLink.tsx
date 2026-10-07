@@ -9,11 +9,11 @@ import {
 } from "react";
 
 import { inspectMedia } from "@/features/media/api";
-import { mediaInfoKey } from "@lumina/query-keys";
+import { mediaInfoKey } from "@dawnsight/query-keys";
 import { resolveEpisodeFile } from "@/features/library/api";
 import { usePlayerStore } from "@/features/player";
-import { useProgressStore } from "@lumina/player-ui";
-import { Button } from "@lumina/ui/button";
+import { useProgressStore } from "@dawnsight/player-ui";
+import { Button } from "@dawnsight/ui/button";
 import { errorMessage, formatTime } from "@/lib/format";
 
 import {

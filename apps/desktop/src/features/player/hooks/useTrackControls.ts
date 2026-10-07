@@ -6,21 +6,21 @@ import {
   listSubtitleChoices,
   loadSubtitleChoice,
 } from "@/features/transcript/api";
-import { subtitleChoicesKey } from "@lumina/query-keys";
+import { subtitleChoicesKey } from "@dawnsight/query-keys";
 
 import { usePlayerStore } from "../store";
 import {
   mediaDirectoryKey,
   resolveDirectoryTrackSelection,
   pickDefaultSubtitleId,
-} from "@lumina/player-ui";
+} from "@dawnsight/player-ui";
 import { useTrackStore } from "../trackStore";
 
-/** Compat facade: canonical implementations live in @lumina/player-ui. */
+/** Compat facade: canonical implementations live in @dawnsight/player-ui. */
 import {
   applySubtitleChoice,
   audioTrackLabel,
-} from "@lumina/player-ui/trackActions";
+} from "@dawnsight/player-ui/trackActions";
 export { applySubtitleChoice, audioTrackLabel };
 
 export function useTrackControls() {

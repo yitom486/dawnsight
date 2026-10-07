@@ -9,14 +9,14 @@ import {
 import type { QueryClient } from "@tanstack/react-query";
 
 import { errorMessage } from "@/lib/format";
-import { useAcpSessionStore } from "@lumina/chat-ui/acpSessionStore";
-import { syncTurnIdSeq, type SystemNotice } from "@lumina/chat-ui/chatTurns";
+import { useAcpSessionStore } from "@dawnsight/chat-ui/acpSessionStore";
+import { syncTurnIdSeq, type SystemNotice } from "@dawnsight/chat-ui/chatTurns";
 import {
   agentSessionListTrust,
   canSwitchHistoryConversation,
   historyThreadRows,
   type HistoryThreadRow,
-} from "@lumina/chat-ui/conversationContext";
+} from "@dawnsight/chat-ui/conversationContext";
 
 import { acpDeleteSession } from "../api";
 import type {

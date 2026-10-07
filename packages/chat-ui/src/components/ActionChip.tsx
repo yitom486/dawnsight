@@ -1,6 +1,6 @@
 import { ArrowRight, BookmarkPlus, MessageCircleQuestion, Play } from "lucide-react";
 
-import { Button } from "@lumina/ui";
+import { Button } from "@dawnsight/ui";
 
 import type { AssistantAction, AssistantActionChip } from "../assistantBlocks";
 

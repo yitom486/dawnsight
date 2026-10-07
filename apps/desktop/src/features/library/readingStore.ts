@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-import { useProgressStore } from "@lumina/player-ui";
+import { useProgressStore } from "@dawnsight/player-ui";
 
 import type { EpisodeFile } from "./types";
 
@@ -37,7 +37,7 @@ export const useReadingStore = create<ReadingStore>()(
         }),
     }),
     {
-      name: "lumina-reading-done",
+      name: "dawnsight-reading-done",
       partialize: (state) => ({ doneSet: state.doneSet }),
     },
   ),

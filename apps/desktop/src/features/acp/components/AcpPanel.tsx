@@ -24,17 +24,17 @@ import {
 } from "@/features/notes/annotationTurnState";
 import { usePlayerStore } from "@/features/player";
 import { errorMessage } from "@/lib/format";
-import { notesKey } from "@lumina/query-keys";
+import { notesKey } from "@dawnsight/query-keys";
 
 import "../chat-motion.css";
 
-import { useAcpProfilesStore } from "@lumina/chat-ui/acpProfilesStore";
-import { useAskAboutStore } from "@lumina/chat-ui/askAboutStore";
+import { useAcpProfilesStore } from "@dawnsight/chat-ui/acpProfilesStore";
+import { useAskAboutStore } from "@dawnsight/chat-ui/askAboutStore";
 import {
   clientSettingsFromStore,
   useAcpSettingsStore,
-} from "@lumina/chat-ui/acpSettingsStore";
-import { useAcpSessionStore } from "@lumina/chat-ui/acpSessionStore";
+} from "@dawnsight/chat-ui/acpSettingsStore";
+import { useAcpSessionStore } from "@dawnsight/chat-ui/acpSessionStore";
 import {
   acpCancel,
   acpPrompt,
@@ -52,17 +52,17 @@ import {
   acpQueryKeys,
   useSyncTaskContracts,
 } from "../queries";
-import { profilesHintFromStore } from "@lumina/chat-ui/defaultAgentProfiles";
+import { profilesHintFromStore } from "@dawnsight/chat-ui/defaultAgentProfiles";
 import {
   applyAcpEventToTurn,
   createTurn,
   pushNotice,
   type SystemNotice,
-} from "@lumina/chat-ui/chatTurns";
-import { useChatUiStore } from "@lumina/chat-ui/chatUiStore";
-import type { AssistantAction } from "@lumina/chat-ui/assistantBlocks";
+} from "@dawnsight/chat-ui/chatTurns";
+import { useChatUiStore } from "@dawnsight/chat-ui/chatUiStore";
+import type { AssistantAction } from "@dawnsight/chat-ui/assistantBlocks";
 import { buildAnchoredVideoPromptContext } from "../context";
-import { workspaceCwdFromMedia } from "@lumina/player-ui/cwd";
+import { workspaceCwdFromMedia } from "@dawnsight/player-ui/cwd";
 import {
   clearPersistedSessionHintFor,
   flushChatRestore,
@@ -77,7 +77,7 @@ import {
   claimProgressOwner,
   sealProgressOwner,
 } from "../progressOwner";
-import { profilesSignature } from "@lumina/chat-ui/profilesSignature";
+import { profilesSignature } from "@dawnsight/chat-ui/profilesSignature";
 import {
   bargeInPrompt,
   createQueuedPrompt,
@@ -85,7 +85,7 @@ import {
   enqueuePrompt,
   removeQueuedPrompt,
   type QueuedPrompt,
-} from "@lumina/chat-ui/promptQueue";
+} from "@dawnsight/chat-ui/promptQueue";
 import type {
   AcpEvent,
   ChatImageAttachment,
@@ -96,10 +96,10 @@ import type {
 import { useVideoPromptContext } from "../useVideoPromptContext";
 import { useTypingPlaybackAnchor } from "../typingPlaybackAnchor";
 import { AgentSettingsPanel } from "./AgentSettingsPanel";
-import { ChatHistorySheet } from "@lumina/chat-ui/components/ChatHistorySheet";
+import { ChatHistorySheet } from "@dawnsight/chat-ui/components/ChatHistorySheet";
 import { ChatComposerBar, type ChatComposerBarHandle } from "./ChatComposerBar";
-import { ChatShell } from "@lumina/chat-ui/components/ChatShell";
-import { ChatColumn } from "@lumina/chat-ui/components/ChatShell";
+import { ChatShell } from "@dawnsight/chat-ui/components/ChatShell";
+import { ChatColumn } from "@dawnsight/chat-ui/components/ChatShell";
 import { ChatToolbar } from "./ChatToolbar";
 import { CompanionHeaderPanel } from "./CompanionHeaderPanel";
 import { ChatTurnList } from "./ChatTurnList";

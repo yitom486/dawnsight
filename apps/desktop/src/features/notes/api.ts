@@ -9,7 +9,7 @@ import type {
   NoteQuote,
   NoteUpdate,
 } from "./types";
-import type { VideoAnnotationProposal } from "@lumina/contracts";
+import type { VideoAnnotationProposal } from "@dawnsight/contracts";
 
 /** Default `{parentDir}/{seriesOrDir}.notes.md` next to the media file. */
 export function suggestNotesExportPath(

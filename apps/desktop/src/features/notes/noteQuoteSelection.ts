@@ -1,4 +1,4 @@
-import type { Cue } from "@lumina/contracts";
+import type { Cue } from "@dawnsight/contracts";
 
 /** List-index range → stable cue.index values (inclusive). */
 export function cueIndicesInListRange(

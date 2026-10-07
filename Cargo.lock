@@ -814,6 +814,182 @@ dependencies = [
 ]
 
 [[package]]
+name = "dawnsight-acp"
+version = "0.4.0"
+dependencies = [
+ "agent-client-protocol",
+ "dawnsight-core",
+ "serde",
+ "serde_json",
+ "tracing",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "dawnsight-ai"
+version = "0.4.0"
+dependencies = [
+ "dawnsight-core",
+ "dawnsight-subtitle",
+ "serde",
+ "serde_json",
+ "tracing",
+]
+
+[[package]]
+name = "dawnsight-app"
+version = "0.4.0"
+dependencies = [
+ "base64 0.22.1",
+ "cocoa",
+ "dawnsight-acp",
+ "dawnsight-ai",
+ "dawnsight-asr",
+ "dawnsight-core",
+ "dawnsight-library",
+ "dawnsight-mcp",
+ "dawnsight-media",
+ "dawnsight-notes",
+ "dawnsight-player",
+ "dawnsight-subtitle",
+ "dawnsight-ytdl",
+ "keyring",
+ "libloading",
+ "libmpv2",
+ "libmpv2-sys",
+ "objc",
+ "pkg-config",
+ "raw-window-handle",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-dialog",
+ "tauri-plugin-opener",
+ "tauri-plugin-updater",
+ "tracing",
+ "tracing-appender",
+ "tracing-subscriber",
+ "ureq",
+ "url",
+ "which",
+ "windows",
+ "x11",
+ "zip 2.4.2",
+]
+
+[[package]]
+name = "dawnsight-asr"
+version = "0.4.0"
+dependencies = [
+ "dawnsight-media",
+ "dawnsight-subtitle",
+ "serde",
+ "tracing",
+ "ureq",
+ "zip 2.4.2",
+]
+
+[[package]]
+name = "dawnsight-core"
+version = "0.4.0"
+dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "dawnsight-library"
+version = "0.4.0"
+dependencies = [
+ "dawnsight-core",
+ "dawnsight-media",
+ "keyring",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "tracing",
+ "ureq",
+ "url",
+ "windows",
+]
+
+[[package]]
+name = "dawnsight-mcp"
+version = "0.4.0"
+dependencies = [
+ "base64 0.22.1",
+ "dawnsight-core",
+ "dawnsight-library",
+ "dawnsight-media",
+ "dawnsight-notes",
+ "dawnsight-subtitle",
+ "dawnsight-ytdl",
+ "serde",
+ "serde_json",
+ "tracing",
+]
+
+[[package]]
+name = "dawnsight-media"
+version = "0.4.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "tracing",
+ "which",
+]
+
+[[package]]
+name = "dawnsight-notes"
+version = "0.4.0"
+dependencies = [
+ "base64 0.22.1",
+ "dawnsight-media",
+ "dawnsight-subtitle",
+ "dawnsight-ytdl",
+ "serde",
+ "serde_json",
+ "tracing",
+]
+
+[[package]]
+name = "dawnsight-player"
+version = "0.4.0"
+dependencies = [
+ "dawnsight-core",
+ "libmpv2",
+ "libmpv2-sys",
+ "serde",
+ "serde_json",
+ "tracing",
+]
+
+[[package]]
+name = "dawnsight-subtitle"
+version = "0.4.0"
+dependencies = [
+ "dawnsight-media",
+ "serde",
+ "tracing",
+]
+
+[[package]]
+name = "dawnsight-ytdl"
+version = "0.4.0"
+dependencies = [
+ "dawnsight-core",
+ "dawnsight-media",
+ "dawnsight-subtitle",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tracing",
+ "ureq",
+ "which",
+]
+
+[[package]]
 name = "dbus"
 version = "0.9.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2353,182 +2529,6 @@ name = "log"
 version = "0.4.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f9f8bd3e56ce4dfc153cf470fffbfa98c7620958b312ca5c3a4b8d5181fd13c6"
-
-[[package]]
-name = "lumina-acp"
-version = "0.4.0"
-dependencies = [
- "agent-client-protocol",
- "lumina-core",
- "serde",
- "serde_json",
- "tracing",
- "windows-sys 0.61.2",
-]
-
-[[package]]
-name = "lumina-ai"
-version = "0.4.0"
-dependencies = [
- "lumina-core",
- "lumina-subtitle",
- "serde",
- "serde_json",
- "tracing",
-]
-
-[[package]]
-name = "lumina-app"
-version = "0.4.0"
-dependencies = [
- "base64 0.22.1",
- "cocoa",
- "keyring",
- "libloading",
- "libmpv2",
- "libmpv2-sys",
- "lumina-acp",
- "lumina-ai",
- "lumina-asr",
- "lumina-core",
- "lumina-library",
- "lumina-mcp",
- "lumina-media",
- "lumina-notes",
- "lumina-player",
- "lumina-subtitle",
- "lumina-ytdl",
- "objc",
- "pkg-config",
- "raw-window-handle",
- "serde",
- "serde_json",
- "sha2",
- "tauri",
- "tauri-build",
- "tauri-plugin-dialog",
- "tauri-plugin-opener",
- "tauri-plugin-updater",
- "tracing",
- "tracing-appender",
- "tracing-subscriber",
- "ureq",
- "url",
- "which",
- "windows",
- "x11",
- "zip 2.4.2",
-]
-
-[[package]]
-name = "lumina-asr"
-version = "0.4.0"
-dependencies = [
- "lumina-media",
- "lumina-subtitle",
- "serde",
- "tracing",
- "ureq",
- "zip 2.4.2",
-]
-
-[[package]]
-name = "lumina-core"
-version = "0.4.0"
-dependencies = [
- "serde",
-]
-
-[[package]]
-name = "lumina-library"
-version = "0.4.0"
-dependencies = [
- "keyring",
- "lumina-core",
- "lumina-media",
- "rusqlite",
- "serde",
- "serde_json",
- "tracing",
- "ureq",
- "url",
- "windows",
-]
-
-[[package]]
-name = "lumina-mcp"
-version = "0.4.0"
-dependencies = [
- "base64 0.22.1",
- "lumina-core",
- "lumina-library",
- "lumina-media",
- "lumina-notes",
- "lumina-subtitle",
- "lumina-ytdl",
- "serde",
- "serde_json",
- "tracing",
-]
-
-[[package]]
-name = "lumina-media"
-version = "0.4.0"
-dependencies = [
- "serde",
- "serde_json",
- "tracing",
- "which",
-]
-
-[[package]]
-name = "lumina-notes"
-version = "0.4.0"
-dependencies = [
- "base64 0.22.1",
- "lumina-media",
- "lumina-subtitle",
- "lumina-ytdl",
- "serde",
- "serde_json",
- "tracing",
-]
-
-[[package]]
-name = "lumina-player"
-version = "0.4.0"
-dependencies = [
- "libmpv2",
- "libmpv2-sys",
- "lumina-core",
- "serde",
- "serde_json",
- "tracing",
-]
-
-[[package]]
-name = "lumina-subtitle"
-version = "0.4.0"
-dependencies = [
- "lumina-media",
- "serde",
- "tracing",
-]
-
-[[package]]
-name = "lumina-ytdl"
-version = "0.4.0"
-dependencies = [
- "lumina-core",
- "lumina-media",
- "lumina-subtitle",
- "serde",
- "serde_json",
- "sha2",
- "tracing",
- "ureq",
- "which",
-]
 
 [[package]]
 name = "malloc_buf"

@@ -10,8 +10,8 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useAcpProfilesStore } from "@lumina/chat-ui/acpProfilesStore";
-import type { SessionConfigOption } from "@lumina/chat-ui/types";
+import { useAcpProfilesStore } from "@dawnsight/chat-ui/acpProfilesStore";
+import type { SessionConfigOption } from "@dawnsight/chat-ui/types";
 
 import { ChatComposerBar } from "./ChatComposerBar";
 import { useCursorConfigControls } from "../useCursorConfigControls";

@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 
-import { Button } from "@lumina/ui/button";
-import { NativeSelect, NativeSelectOption } from "@lumina/ui/native-select";
+import { Button } from "@dawnsight/ui/button";
+import { NativeSelect, NativeSelectOption } from "@dawnsight/ui/native-select";
 
 import { getNoteFrame } from "../api";
 import { errorMessage, formatTime } from "@/lib/format";

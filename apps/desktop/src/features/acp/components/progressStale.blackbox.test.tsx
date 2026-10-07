@@ -10,8 +10,8 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { usePlayerStore } from "@/features/player";
-import { useAcpProfilesStore } from "@lumina/chat-ui/acpProfilesStore";
-import { useAcpSessionStore } from "@lumina/chat-ui/acpSessionStore";
+import { useAcpProfilesStore } from "@dawnsight/chat-ui/acpProfilesStore";
+import { useAcpSessionStore } from "@dawnsight/chat-ui/acpSessionStore";
 
 import { AcpPanel } from "./AcpPanel";
 

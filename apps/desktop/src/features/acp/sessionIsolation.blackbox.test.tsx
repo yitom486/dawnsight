@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useAcpSessionStore } from "@lumina/chat-ui/acpSessionStore";
+import { useAcpSessionStore } from "@dawnsight/chat-ui/acpSessionStore";
 
 import {
   clearPersistedSessionHintFor,

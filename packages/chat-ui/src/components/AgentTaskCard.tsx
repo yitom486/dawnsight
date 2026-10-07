@@ -1,8 +1,8 @@
 import { Check, CircleAlert, CircleDot, Clock3, X } from "lucide-react";
 
-import { Badge } from "@lumina/ui/badge";
-import { cn } from "@lumina/ui";
-import { Progress } from "@lumina/ui/progress";
+import { Badge } from "@dawnsight/ui/badge";
+import { cn } from "@dawnsight/ui";
+import { Progress } from "@dawnsight/ui/progress";
 
 import type {
   AgentTaskStatus,

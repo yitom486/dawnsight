@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { Cue } from "@lumina/contracts";
+import type { Cue } from "@dawnsight/contracts";
 
 import {
   cueIndicesInListRange,

@@ -14,7 +14,7 @@ import * as api from "../api";
 import { ensureSurfaceBounds } from "../surfaceBridge";
 import { usePlayerStore } from "../store";
 import { useUiStore } from "../uiStore";
-import type { PlayerEvent } from "@lumina/contracts";
+import type { PlayerEvent } from "@dawnsight/contracts";
 
 export function usePlayerEvents(): void {
   useEffect(() => {

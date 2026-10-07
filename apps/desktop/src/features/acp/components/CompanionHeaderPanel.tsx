@@ -5,10 +5,10 @@ import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@lumina/ui/collapsible";
-import type { AssistantAction } from "@lumina/chat-ui/assistantBlocks";
-import { ChatColumn } from "@lumina/chat-ui/components/ChatShell";
-import { cn } from "@lumina/ui/utils";
+} from "@dawnsight/ui/collapsible";
+import type { AssistantAction } from "@dawnsight/chat-ui/assistantBlocks";
+import { ChatColumn } from "@dawnsight/chat-ui/components/ChatShell";
+import { cn } from "@dawnsight/ui/utils";
 
 import type { CompanionTaskId } from "./CompanionQuickActions";
 import { WatchFeedView } from "./WatchFeedView";

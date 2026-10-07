@@ -2,11 +2,11 @@
 //!
 //! B1 covers the Rust side only: the commands below persist caller-pruned
 //! snapshots into the shared `lumina.sqlite3` (migration 4) through
-//! [`lumina_library::Database`]. No new database file, no frontend changes.
+//! [`dawnsight_library::Database`]. No new database file, no frontend changes.
 
 use std::path::PathBuf;
 
-use lumina_library::{AcpSessionHintRecord, ChatSnapshotRecord, Database, DatabaseError};
+use dawnsight_library::{AcpSessionHintRecord, ChatSnapshotRecord, Database, DatabaseError};
 use serde::{Deserialize, Serialize};
 
 /// Stable business error shape for the six chat-store commands.
@@ -28,7 +28,7 @@ impl ChatStoreError {
             details = ?error.details,
             "chat store storage operation failed"
         );
-        if error.code == lumina_library::DatabaseErrorCode::InvalidInput {
+        if error.code == dawnsight_library::DatabaseErrorCode::InvalidInput {
             return Self {
                 code: "InvalidInput".to_string(),
                 message: error.message,
@@ -325,7 +325,7 @@ mod tests {
     #[test]
     fn storage_error_mapping_keeps_business_message_and_hides_diagnostics() {
         let invalid = ChatStoreError::storage(DatabaseError {
-            code: lumina_library::DatabaseErrorCode::InvalidInput,
+            code: dawnsight_library::DatabaseErrorCode::InvalidInput,
             message: "聊天草稿不能为空".to_string(),
             details: None,
         });
@@ -334,7 +334,7 @@ mod tests {
         assert_eq!(invalid.details, None);
 
         let storage = ChatStoreError::storage(DatabaseError {
-            code: lumina_library::DatabaseErrorCode::OpenFailed,
+            code: dawnsight_library::DatabaseErrorCode::OpenFailed,
             message: "无法打开应用数据存储".to_string(),
             details: Some("open C:\\private\\lumina.sqlite3: sqlite detail".to_string()),
         });

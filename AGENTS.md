@@ -1,4 +1,4 @@
-# Lumina — Agent Guide
+# Dawnsight — Agent Guide
 
 AI Video Reader 桌面应用。
 
@@ -51,7 +51,7 @@ React 不得知道：mpv handle、native window handle、FFI pointer、libmpv / 
 
 ## ACP 分层（必读）
 
-| 层 | 是什么 | Lumina 关系 |
+| 层 | 是什么 | Dawnsight 关系 |
 |----|--------|-------------|
 | **ACP** | 开放协议（stdio JSON-RPC） | **产品稳定边界**（只做 Client） |
 | **codex-acp** | TS/Node 适配器（可打成单文件） | 默认 Agent **启动命令**，不是领域逻辑 |
@@ -84,7 +84,7 @@ cargo clippy --workspace --all-targets -- -D warnings
 MCP 协议级黑盒测试需要启用确定性 fixture seam：
 
 ```bash
-cargo test -p lumina-mcp --features test-support --test chapter_blackbox_stdio
+cargo test -p dawnsight-mcp --features test-support --test chapter_blackbox_stdio
 ```
 
 ### MCP / Agent 工具黑盒验收（强制）
@@ -119,7 +119,7 @@ cargo test -p lumina-mcp --features test-support --test chapter_blackbox_stdio
 - 编写通用交互前，先检查 `packages/ui` 和 shadcn/Magic UI 官方 registry 是否已有适用实现。
   有则复用并按调用方需求通过 `className` 或薄适配层定制；缺少时优先基于官方组件扩展到
   `packages/ui`，不要在 feature 内重复造菜单、弹层、选择器、表单控件、焦点管理或键盘交互。
-  自定义只留给 Lumina 业务工作流、布局边界，或经审查确实无法由现有组件承载的行为。
+  自定义只留给 Dawnsight 业务工作流、布局边界，或经审查确实无法由现有组件承载的行为。
 - Magic UI 是可选的复制式视觉组件来源，不是全量依赖；只加入有明确产品场景的组件，检查
   运行时依赖、语义主题 token、键盘/读屏行为和 `prefers-reduced-motion`。装饰动效不得成为
   播放、字幕阅读或 AI 操作可用性的前提，也不得覆盖 libmpv HWND。
@@ -150,12 +150,12 @@ cargo test -p lumina-mcp --features test-support --test chapter_blackbox_stdio
 
 - 主界面视觉参考图：`ui/lumina-desktop-overview-reference.png`
 - 文稿阅读工作区参考图：`ui/lumina-transcript-reading-reference.png`
-- 时间戳笔记工作区参考图：`ui/lumina-notes-workspace-reference.png`
+- 时间戳笔记工作区参考图：`ui/dawnsight-notes-workspace-reference.png`
 - 设置与资源管理工作区参考图：`ui/lumina-settings-workspace-reference.png`
 - 通用聊天与富输出参考图：`ui/lumina-general-chat-rich-output-reference.png`
-- AI 观剧流与自由聊天 Tab 参考图：`ui/lumina-ai-watch-feed-reference.png`
+- AI 观剧流与自由聊天 Tab 参考图：`ui/dawnsight-ai-watch-feed-reference.png`
 - 无章节视频的章节工作区参考图：`ui/lumina-chapter-generation-reference.png`
-- AI 与自动化设置参考图：`ui/lumina-ai-automation-settings-reference.png`
+- AI 与自动化设置参考图：`ui/dawnsight-ai-automation-settings-reference.png`
 - UI 交互与渲染约定：`ui/README.md`
 - 设计方向：深蓝石墨背景、蓝青色 AI 状态光感、橙色播放操作强调，整体保持科技简约与低干扰。
 - 参考图只定义视觉语言和信息层级，不改变原生播放器约束：`libmpv` HWND 必须与 WebView UI 使用并排布局，文稿、笔记、章节与 AI 面板不得依赖覆盖 HWND 的透明 WebView 层。

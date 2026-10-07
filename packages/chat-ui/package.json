@@ -1,5 +1,5 @@
 {
-  "name": "@lumina/chat-ui",
+  "name": "@dawnsight/chat-ui",
   "private": true,
   "version": "0.4.0",
   "type": "module",
@@ -70,8 +70,8 @@
     }
   },
   "dependencies": {
-    "@lumina/contracts": "workspace:*",
-    "@lumina/ui": "workspace:*",
+    "@dawnsight/contracts": "workspace:*",
+    "@dawnsight/ui": "workspace:*",
     "lucide-react": "^1.37.0"
   },
   "peerDependencies": {

@@ -8,15 +8,15 @@ import {
 import { useMutation, type QueryClient } from "@tanstack/react-query";
 
 import { errorMessage } from "@/lib/format";
-import { useAcpProfilesStore } from "@lumina/chat-ui/acpProfilesStore";
+import { useAcpProfilesStore } from "@dawnsight/chat-ui/acpProfilesStore";
 import {
   clientSettingsFromStore,
   useAcpSettingsStore,
-} from "@lumina/chat-ui/acpSettingsStore";
-import { useAcpSessionStore } from "@lumina/chat-ui/acpSessionStore";
-import { syncTurnIdSeq, type SystemNotice } from "@lumina/chat-ui/chatTurns";
-import { resumeOutcomeNotice } from "@lumina/chat-ui/conversationContext";
-import { profilesHintFromStore } from "@lumina/chat-ui/defaultAgentProfiles";
+} from "@dawnsight/chat-ui/acpSettingsStore";
+import { useAcpSessionStore } from "@dawnsight/chat-ui/acpSessionStore";
+import { syncTurnIdSeq, type SystemNotice } from "@dawnsight/chat-ui/chatTurns";
+import { resumeOutcomeNotice } from "@dawnsight/chat-ui/conversationContext";
+import { profilesHintFromStore } from "@dawnsight/chat-ui/defaultAgentProfiles";
 
 import { acpClose, acpConnect, acpNewChat, acpSwitchSession } from "../api";
 import type {

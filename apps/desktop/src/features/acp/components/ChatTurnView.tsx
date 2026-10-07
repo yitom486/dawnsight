@@ -1,33 +1,33 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Suspense, lazy, useState } from "react";
 
-import { Button } from "@lumina/ui/button";
+import { Button } from "@dawnsight/ui/button";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@lumina/ui/collapsible";
-import { cn } from "@lumina/ui/utils";
+} from "@dawnsight/ui/collapsible";
+import { cn } from "@dawnsight/ui/utils";
 import { errorMessage, formatTime } from "@/lib/format";
 
 import { AnnotationProposalCard } from "@/features/notes/components/AnnotationProposalCard";
 import { createNote } from "@/features/notes/api";
-import { notesKey } from "@lumina/query-keys";
+import { notesKey } from "@dawnsight/query-keys";
 import { usePlayerStore } from "@/features/player";
 
-import { waitingLabel, hasActiveToolActivity } from "@lumina/chat-ui/activityStatus";
+import { waitingLabel, hasActiveToolActivity } from "@dawnsight/chat-ui/activityStatus";
 import {
   presentChatActivities,
   type ChatPresentationMode,
-} from "@lumina/chat-ui/presentationPolicy";
-import type { AssistantAction } from "@lumina/chat-ui/assistantBlocks";
-import { parseAssistantBlocksText } from "@lumina/chat-ui/assistantBlocks";
-import { RichBlockRenderer } from "@lumina/chat-ui/components/RichBlockRenderer";
+} from "@dawnsight/chat-ui/presentationPolicy";
+import type { AssistantAction } from "@dawnsight/chat-ui/assistantBlocks";
+import { parseAssistantBlocksText } from "@dawnsight/chat-ui/assistantBlocks";
+import { RichBlockRenderer } from "@dawnsight/chat-ui/components/RichBlockRenderer";
 import type { ChatTurn } from "../types";
 import { normalizeRestoredShortcutOutput } from "../shortcutOutput";
-import { ChatActivityFeed } from "@lumina/chat-ui/components/ChatActivityFeed";
-import { ChatColumn } from "@lumina/chat-ui/components/ChatShell";
-import { ChatWaitingDots } from "@lumina/chat-ui/components/ChatWaitingDots";
+import { ChatActivityFeed } from "@dawnsight/chat-ui/components/ChatActivityFeed";
+import { ChatColumn } from "@dawnsight/chat-ui/components/ChatShell";
+import { ChatWaitingDots } from "@dawnsight/chat-ui/components/ChatWaitingDots";
 
 // Split markdown+KaTeX out of the initial bundle: chat is never visible on
 // cold start, so parsing ~400KB can wait until the first answer renders.

@@ -13,14 +13,14 @@ use crate::acp::{
 };
 use crate::mcp::OnlineMediaSnapshot;
 use crate::state::AppState;
-use lumina_acp::agent::workspace::resolve_session_cwd;
-use lumina_acp::AcpClientSettings;
-use lumina_ai::prompts::{
+use dawnsight_acp::agent::workspace::resolve_session_cwd;
+use dawnsight_acp::AcpClientSettings;
+use dawnsight_ai::prompts::{
     compose_prompt, ComposedPrompt, EpisodeContext, MediaContext, PromptRepository, PromptSlots,
     SpoilerBoundary, TaskId, ViewingContext,
 };
-use lumina_ai::validate_task_output;
-use lumina_library::{
+use dawnsight_ai::validate_task_output;
+use dawnsight_library::{
     ChapterAssetRecord, ChapterRecord, ChapterRevisionRecord, EpisodeRecord, MediaMetadataContext,
     QuestionCandidateRecord, Repository, StoredMetadataKind, WatchFeedItemRecord,
 };
@@ -430,7 +430,7 @@ fn empty_watch_feed_response() -> AcpWatchFeedResponse {
 
 fn watch_feed_database_error(
     operation: &'static str,
-    error: &lumina_library::DatabaseError,
+    error: &dawnsight_library::DatabaseError,
 ) -> AcpError {
     tracing::warn!(
         code = ?error.code,
@@ -579,7 +579,7 @@ pub async fn acp_load_session(
     profile_id: Option<String>,
     session_id: String,
     cwd: Option<String>,
-) -> Result<Vec<lumina_acp::runtime::service::LoadedTurn>, AcpError> {
+) -> Result<Vec<dawnsight_acp::runtime::service::LoadedTurn>, AcpError> {
     let acp = state.acp.clone();
     tauri::async_runtime::spawn_blocking(move || {
         acp.load_session_transcript(profile_id, session_id, cwd)
@@ -897,7 +897,7 @@ fn run_shortcut_with_validation(
 /// Per-turn: progress always. Episode plot only when media/episode switched.
 fn enrich_prompt_context(
     context: Option<VideoPromptContext>,
-    snapshot: &lumina_mcp::LuminaMcpSnapshot,
+    snapshot: &dawnsight_mcp::DawnsightMcpSnapshot,
     media_changed: bool,
 ) -> Option<VideoPromptContext> {
     let mut ctx = context.unwrap_or_default();
@@ -1299,7 +1299,7 @@ mod tests {
             Ok(reply) => panic!("expected sender error, got reply {reply}"),
             Err(error) => error,
         };
-        assert_eq!(error.code, lumina_acp::AcpErrorCode::Cancelled);
+        assert_eq!(error.code, dawnsight_acp::AcpErrorCode::Cancelled);
         assert_eq!(calls.len(), 1);
     }
 
@@ -1309,8 +1309,8 @@ mod tests {
         series_tmdb_id: Option<u64>,
         season: Option<u32>,
         episode: Option<u32>,
-    ) -> lumina_library::StoredMetadata {
-        lumina_library::StoredMetadata {
+    ) -> dawnsight_library::StoredMetadata {
+        dawnsight_library::StoredMetadata {
             schema_version: 2,
             kind,
             tmdb_id,

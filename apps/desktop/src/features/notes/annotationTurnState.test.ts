@@ -11,7 +11,7 @@ import {
   createProposalBindings,
   seedProposalBindingsFromTurns,
 } from "./annotationTurnState";
-import type { VideoAnnotationProposal } from "@lumina/contracts";
+import type { VideoAnnotationProposal } from "@dawnsight/contracts";
 
 function makeProposal(id: string): VideoAnnotationProposal {
   return {
@@ -40,7 +40,7 @@ function makeProposeTurn(
         id: `tool-${id}`,
         kind: "tool",
         toolCallId: id,
-        title: "mcp.lumina.lumina_propose_video_annotation",
+        title: "mcp.lumina.dawnsight_propose_video_annotation",
         status: "completed",
       },
     ],

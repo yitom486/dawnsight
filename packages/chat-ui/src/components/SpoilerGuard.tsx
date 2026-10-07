@@ -1,7 +1,7 @@
 import { Eye, EyeOff } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
-import { Button, cn } from "@lumina/ui";
+import { Button, cn } from "@dawnsight/ui";
 
 import type { SpoilerLevel } from "../assistantBlocks";
 

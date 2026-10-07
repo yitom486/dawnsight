@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { noteFrameKey, notesKey } from "@lumina/query-keys";
+import { noteFrameKey, notesKey } from "@dawnsight/query-keys";
 
 describe("notes query keys", () => {
   it("builds the shared notes key", () => {

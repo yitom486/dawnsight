@@ -1,6 +1,6 @@
 /** Chapter selection view-model (no Tauri, no stores, no invoke). */
 
-import type { MediaChapter } from "@lumina/contracts";
+import type { MediaChapter } from "@dawnsight/contracts";
 
 export function findChapterAt(
   chapters: MediaChapter[],

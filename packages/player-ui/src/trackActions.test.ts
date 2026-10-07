@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { SubtitleChoice } from "@lumina/contracts";
+import type { SubtitleChoice } from "@dawnsight/contracts";
 
 import { applySubtitleChoice, audioTrackLabel } from "./trackActions";
 

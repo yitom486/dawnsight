@@ -4,7 +4,7 @@
 
 import { FolderOpen } from "lucide-react";
 
-import { Button } from "@lumina/ui/button";
+import { Button } from "@dawnsight/ui/button";
 import { formatPlayerError } from "@/lib/format";
 import { usePlayerStore } from "../store";
 import { useVideoSurface } from "../hooks/useVideoSurface";

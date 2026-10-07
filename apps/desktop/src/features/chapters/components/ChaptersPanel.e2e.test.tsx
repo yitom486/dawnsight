@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useAcpProfilesStore } from "@lumina/chat-ui/acpProfilesStore";
+import { useAcpProfilesStore } from "@dawnsight/chat-ui/acpProfilesStore";
 import { acpWatchFeedQueryKey } from "@/features/acp/api";
 import type { ChapterProgressEvent, ChapterSegmentationSnapshot } from "../api";
 import { usePlayerStore } from "@/features/player";

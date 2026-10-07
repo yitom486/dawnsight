@@ -1,4 +1,4 @@
-import type { MediaChapter } from "@lumina/contracts";
+import type { MediaChapter } from "@dawnsight/contracts";
 
 export type ChapterMarker = {
   id: number;

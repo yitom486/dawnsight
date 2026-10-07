@@ -10,10 +10,10 @@ import {
   ComboboxItemIndicator,
   ComboboxList,
   ComboboxTrigger,
-} from "@lumina/ui/combobox";
-import { Button } from "@lumina/ui/button";
-import { cn } from "@lumina/ui/utils";
-import { Switch } from "@lumina/ui/switch";
+} from "@dawnsight/ui/combobox";
+import { Button } from "@dawnsight/ui/button";
+import { cn } from "@dawnsight/ui/utils";
+import { Switch } from "@dawnsight/ui/switch";
 
 export type SelectionOption = {
   value: string;

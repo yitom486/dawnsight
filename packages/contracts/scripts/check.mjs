@@ -426,7 +426,7 @@ function checkKind(rustType, tsType, fieldLabel) {
 const GROUPS = [
   {
     group: "errors",
-    rustFile: "crates/lumina-player/src/error.rs",
+    rustFile: "crates/dawnsight-player/src/error.rs",
     tsFile: "packages/contracts/src/errors.ts",
     pairs: [
       { rust: "PlayerError", ts: "AppError", kind: "struct" },
@@ -435,17 +435,17 @@ const GROUPS = [
   },
   {
     group: "player",
-    rustFile: "crates/lumina-player/src/model.rs",
+    rustFile: "crates/dawnsight-player/src/model.rs",
     tsFile: "packages/contracts/src/player.ts",
     pairs: [
       { rust: "PlayerSnapshot", ts: "PlayerSnapshot", kind: "struct" },
       { rust: "PlayerEvent", ts: "PlayerEvent", kind: "event" },
-      { rust: "MediaSourceKind", ts: "MediaSourceKind", kind: "literals", rustFile: "crates/lumina-core/src/media_source.rs" },
+      { rust: "MediaSourceKind", ts: "MediaSourceKind", kind: "literals", rustFile: "crates/dawnsight-core/src/media_source.rs" },
     ],
   },
   {
     group: "subtitle",
-    rustFile: "crates/lumina-subtitle/src/model.rs",
+    rustFile: "crates/dawnsight-subtitle/src/model.rs",
     tsFile: "packages/contracts/src/subtitle.ts",
     pairs: [
       { rust: "SubtitleSource", ts: "SubtitleSource", kind: "literals" },
@@ -456,16 +456,16 @@ const GROUPS = [
   },
   {
     group: "notes",
-    rustFile: "crates/lumina-notes/src/model.rs",
+    rustFile: "crates/dawnsight-notes/src/model.rs",
     tsFile: "packages/contracts/src/notes.ts",
     pairs: [
       { rust: "NoteQuote", ts: "NoteQuote", kind: "struct" },
-      { rust: "VideoAnnotationProposal", ts: "VideoAnnotationProposal", kind: "struct", rustFile: "crates/lumina-notes/src/proposal.rs" },
+      { rust: "VideoAnnotationProposal", ts: "VideoAnnotationProposal", kind: "struct", rustFile: "crates/dawnsight-notes/src/proposal.rs" },
     ],
   },
   {
     group: "media",
-    rustFile: "crates/lumina-media/src/model.rs",
+    rustFile: "crates/dawnsight-media/src/model.rs",
     tsFile: "packages/contracts/src/media.ts",
     pairs: [{ rust: "MediaChapter", ts: "MediaChapter", kind: "struct" }],
   },

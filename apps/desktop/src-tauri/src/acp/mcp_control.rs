@@ -1,4 +1,4 @@
-//! MCP 反向播放控制桥（`lumina_seek_playback` 的宿主侧）。
+//! MCP 反向播放控制桥（`dawnsight_seek_playback` 的宿主侧）。
 //!
 //! `lumina-app.exe --lumina-mcp` 子进程不持有播放器：seek 请求经
 //! `<workspace>/.lumina/mcp-control.json` 下发，本 watcher 消费（nonce
@@ -77,11 +77,11 @@ pub(crate) fn register_workspace(workspace: &Path) {
 }
 
 fn workspace_control_path(workspace: &Path) -> PathBuf {
-    workspace.join(".lumina").join(CONTROL_FILE)
+    workspace.join(".dawnsight").join(CONTROL_FILE)
 }
 
 fn workspace_result_path(workspace: &Path) -> PathBuf {
-    workspace.join(".lumina").join(RESULT_FILE)
+    workspace.join(".dawnsight").join(RESULT_FILE)
 }
 
 fn process_one_workspace(app: &tauri::AppHandle, workspace: &Path) {

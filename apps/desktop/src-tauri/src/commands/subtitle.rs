@@ -6,7 +6,7 @@ use tauri::{AppHandle, Emitter, Manager};
 
 use std::path::{Path, PathBuf};
 
-use lumina_core::BatchCheckpoint;
+use dawnsight_core::BatchCheckpoint;
 
 use crate::acp::AgentProfilesHint;
 use crate::state::{workshop_now_ms, AppState, WorkshopJobPhase, WorkshopJobSnapshot};
@@ -193,18 +193,18 @@ fn workshop_pool(
     model_id: Option<&str>,
     reasoning_effort: Option<&str>,
     job_id: &str,
-) -> std::sync::Arc<lumina_acp::WorkshopPool> {
+) -> std::sync::Arc<dawnsight_acp::WorkshopPool> {
     let model_selection = model_id.filter(|id| !id.trim().is_empty()).map(|model_id| {
-        lumina_acp::AcpSessionModelSelection {
+        dawnsight_acp::AcpSessionModelSelection {
             model_id: model_id.to_string(),
             reasoning_effort: reasoning_effort
                 .filter(|value| !value.trim().is_empty())
                 .map(str::to_string),
         }
     });
-    std::sync::Arc::new(lumina_acp::WorkshopPool::new(
-        lumina_acp::PoolConfig {
-            size: lumina_acp::DEFAULT_POOL_SIZE,
+    std::sync::Arc::new(dawnsight_acp::WorkshopPool::new(
+        dawnsight_acp::PoolConfig {
+            size: dawnsight_acp::DEFAULT_POOL_SIZE,
             profile_id: profile_id.to_string(),
             profiles: profiles.clone(),
             model_selection,
@@ -490,7 +490,7 @@ fn library_group_file(root: &Path, group_key: &str, file_name: &str) -> PathBuf 
     let hash = group_key.bytes().fold(0x811c9dc5_u32, |hash, byte| {
         (hash ^ u32::from(byte)).wrapping_mul(0x01000193)
     });
-    root.join(".lumina")
+    root.join(".dawnsight")
         .join("groups")
         .join(format!("{readable}-{hash:08x}"))
         .join(file_name)

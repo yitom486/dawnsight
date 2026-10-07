@@ -1,31 +1,31 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
-import { Button } from "@lumina/ui/button";
-import { Checkbox } from "@lumina/ui/checkbox";
+import { Button } from "@dawnsight/ui/button";
+import { Checkbox } from "@dawnsight/ui/checkbox";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@lumina/ui/collapsible";
-import { Field as SharedField, FieldLabel } from "@lumina/ui/field";
-import { Input } from "@lumina/ui/input";
-import { Label } from "@lumina/ui/label";
-import { NativeSelect, NativeSelectOption } from "@lumina/ui/native-select";
+} from "@dawnsight/ui/collapsible";
+import { Field as SharedField, FieldLabel } from "@dawnsight/ui/field";
+import { Input } from "@dawnsight/ui/input";
+import { Label } from "@dawnsight/ui/label";
+import { NativeSelect, NativeSelectOption } from "@dawnsight/ui/native-select";
 
-import { useAcpProfilesStore } from "@lumina/chat-ui/acpProfilesStore";
+import { useAcpProfilesStore } from "@dawnsight/chat-ui/acpProfilesStore";
 import {
   clientSettingsFromStore,
   useAcpSettingsStore,
-} from "@lumina/chat-ui/acpSettingsStore";
+} from "@dawnsight/chat-ui/acpSettingsStore";
 import {
   TRANSCRIPT_WINDOW_PRESET_OPTIONS,
   type TranscriptWindowPreset,
-} from "@lumina/chat-ui/types";
+} from "@dawnsight/chat-ui/types";
 import type { AgentProfileStatus, ThinkingLevel } from "../types";
 import { acpSyncMcpCapabilities } from "../api";
 import { useAgentModelControls } from "../useAgentModelControls";
-import { ChatColumn } from "@lumina/chat-ui/components/ChatShell";
+import { ChatColumn } from "@dawnsight/chat-ui/components/ChatShell";
 
 type Props = {
   status: import("../types").AcpStatus | undefined;
@@ -285,7 +285,7 @@ export function AgentSettingsPanel({
 
             {status?.codexConfigFound === false && activeProfileId === "codex" ? (
               <p className="text-[10px] leading-relaxed text-muted-foreground">
-                未检测到 %USERPROFILE%\.codex 配置；若已在终端登录 Codex，请重启 Lumina 后再试。
+                未检测到 %USERPROFILE%\.codex 配置；若已在终端登录 Codex，请重启 Dawnsight 后再试。
               </p>
             ) : null}
 

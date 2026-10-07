@@ -5,7 +5,7 @@
  * Desktop adapters pass the real implementations.
  */
 
-import type { SubtitleChoice, Transcript } from "@lumina/contracts";
+import type { SubtitleChoice, Transcript } from "@dawnsight/contracts";
 
 export type SetSubtitleArgs = {
   source: "Embedded" | "Sidecar" | "None";

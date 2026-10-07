@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { FullscreenToggleButton } from "@/layouts/AppShell";
-import { cn } from "@lumina/ui/utils";
+import { cn } from "@dawnsight/ui/utils";
 
 import { usePlaybackChromeReveal } from "../hooks/usePlaybackChromeReveal";
 import { ensureSurfaceBounds } from "../surfaceBridge";

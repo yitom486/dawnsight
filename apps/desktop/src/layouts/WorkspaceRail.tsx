@@ -1,13 +1,13 @@
 import { Sparkles, type LucideIcon } from "lucide-react";
 
-import { useChatUiStore } from "@lumina/chat-ui/chatUiStore";
-import { Button } from "@lumina/ui/button";
+import { useChatUiStore } from "@dawnsight/chat-ui/chatUiStore";
+import { Button } from "@dawnsight/ui/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@lumina/ui/tooltip";
-import { cn } from "@lumina/ui/utils";
+} from "@dawnsight/ui/tooltip";
+import { cn } from "@dawnsight/ui/utils";
 
 import type { SidebarTab } from "@/features/player";
 

@@ -1,0 +1,13 @@
+[package]
+name = "dawnsight-asr"
+version = "0.4.0"
+description = "Optional on-demand ASR integration for Dawnsight"
+edition = "2021"
+
+[dependencies]
+dawnsight-media.workspace = true
+dawnsight-subtitle.workspace = true
+serde = { version = "1", features = ["derive"] }
+tracing = "0.1"
+ureq = { version = "3.1", features = ["json"] }
+zip = { version = "2", default-features = false, features = ["deflate"] }

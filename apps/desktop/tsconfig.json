@@ -19,18 +19,18 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@lumina/contracts": ["../../packages/contracts/src/index.ts"],
-      "@lumina/contracts/*": ["../../packages/contracts/src/*"],
-      "@lumina/query-keys": ["../../packages/query-keys/src/index.ts"],
-      "@lumina/query-keys/*": ["../../packages/query-keys/src/*"],
-      "@lumina/player-ui": ["../../packages/player-ui/src/index.ts"],
-      "@lumina/player-ui/*": ["../../packages/player-ui/src/*"],
-      "@lumina/transcript-ui": ["../../packages/transcript-ui/src/index.ts"],
-      "@lumina/transcript-ui/*": ["../../packages/transcript-ui/src/*"],
-      "@lumina/chat-ui": ["../../packages/chat-ui/src/index.ts"],
-      "@lumina/chat-ui/*": ["../../packages/chat-ui/src/*"],
-      "@lumina/ui": ["../../packages/ui/src/index.ts"],
-      "@lumina/ui/*": ["../../packages/ui/src/*"]
+      "@dawnsight/contracts": ["../../packages/contracts/src/index.ts"],
+      "@dawnsight/contracts/*": ["../../packages/contracts/src/*"],
+      "@dawnsight/query-keys": ["../../packages/query-keys/src/index.ts"],
+      "@dawnsight/query-keys/*": ["../../packages/query-keys/src/*"],
+      "@dawnsight/player-ui": ["../../packages/player-ui/src/index.ts"],
+      "@dawnsight/player-ui/*": ["../../packages/player-ui/src/*"],
+      "@dawnsight/transcript-ui": ["../../packages/transcript-ui/src/index.ts"],
+      "@dawnsight/transcript-ui/*": ["../../packages/transcript-ui/src/*"],
+      "@dawnsight/chat-ui": ["../../packages/chat-ui/src/index.ts"],
+      "@dawnsight/chat-ui/*": ["../../packages/chat-ui/src/*"],
+      "@dawnsight/ui": ["../../packages/ui/src/index.ts"],
+      "@dawnsight/ui/*": ["../../packages/ui/src/*"]
     }
   },
   "include": [

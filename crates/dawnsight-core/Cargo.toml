@@ -1,0 +1,8 @@
+[package]
+name = "dawnsight-core"
+version = "0.4.0"
+description = "Stable, implementation-free value objects for Dawnsight"
+edition = "2021"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }

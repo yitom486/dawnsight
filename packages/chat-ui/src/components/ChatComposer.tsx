@@ -1,4 +1,4 @@
-import { Button, Textarea, cn } from "@lumina/ui";
+import { Button, Textarea, cn } from "@dawnsight/ui";
 
 import { ChatColumn } from "./ChatShell";
 

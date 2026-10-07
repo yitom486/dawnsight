@@ -11,8 +11,8 @@
   },
   "aliases": {
     "components": "@/components",
-    "utils": "@lumina/ui/utils",
-    "ui": "@lumina/ui",
+    "utils": "@dawnsight/ui/utils",
+    "ui": "@dawnsight/ui",
     "lib": "@/lib",
     "hooks": "@/hooks"
   },

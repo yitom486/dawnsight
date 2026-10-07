@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { workspaceCwdFromMedia } from "@lumina/player-ui/cwd";
+import { workspaceCwdFromMedia } from "@dawnsight/player-ui/cwd";
 
 describe("workspaceCwdFromMedia", () => {
   it("returns parent for windows and posix paths", () => {

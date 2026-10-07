@@ -3,13 +3,13 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import { errorMessage } from "@/lib/format";
 
-import { useAcpProfilesStore } from "@lumina/chat-ui/acpProfilesStore";
+import { useAcpProfilesStore } from "@dawnsight/chat-ui/acpProfilesStore";
 import {
   classifyCursorDimensions,
   isListedConfigValue,
   withCurrentOption,
   type CursorConfigDimensions,
-} from "@lumina/chat-ui/modelConfig";
+} from "@dawnsight/chat-ui/modelConfig";
 import type { AcpSessionModelOptions, AcpStatus } from "./types";
 import { acpSetSessionConfig } from "./api";
 

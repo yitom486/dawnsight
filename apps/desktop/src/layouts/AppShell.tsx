@@ -12,14 +12,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@lumina/ui/alert-dialog";
-import { Button } from "@lumina/ui/button";
+} from "@dawnsight/ui/alert-dialog";
+import { Button } from "@dawnsight/ui/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@lumina/ui/tooltip";
-import { ChatToggleButton } from "@lumina/chat-ui/components/ChatToggleButton";
+} from "@dawnsight/ui/tooltip";
+import { ChatToggleButton } from "@dawnsight/chat-ui/components/ChatToggleButton";
 import { usePlayerStore, useUiStore } from "@/features/player";
 import { errorMessage } from "@/lib/format";
 import { getStartupNotice, revealLogDir, type SystemStartupNotice } from "@/lib/system";
@@ -123,7 +123,7 @@ export function AboutButton() {
               type="button"
               variant="ghost"
               size="icon" className="size-8"
-              aria-label="关于 Lumina"
+              aria-label="关于 Dawnsight"
                 >
                   <Info className="size-4" />
                 </Button>
@@ -131,12 +131,12 @@ export function AboutButton() {
             />
           }
         />
-        <TooltipContent>关于 Lumina</TooltipContent>
+        <TooltipContent>关于 Dawnsight</TooltipContent>
       </Tooltip>
       {/* vendor 还原后默认 bg-background/max-w-lg；转出层保留原深色窄版。 */}
       <AlertDialogContent className="border-border bg-card max-w-md">
         <AlertDialogHeader>
-          <AlertDialogTitle>Lumina · AI Video Reader</AlertDialogTitle>
+          <AlertDialogTitle>Dawnsight · AI Video Reader</AlertDialogTitle>
           <AlertDialogDescription>版本 {version}</AlertDialogDescription>
         </AlertDialogHeader>
         <p className="text-sm text-muted-foreground">
@@ -209,7 +209,7 @@ export function AppShell({ children }: AppShellProps) {
           <div className="flex min-w-0 shrink-0 items-center gap-2.5">
             <img
               src={luminaLogo}
-              alt="Lumina"
+              alt="Dawnsight"
               className="size-9 rounded-xl border border-ai/40 object-cover shadow-sm"
             />
             <div className="flex min-w-0 items-baseline gap-2">

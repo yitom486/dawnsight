@@ -1,5 +1,5 @@
-import type { NoteQuote } from "@lumina/contracts";
-export type { NoteQuote } from "@lumina/contracts";
+import type { NoteQuote } from "@dawnsight/contracts";
+export type { NoteQuote } from "@dawnsight/contracts";
 
 export type NoteFrame = {
   atMs: number;

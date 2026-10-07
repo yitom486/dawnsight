@@ -6,7 +6,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import { Button } from "@lumina/ui/button";
+import { Button } from "@dawnsight/ui/button";
 
 import type { AcpTaskId } from "../api";
 import { SHORTCUT_TASK_LABELS } from "../shortcutOutput";

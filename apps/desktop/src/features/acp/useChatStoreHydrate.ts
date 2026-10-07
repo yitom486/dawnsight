@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import type { QueryClient } from "@tanstack/react-query";
 
 import { errorMessage } from "@/lib/format";
-import { useAcpSessionStore } from "@lumina/chat-ui/acpSessionStore";
+import { useAcpSessionStore } from "@dawnsight/chat-ui/acpSessionStore";
 
 import {
   backfillSnapshotToStore,

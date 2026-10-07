@@ -20,8 +20,8 @@ export type MediaStream = {
   language?: string | null;
 };
 
-import type { MediaChapter } from "@lumina/contracts";
-export type { MediaChapter } from "@lumina/contracts";
+import type { MediaChapter } from "@dawnsight/contracts";
+export type { MediaChapter } from "@dawnsight/contracts";
 
 export type MediaInfo = {
   path: string;

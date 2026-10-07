@@ -1,8 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
 
 import type { MediaMetadataContext } from "@/features/library";
-import type { AgentProfilesHint } from "@lumina/chat-ui";
-import type { MediaChapter } from "@lumina/contracts";
+import type { AgentProfilesHint } from "@dawnsight/chat-ui";
+import type { MediaChapter } from "@dawnsight/contracts";
 
 export type ChapterSpoilerBoundary =
   | "current_position"

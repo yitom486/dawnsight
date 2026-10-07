@@ -5,15 +5,15 @@ import { discoverAcpModels } from "@/features/acp/api";
 import {
   defaultAgentProfiles,
   profilesHintFromStore,
-} from "@lumina/chat-ui/defaultAgentProfiles";
+} from "@dawnsight/chat-ui/defaultAgentProfiles";
 import {
   buildModelOptions,
   buildReasoningOptions,
   mergeModelDefaults,
   selectedOptionLabel,
-} from "@lumina/chat-ui/modelConfig";
+} from "@dawnsight/chat-ui/modelConfig";
 
-import { useSubtitleWorkshopStore } from "@lumina/transcript-ui";
+import { useSubtitleWorkshopStore } from "@dawnsight/transcript-ui";
 
 export function useSubtitleWorkshopModels(enabled = true) {
   const profileId = useSubtitleWorkshopStore((s) => s.profileId);

@@ -1,19 +1,19 @@
 import { Check, ChevronDown, History, Plus, StickyNote } from "lucide-react";
 import { useRef } from "react";
 
-import { Badge } from "@lumina/ui/badge";
-import { Button } from "@lumina/ui/button";
+import { Badge } from "@dawnsight/ui/badge";
+import { Button } from "@dawnsight/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@lumina/ui/dropdown-menu";
+} from "@dawnsight/ui/dropdown-menu";
 import { QuickNoteDialog } from "@/features/notes/components/QuickNoteDialog";
-import { cn } from "@lumina/ui/utils";
+import { cn } from "@dawnsight/ui/utils";
 
 import type { AcpConnectionState } from "../types";
-import { ChatColumn } from "@lumina/chat-ui/components/ChatShell";
+import { ChatColumn } from "@dawnsight/chat-ui/components/ChatShell";
 
 type Props = {
   agentLabel: string;

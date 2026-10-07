@@ -12,7 +12,7 @@ describe("mapLoadedTranscript", () => {
       {
         role: "user",
         text: [
-          "【工具优先】本轮优先使用 Lumina 本地工具：lumina_get_playback_context。",
+          "【工具优先】本轮优先使用 Lumina 本地工具：dawnsight_get_playback_context。",
           "resource_link file:///D:/movie/demo.mp4 demo.mp4",
           "file:///D:/movie/demo.mp4",
           "【当前播放】",
@@ -102,7 +102,7 @@ describe("mapLoadedTranscript", () => {
       stripTranscriptScaffolding(
         [
           "【工具优先】本轮优先使用 Lumina 本地工具",
-          "lumina_get_playback_context（播放锚点）、lumina_get_library_context（剧集简介）",
+          "dawnsight_get_playback_context（播放锚点）、dawnsight_get_library_context（剧集简介）",
           "这段讲了什么？",
         ].join("\n"),
       ),
@@ -113,8 +113,8 @@ describe("mapLoadedTranscript", () => {
     const turns = mapLoadedTranscript([
       { role: "user", text: "这段讲了什么？" },
       { role: "agent", text: "Designing JSON schema for plot summary" },
-      { role: "tool", text: "lumina_get_transcript_window 01:00" },
-      { role: "tool", text: "lumina_capture_frames f32" },
+      { role: "tool", text: "dawnsight_get_transcript_window 01:00" },
+      { role: "tool", text: "dawnsight_capture_frames f32" },
       { role: "agent", text: "这段讲离别。" },
     ]);
     expect(turns).toHaveLength(1);

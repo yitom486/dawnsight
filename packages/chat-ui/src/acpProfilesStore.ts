@@ -132,7 +132,7 @@ export const useAcpProfilesStore = create<AcpProfilesStore>()(
         profilesHintFromStore(get().activeProfileId, get().profiles),
     }),
     {
-      name: "lumina-acp-profiles",
+      name: "dawnsight-acp-profiles",
       partialize: (state) => ({
         activeProfileId: state.activeProfileId,
         profiles: state.profiles,

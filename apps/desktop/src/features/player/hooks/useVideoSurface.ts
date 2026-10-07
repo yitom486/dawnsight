@@ -5,11 +5,11 @@
 import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
-import { useChatUiStore } from "@lumina/chat-ui/chatUiStore";
+import { useChatUiStore } from "@dawnsight/chat-ui/chatUiStore";
 
 import * as api from "../api";
 import { setSurfaceReporter } from "../surfaceBridge";
-import { createLatestBoundsQueue } from "@lumina/player-ui";
+import { createLatestBoundsQueue } from "@dawnsight/player-ui";
 import { usePlayerStore } from "../store";
 import { useUiStore } from "../uiStore";
 

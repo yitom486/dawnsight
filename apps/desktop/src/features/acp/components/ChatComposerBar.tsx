@@ -1,25 +1,25 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from "react";
 import { ArrowUp, ListPlus, Loader2, Zap } from "lucide-react";
 
-import { Button } from "@lumina/ui/button";
-import { Checkbox } from "@lumina/ui/checkbox";
-import { cn } from "@lumina/ui/utils";
-import { Input } from "@lumina/ui/input";
-import { Label } from "@lumina/ui/label";
-import { NativeSelect, NativeSelectOption } from "@lumina/ui/native-select";
-import { Textarea } from "@lumina/ui/textarea";
+import { Button } from "@dawnsight/ui/button";
+import { Checkbox } from "@dawnsight/ui/checkbox";
+import { cn } from "@dawnsight/ui/utils";
+import { Input } from "@dawnsight/ui/input";
+import { Label } from "@dawnsight/ui/label";
+import { NativeSelect, NativeSelectOption } from "@dawnsight/ui/native-select";
+import { Textarea } from "@dawnsight/ui/textarea";
 
 import type { AcpStatus, ChatImageAttachment, PermissionMode } from "../types";
-import { previewQueuedText, type QueuedPrompt } from "@lumina/chat-ui/promptQueue";
+import { previewQueuedText, type QueuedPrompt } from "@dawnsight/chat-ui/promptQueue";
 import { useAgentModelControls } from "../useAgentModelControls";
 import { useCursorConfigControls } from "../useCursorConfigControls";
 import {
   currentBooleanValue,
   currentSelectValue,
-} from "@lumina/chat-ui/modelConfig";
-import type { SessionConfigOption } from "@lumina/chat-ui/types";
-import { focusComposerTextarea } from "@lumina/chat-ui/components/composerFocus";
-import { ChatColumn } from "@lumina/chat-ui/components/ChatShell";
+} from "@dawnsight/chat-ui/modelConfig";
+import type { SessionConfigOption } from "@dawnsight/chat-ui/types";
+import { focusComposerTextarea } from "@dawnsight/chat-ui/components/composerFocus";
+import { ChatColumn } from "@dawnsight/chat-ui/components/ChatShell";
 
 type Props = {
   value: string;

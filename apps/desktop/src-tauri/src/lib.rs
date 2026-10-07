@@ -245,7 +245,7 @@ pub fn run() {
             commands::chapter::recover_interrupted_tasks();
             if let Ok(resource_dir) = app.path().resource_dir() {
                 std::env::set_var(
-                    lumina_media::tools::RESOURCE_DIR_ENV,
+                    dawnsight_media::tools::RESOURCE_DIR_ENV,
                     resource_dir.to_string_lossy().as_ref(),
                 );
             } else {
@@ -400,7 +400,7 @@ fn attach_native_surface(app: &mut tauri::App) -> Result<(), Box<dyn std::error:
     let state = app.state::<AppState>();
     state.set_surface(surface)?;
     let script_path: Option<String> =
-        crate::player::mpv::native_library::lumina_osc_script(app.handle())
+        crate::player::mpv::native_library::dawnsight_osc_script(app.handle())
             .map(|path| path.to_string_lossy().into_owned());
     if script_path.is_none() {
         tracing::warn!("custom OSC skin missing; continuing without skin");

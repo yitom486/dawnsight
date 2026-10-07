@@ -10,7 +10,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 
 import { usePlayerStore } from "@/features/player";
 
-import type { AssistantAction } from "@lumina/chat-ui/assistantBlocks";
+import type { AssistantAction } from "@dawnsight/chat-ui/assistantBlocks";
 import type { ChatTurn } from "../types";
 import { ChatTurnView } from "./ChatTurnView";
 

@@ -1,6 +1,6 @@
 /** Transcript cue/time selection view-model (no Tauri, no stores, no invoke). */
 
-import type { Cue } from "@lumina/contracts";
+import type { Cue } from "@dawnsight/contracts";
 
 export function activeCueIndex(cues: Cue[], timeMs: number): number {
   return cues.findIndex((c) => timeMs >= c.startMs && timeMs < c.endMs);

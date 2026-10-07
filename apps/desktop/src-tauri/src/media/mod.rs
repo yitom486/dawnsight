@@ -2,4 +2,4 @@
 //!
 //! Existing `crate::media::…` paths keep working through this re-export.
 
-pub use lumina_media::*;
+pub use dawnsight_media::*;

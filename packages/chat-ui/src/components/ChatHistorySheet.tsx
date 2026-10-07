@@ -1,6 +1,6 @@
 import { History, RefreshCw, Trash2 } from "lucide-react";
 
-import { Button, cn } from "@lumina/ui";
+import { Button, cn } from "@dawnsight/ui";
 
 import type { HistoryThreadRow } from "../conversationContext";
 

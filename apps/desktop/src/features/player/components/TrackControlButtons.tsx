@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { Captions, Languages } from "lucide-react";
 
-import { Button } from "@lumina/ui/button";
+import { Button } from "@dawnsight/ui/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@lumina/ui/tooltip";
-import { cn } from "@lumina/ui/utils";
+} from "@dawnsight/ui/tooltip";
+import { cn } from "@dawnsight/ui/utils";
 
 import { audioTrackLabel, useTrackControls } from "../hooks/useTrackControls";
 import { SelectionCombobox } from "./SelectionCombobox";

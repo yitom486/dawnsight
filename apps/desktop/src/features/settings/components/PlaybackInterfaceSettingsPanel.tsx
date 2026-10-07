@@ -1,5 +1,5 @@
-import { Field as SharedField, FieldContent, FieldDescription, FieldLabel } from "@lumina/ui/field";
-import { Switch } from "@lumina/ui/switch";
+import { Field as SharedField, FieldContent, FieldDescription, FieldLabel } from "@dawnsight/ui/field";
+import { Switch } from "@dawnsight/ui/switch";
 import { QualitySelect } from "@/features/player/components/QualitySelect";
 import { usePlayerStore } from "@/features/player";
 import { useUiStore } from "@/features/player/uiStore";

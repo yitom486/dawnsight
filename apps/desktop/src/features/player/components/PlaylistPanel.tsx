@@ -1,6 +1,6 @@
-import { Button } from "@lumina/ui/button";
-import { ScrollArea } from "@lumina/ui/scroll-area";
-import { cn } from "@lumina/ui/utils";
+import { Button } from "@dawnsight/ui/button";
+import { ScrollArea } from "@dawnsight/ui/scroll-area";
+import { cn } from "@dawnsight/ui/utils";
 
 import { usePlayerStore } from "../store";
 

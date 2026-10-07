@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 
-import { cn } from "@lumina/ui/utils";
+import { cn } from "@dawnsight/ui/utils";
 
 type WorkspacePanelFrameProps = {
   title: string;

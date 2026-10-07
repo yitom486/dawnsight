@@ -1,5 +1,5 @@
 import { Channel, invoke } from "@tauri-apps/api/core";
-import type { ChatShortcutTaskId } from "@lumina/chat-ui";
+import type { ChatShortcutTaskId } from "@dawnsight/chat-ui";
 
 import type {
   AcpClientSettings,

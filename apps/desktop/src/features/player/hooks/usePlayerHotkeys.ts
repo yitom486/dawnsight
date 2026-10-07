@@ -2,10 +2,10 @@
 
 import { useEffect, useRef } from "react";
 
-import { useChatUiStore } from "@lumina/chat-ui/chatUiStore";
+import { useChatUiStore } from "@dawnsight/chat-ui/chatUiStore";
 import { usePlayerStore } from "../store";
 import { useUiStore } from "../uiStore";
-import { shouldSuppressPlayerHotkeyDuringAcp } from "@lumina/player-ui";
+import { shouldSuppressPlayerHotkeyDuringAcp } from "@dawnsight/player-ui";
 
 function isTypingTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;

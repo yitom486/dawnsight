@@ -10,9 +10,9 @@ import {
   explainSegmentPreset,
   summarizeChapterPreset,
   useAskAboutStore,
-} from "@lumina/chat-ui/askAboutStore";
-import { useChatUiStore } from "@lumina/chat-ui/chatUiStore";
-import { resolveModelSelection } from "@lumina/chat-ui/modelConfig";
+} from "@dawnsight/chat-ui/askAboutStore";
+import { useChatUiStore } from "@dawnsight/chat-ui/chatUiStore";
+import { resolveModelSelection } from "@dawnsight/chat-ui/modelConfig";
 import type { AsrRange } from "@/features/asr";
 import { useMediaInfoQuery } from "@/features/media";
 import type { Transcript } from "@/features/transcript";
@@ -23,14 +23,14 @@ import { applySubtitleChoice } from "@/features/player/hooks/useTrackControls";
 import { useUiStore } from "@/features/player/uiStore";
 import { useTrackStore } from "@/features/player/trackStore";
 import { getCachedYtdlResolve } from "@/features/ytdl";
-import { Button } from "@lumina/ui/button";
-import { Checkbox } from "@lumina/ui/checkbox";
-import { Field, FieldLabel } from "@lumina/ui/field";
-import { Input } from "@lumina/ui/input";
-import { NativeSelect, NativeSelectOption } from "@lumina/ui/native-select";
-import { Progress } from "@lumina/ui/progress";
-import { ScrollArea } from "@lumina/ui/scroll-area";
-import { cn } from "@lumina/ui/utils";
+import { Button } from "@dawnsight/ui/button";
+import { Checkbox } from "@dawnsight/ui/checkbox";
+import { Field, FieldLabel } from "@dawnsight/ui/field";
+import { Input } from "@dawnsight/ui/input";
+import { NativeSelect, NativeSelectOption } from "@dawnsight/ui/native-select";
+import { Progress } from "@dawnsight/ui/progress";
+import { ScrollArea } from "@dawnsight/ui/scroll-area";
+import { cn } from "@dawnsight/ui/utils";
 
 import {
   activeCueIndex,
@@ -47,11 +47,11 @@ import {
   type WorkshopJobSnapshot,
 } from "../api";
 import { listen } from "@tauri-apps/api/event";
-import { subtitleChoicesKey, transcriptKey, ytdlResolveKey } from "@lumina/query-keys";
+import { subtitleChoicesKey, transcriptKey, ytdlResolveKey } from "@dawnsight/query-keys";
 import { OnlineSubtitleSection } from "./OnlineSubtitleSection";
 import { useSubtitleWorkshopModels } from "../useSubtitleWorkshopModels";
-import type { SubtitleChoice } from "@lumina/contracts";
-import { followMode, useFollowStore, useSubtitleWorkshopStore } from "@lumina/transcript-ui";
+import type { SubtitleChoice } from "@dawnsight/contracts";
+import { followMode, useFollowStore, useSubtitleWorkshopStore } from "@dawnsight/transcript-ui";
 import { findChapterAt } from "../../../../../../packages/transcript-ui/src/chapterSelectors";
 
 // 翻译/校对任务超过此时长没有任何进度事件即判死：正常运行时每完成一批

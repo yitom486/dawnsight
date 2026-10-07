@@ -1,7 +1,7 @@
 import { HelpCircle } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { cn } from "@lumina/ui";
+import { cn } from "@dawnsight/ui";
 
 import type {
   AssistantAction,

@@ -1,5 +1,5 @@
 import { errorMessage, formatTime } from "@/lib/format";
-import { Separator } from "@lumina/ui/separator";
+import { Separator } from "@dawnsight/ui/separator";
 import { usePlayerStore } from "@/features/player";
 
 import { useMediaToolStatus } from "../hooks/useMediaToolStatus";

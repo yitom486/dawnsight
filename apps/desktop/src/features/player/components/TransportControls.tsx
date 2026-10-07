@@ -7,7 +7,7 @@ import {
   Square,
 } from "lucide-react";
 
-import { Button } from "@lumina/ui/button";
+import { Button } from "@dawnsight/ui/button";
 
 import { usePlayerStore } from "../store";
 import { OpenUrlButton } from "./OpenUrlButton";

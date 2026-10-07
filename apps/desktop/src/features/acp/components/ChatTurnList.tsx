@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
 
-import type { AssistantAction } from "@lumina/chat-ui/assistantBlocks";
+import type { AssistantAction } from "@dawnsight/chat-ui/assistantBlocks";
 import type { ChatTurn } from "../types";
-import { ChatColumn } from "@lumina/chat-ui/components/ChatShell";
+import { ChatColumn } from "@dawnsight/chat-ui/components/ChatShell";
 import { ChatTurnView } from "./ChatTurnView";
 
 type Props = {

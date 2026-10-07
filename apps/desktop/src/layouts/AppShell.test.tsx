@@ -2,8 +2,8 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useChatUiStore } from "@lumina/chat-ui/chatUiStore";
-import { TooltipProvider } from "@lumina/ui/tooltip";
+import { useChatUiStore } from "@dawnsight/chat-ui/chatUiStore";
+import { TooltipProvider } from "@dawnsight/ui/tooltip";
 
 import { AppShell } from "./AppShell";
 
@@ -53,7 +53,7 @@ describe("AboutButton", () => {
     );
 
     expect(screen.getByRole("banner", { name: "应用标题栏" })).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: "Lumina" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Dawnsight" })).toBeInTheDocument();
     expect(screen.getByText("AI Video Reader")).toBeInTheDocument();
   });
 
@@ -68,7 +68,7 @@ describe("AboutButton", () => {
       </TooltipProvider>,
     );
 
-    await user.click(screen.getByRole("button", { name: "关于 Lumina" }));
+    await user.click(screen.getByRole("button", { name: "关于 Dawnsight" }));
     await waitFor(() => {
       expect(screen.getByText("版本 0.3.0")).toBeInTheDocument();
     });
@@ -86,7 +86,7 @@ describe("AboutButton", () => {
       </TooltipProvider>,
     );
 
-    await user.click(screen.getByRole("button", { name: "关于 Lumina" }));
+    await user.click(screen.getByRole("button", { name: "关于 Dawnsight" }));
     await user.click(await screen.findByRole("button", { name: "下载更新" }));
     expect(openUrl).toHaveBeenCalledWith(
       "https://github.com/yitom486/lumina-app/releases",

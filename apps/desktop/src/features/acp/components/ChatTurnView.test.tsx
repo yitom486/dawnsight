@@ -11,7 +11,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import { usePlayerStore } from "@/features/player";
 
 import type { ChatTurn } from "../types";
-import { ChatShell, ChatColumn } from "@lumina/chat-ui/components/ChatShell";
+import { ChatShell, ChatColumn } from "@dawnsight/chat-ui/components/ChatShell";
 import { ChatTurnView } from "./ChatTurnView";
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -515,7 +515,7 @@ describe("ChatTurnView", () => {
               id: "tool-1",
               kind: "tool",
               toolCallId: "1",
-              title: "lumina_get_transcript_window",
+              title: "dawnsight_get_transcript_window",
               status: "running",
               text: '{"path":"C:\\\\private\\\\video.mkv"}',
             },
@@ -524,7 +524,7 @@ describe("ChatTurnView", () => {
         })}
       />,
     );
-    expect(screen.getByText("工具：lumina_get_transcript_window")).toBeInTheDocument();
+    expect(screen.getByText("工具：dawnsight_get_transcript_window")).toBeInTheDocument();
     expect(screen.queryByText(/private\\\\video/)).not.toBeInTheDocument();
     expect(screen.getByText("工具执行中")).toBeInTheDocument();
   });
@@ -539,7 +539,7 @@ describe("ChatTurnView", () => {
               id: "tool-1",
               kind: "tool",
               toolCallId: "1",
-              title: "lumina_get_playback_context",
+              title: "dawnsight_get_playback_context",
               status: "failed",
               text: "stderr: C:\\private\\tool.exe failed",
             },

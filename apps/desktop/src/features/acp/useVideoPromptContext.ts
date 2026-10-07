@@ -1,12 +1,12 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 
-import { ytdlResolveKey } from "@lumina/query-keys";
+import { ytdlResolveKey } from "@dawnsight/query-keys";
 import { usePlayerStore } from "@/features/player";
 import { useTrackStore } from "@/features/player/trackStore";
 import { getCachedYtdlResolve } from "@/features/ytdl";
-import { useAcpSettingsStore } from "@lumina/chat-ui/acpSettingsStore";
-import { transcriptWindowRadiusSec } from "@lumina/chat-ui/types";
+import { useAcpSettingsStore } from "@dawnsight/chat-ui/acpSettingsStore";
+import { transcriptWindowRadiusSec } from "@dawnsight/chat-ui/types";
 
 import { buildVideoPromptContext } from "./context";
 import type { VideoPromptContext } from "./types";

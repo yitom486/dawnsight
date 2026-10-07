@@ -4,12 +4,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { usePlayerStore } from "@/features/player";
 import { useTrackStore } from "@/features/player/trackStore";
-import { useAskAboutStore } from "@lumina/chat-ui/askAboutStore";
-import { useChatUiStore } from "@lumina/chat-ui/chatUiStore";
+import { useAskAboutStore } from "@dawnsight/chat-ui/askAboutStore";
+import { useChatUiStore } from "@dawnsight/chat-ui/chatUiStore";
 
 import { TranscriptPanel } from "./TranscriptPanel";
 import { SubtitleWorkshopPanel } from "./SubtitleWorkshopPanel";
-import { useFollowStore } from "@lumina/transcript-ui";
+import { useFollowStore } from "@dawnsight/transcript-ui";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn(),

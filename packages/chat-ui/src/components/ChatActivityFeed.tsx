@@ -1,12 +1,12 @@
 import { useState } from "react";
 
-import { cn } from "@lumina/ui";
-import { Button } from "@lumina/ui/button";
+import { cn } from "@dawnsight/ui";
+import { Button } from "@dawnsight/ui/button";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@lumina/ui/collapsible";
+} from "@dawnsight/ui/collapsible";
 
 import { hasActiveToolActivity, isToolRunning, waitingLabel } from "../activityStatus";
 import {

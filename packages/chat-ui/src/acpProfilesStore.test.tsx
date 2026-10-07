@@ -106,7 +106,7 @@ describe("mergeProfiles (upgrade migration)", () => {
 
   it("resets an active key pointing at a removed profile on rehydrate", async () => {
     localStorage.setItem(
-      "lumina-acp-profiles",
+      "dawnsight-acp-profiles",
       JSON.stringify({
         state: {
           activeProfileId: "antigravity",

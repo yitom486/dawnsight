@@ -7,7 +7,7 @@ describe("presentChatActivities", () => {
     {
       id: "tool-1",
       kind: "tool" as const,
-      title: "lumina_get_transcript_window",
+      title: "dawnsight_get_transcript_window",
       toolCallId: "call-1",
       status: "running",
       text: '{"path":"C:\\\\private\\\\episode.mkv","stderr":"raw"}',
@@ -22,7 +22,7 @@ describe("presentChatActivities", () => {
   it("keeps only an allowlisted tool identifier and safe labels in development", () => {
     const presented = presentChatActivities(rawActivities, "development");
     expect(presented[0]).toMatchObject({
-      title: "工具：lumina_get_transcript_window",
+      title: "工具：dawnsight_get_transcript_window",
       text: "正在执行",
     });
     expect(JSON.stringify(presented)).not.toMatch(/private|stderr|JSON schema/);
@@ -36,7 +36,7 @@ describe("presentChatActivities", () => {
     const presented = presentChatActivities(rawActivities, "release");
     expect(presented[0]).toMatchObject({ title: "正在读取该段台词" });
     expect(JSON.stringify(presented)).not.toMatch(
-      /lumina_get_transcript_window|private|stderr|JSON schema/,
+      /dawnsight_get_transcript_window|private|stderr|JSON schema/,
     );
   });
 });

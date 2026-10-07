@@ -1,7 +1,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 
-import { applyAcpEventToTurn, createTurn } from "@lumina/chat-ui/chatTurns";
+import { applyAcpEventToTurn, createTurn } from "@dawnsight/chat-ui/chatTurns";
 
 import type { LoadedTranscriptEvent } from "../api";
 import { mapLoadedTranscript } from "../conversationTranscript";
@@ -25,7 +25,7 @@ describe("conversation presentation integration", () => {
         ].join("\n"),
       },
       { role: "agent", text: "Designing JSON schema for plot summary" },
-      { role: "tool", text: "lumina_get_transcript_window { path: 'D:/private.mkv' }" },
+      { role: "tool", text: "dawnsight_get_transcript_window { path: 'D:/private.mkv' }" },
       { role: "agent", text: "Confirming timestamp boundaries for summary" },
       {
         role: "agent",
@@ -55,7 +55,7 @@ describe("conversation presentation integration", () => {
     expect(screen.queryByText(/plot_summary\.v1/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Designing JSON schema/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Confirming timestamp/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/lumina_get_transcript_window/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/dawnsight_get_transcript_window/)).not.toBeInTheDocument();
     expect(screen.queryByText(/台词上下文窗口建议/)).not.toBeInTheDocument();
   });
 
@@ -77,7 +77,7 @@ describe("conversation presentation integration", () => {
       {
         type: "toolCall",
         toolCallId: "call-1",
-        title: "lumina_get_transcript_window",
+        title: "dawnsight_get_transcript_window",
         status: "running",
         detail: '{"path":"C:\\\\private\\\\video.mkv","stderr":"no"}',
       },
@@ -87,14 +87,14 @@ describe("conversation presentation integration", () => {
     const development = render(
       <ChatTurnView turn={turn} presentationMode="development" />,
     );
-    expect(screen.getByText("工具：lumina_get_transcript_window")).toBeInTheDocument();
+    expect(screen.getByText("工具：dawnsight_get_transcript_window")).toBeInTheDocument();
     expect(screen.getByText("思路整理")).toBeInTheDocument();
     expect(screen.queryByText(/private\\\\video|prompt\.md|stderr/)).not.toBeInTheDocument();
     development.unmount();
 
     const release = render(<ChatTurnView turn={turn} presentationMode="release" />);
     expect(screen.getByText("正在读取该段台词")).toBeInTheDocument();
-    expect(screen.queryByText(/lumina_get_transcript_window/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/dawnsight_get_transcript_window/)).not.toBeInTheDocument();
     expect(screen.queryByText(/private\\\\video|prompt\.md|stderr/)).not.toBeInTheDocument();
     release.unmount();
 
@@ -108,7 +108,7 @@ describe("conversation presentation integration", () => {
     );
     expect(screen.getByText("最终回答只保留这句话。")).toBeInTheDocument();
     expect(screen.queryByText("正在读取该段台词")).not.toBeInTheDocument();
-    expect(screen.queryByText(/lumina_get_transcript_window/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/dawnsight_get_transcript_window/)).not.toBeInTheDocument();
     completedRelease.unmount();
 
     render(<ChatTurnView turn={done} presentationMode="development" />);

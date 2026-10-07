@@ -1,6 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 
-import { Button } from "@lumina/ui/button";
+import { Button } from "@dawnsight/ui/button";
 import { formatRenderError } from "@/lib/formatRenderError";
 import { reportRenderError } from "@/lib/reportRenderError";
 

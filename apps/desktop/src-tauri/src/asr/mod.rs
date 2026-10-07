@@ -2,4 +2,4 @@
 //!
 //! Existing `crate::asr::…` paths keep working through this re-export.
 
-pub use lumina_asr::*;
+pub use dawnsight_asr::*;

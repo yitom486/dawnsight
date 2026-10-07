@@ -1,8 +1,8 @@
 use std::thread;
 use std::time::{Duration, Instant};
 
-use lumina_lib::player::mpv::LibMpvPlayer;
-use lumina_lib::ytdl::YtdlService;
+use dawnsight_lib::player::mpv::LibMpvPlayer;
+use dawnsight_lib::ytdl::YtdlService;
 
 const DEFAULT_PUBLIC_MP4: &str =
     "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_1MB.mp4";

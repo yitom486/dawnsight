@@ -1,8 +1,8 @@
-import { Button } from "@lumina/ui/button";
+import { Button } from "@dawnsight/ui/button";
 
 import { respondAcpPermission } from "../api";
 import type { PendingPermission } from "../types";
-import { ChatColumn } from "@lumina/chat-ui/components/ChatShell";
+import { ChatColumn } from "@dawnsight/chat-ui/components/ChatShell";
 
 type Props = {
   pending: PendingPermission;

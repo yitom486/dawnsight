@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Lumina",
+  "productName": "Dawnsight",
   "version": "0.4.0",
-  "identifier": "com.lumina.desktop",
+  "identifier": "com.dawnsight.desktop",
   "build": {
     "beforeDevCommand": "bun run dev",
     "devUrl": "http://localhost:1421",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Lumina",
+        "title": "Dawnsight",
         "width": 960,
         "height": 640
       }

@@ -31,7 +31,7 @@ import {
   SettingsWorkspaceFrame,
 } from "@/layouts/SettingsWorkspaceFrame";
 import { ChatDock } from "@/features/acp/components/ChatDock";
-import { useChatUiStore } from "@lumina/chat-ui/chatUiStore";
+import { useChatUiStore } from "@dawnsight/chat-ui/chatUiStore";
 import { RightPanelResizeHandle } from "@/layouts/RightPanelResizeHandle";
 import { ChaptersPanel, useChapterProgressEvents } from "@/features/chapters";
 import { MediaInfoPanel } from "@/features/media";
@@ -56,8 +56,8 @@ import {
   VideoSurface,
 } from "@/features/player";
 import { TranscriptPanel } from "@/features/transcript";
-import { TooltipProvider } from "@lumina/ui/tooltip";
-import { cn } from "@lumina/ui/utils";
+import { TooltipProvider } from "@dawnsight/ui/tooltip";
+import { cn } from "@dawnsight/ui/utils";
 import {
   FileText,
   Layers3,

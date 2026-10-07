@@ -7,7 +7,7 @@ Date: 2026-09-20
 - References: `ui/lumina-desktop-overview-reference.png`,
   `ui/lumina-settings-workspace-reference.png`,
   `ui/lumina-transcript-reading-reference.png`,
-  `ui/lumina-ai-automation-settings-reference.png`.
+  `ui/dawnsight-ai-automation-settings-reference.png`.
 - Outcome: dark graphite desktop shell; a labeled workspaces rail; a full Settings
   workspace with a category column; no configuration forms in the reading rail;
   native libmpv HWND always rendered as a layout sibling.
@@ -23,7 +23,7 @@ Date: 2026-09-20
 - Entering Settings keeps `VideoSurface` mounted but forces the native surface
   bounds to `0 × 0`; leaving it participates in the normal sidebar reflow again.
 - `bun run lint`, `bun run test` (76 files / 326 tests), and `bun run build`
-  passed. The Tauri dev build completed and launched `lumina-app.exe`.
+  passed. The Tauri dev build completed and launched `dawnsight-app.exe`.
 
 ## Manual visual QA still required
 

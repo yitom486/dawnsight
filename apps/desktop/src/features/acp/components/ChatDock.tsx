@@ -1,9 +1,9 @@
 import { useEffect } from "react";
 
 import { PanelErrorBoundary } from "@/components/PanelErrorBoundary";
-import { cn } from "@lumina/ui/utils";
+import { cn } from "@dawnsight/ui/utils";
 
-import { useChatUiStore } from "@lumina/chat-ui/chatUiStore";
+import { useChatUiStore } from "@dawnsight/chat-ui/chatUiStore";
 import { AcpPanel } from "./AcpPanel";
 
 /** Layout dock, not a WebView overlay.

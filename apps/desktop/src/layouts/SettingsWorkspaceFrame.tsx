@@ -8,8 +8,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import { Button } from "@lumina/ui/button";
-import { cn } from "@lumina/ui/utils";
+import { Button } from "@dawnsight/ui/button";
+import { cn } from "@dawnsight/ui/utils";
 
 export type SettingsCategoryId =
   | "playback"

@@ -35,7 +35,7 @@ export const useSubtitleWorkshopStore = create<SubtitleWorkshopStore>()(
       patchSettings: (patch) => set((state) => ({ ...state, ...patch })),
     }),
     {
-      name: "lumina-subtitle-workshop",
+      name: "dawnsight-subtitle-workshop",
       partialize: (state) => ({
         profileId: state.profileId,
         modelId: state.modelId,

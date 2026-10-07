@@ -2,16 +2,16 @@ import { createRef } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { Button } from "@lumina/ui/button";
+import { Button } from "@dawnsight/ui/button";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
-} from "@lumina/ui/dropdown-menu";
+} from "@dawnsight/ui/dropdown-menu";
 import {
   Tooltip,
   TooltipProvider,
   TooltipTrigger,
-} from "@lumina/ui/tooltip";
+} from "@dawnsight/ui/tooltip";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { usePlayerStore } from "@/features/player/store";

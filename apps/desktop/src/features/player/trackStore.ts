@@ -3,14 +3,14 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-import type { SubtitleChoice } from "@lumina/contracts";
+import type { SubtitleChoice } from "@dawnsight/contracts";
 
 import {
   type DirectoryTrackPreference,
   audioPreferenceFromTrack,
   mediaDirectoryKey,
   subtitlePreferenceFromChoice,
-} from "@lumina/player-ui";
+} from "@dawnsight/player-ui";
 
 type TrackState = {
   /** 选中的字幕轨：文稿/AI/翻译的数据源。显示开关从不清空它，

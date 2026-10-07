@@ -1,0 +1,11 @@
+[package]
+name = "dawnsight-media"
+version = "0.4.0"
+description = "Media inspection and local media-tool integration for Dawnsight"
+edition = "2021"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tracing = "0.1"
+which = "7"

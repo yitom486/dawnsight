@@ -3,16 +3,16 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import { errorMessage } from "@/lib/format";
 
-import { useAcpProfilesStore } from "@lumina/chat-ui/acpProfilesStore";
-import { useAcpSettingsStore } from "@lumina/chat-ui/acpSettingsStore";
+import { useAcpProfilesStore } from "@dawnsight/chat-ui/acpProfilesStore";
+import { useAcpSettingsStore } from "@dawnsight/chat-ui/acpSettingsStore";
 import { acpSetSessionModel, discoverAcpModels } from "./api";
-import { profilesHintFromStore } from "@lumina/chat-ui/defaultAgentProfiles";
+import { profilesHintFromStore } from "@dawnsight/chat-ui/defaultAgentProfiles";
 import {
   buildModelOptions,
   buildReasoningOptions,
   mergeModelDefaults,
   selectedOptionLabel,
-} from "@lumina/chat-ui/modelConfig";
+} from "@dawnsight/chat-ui/modelConfig";
 import type { AcpSessionModelOptions, AcpStatus } from "./types";
 
 type Options = {

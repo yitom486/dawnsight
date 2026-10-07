@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { usePlayerStore } from "@/features/player";
-import { useProgressStore } from "@lumina/player-ui";
-import { Button } from "@lumina/ui/button";
-import { cn } from "@lumina/ui/utils";
+import { useProgressStore } from "@dawnsight/player-ui";
+import { Button } from "@dawnsight/ui/button";
+import { cn } from "@dawnsight/ui/utils";
 
 import { getSeriesForMedia } from "../api";
 import type { EpisodeFile } from "../types";

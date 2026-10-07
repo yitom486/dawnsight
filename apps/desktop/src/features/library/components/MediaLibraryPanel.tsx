@@ -2,15 +2,15 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useEffect, useMemo, useState } from "react";
 
-import { Alert } from "@lumina/ui/alert";
-import { Button } from "@lumina/ui/button";
-import { Checkbox } from "@lumina/ui/checkbox";
-import { Field as SharedField, FieldLabel } from "@lumina/ui/field";
-import { Input } from "@lumina/ui/input";
-import { NativeSelect, NativeSelectOption } from "@lumina/ui/native-select";
-import { Progress } from "@lumina/ui/progress";
-import { profilesHintFromStore } from "@lumina/chat-ui/defaultAgentProfiles";
-import { useAcpProfilesStore } from "@lumina/chat-ui/acpProfilesStore";
+import { Alert } from "@dawnsight/ui/alert";
+import { Button } from "@dawnsight/ui/button";
+import { Checkbox } from "@dawnsight/ui/checkbox";
+import { Field as SharedField, FieldLabel } from "@dawnsight/ui/field";
+import { Input } from "@dawnsight/ui/input";
+import { NativeSelect, NativeSelectOption } from "@dawnsight/ui/native-select";
+import { Progress } from "@dawnsight/ui/progress";
+import { profilesHintFromStore } from "@dawnsight/chat-ui/defaultAgentProfiles";
+import { useAcpProfilesStore } from "@dawnsight/chat-ui/acpProfilesStore";
 import { usePlayerStore } from "@/features/player";
 import { errorMessage } from "@/lib/format";
 
@@ -52,7 +52,7 @@ import {
   buildModelOptions,
   buildReasoningOptions,
   mergeModelDefaults,
-} from "@lumina/chat-ui/modelConfig";
+} from "@dawnsight/chat-ui/modelConfig";
 import type {
   CredentialKind,
   CredentialValidationResult,

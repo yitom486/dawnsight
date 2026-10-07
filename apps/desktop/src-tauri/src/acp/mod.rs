@@ -5,7 +5,7 @@
 pub mod adapter;
 pub mod mcp_control;
 
-pub use lumina_acp::{
+pub use dawnsight_acp::{
     AcpClientSettings, AcpError, AcpErrorCode, AcpEvent, AcpService, AcpSessionModelOptions,
     AcpStatus, AgentKind, AgentProfileInput, AgentProfileStatus, AgentProfilesHint,
     AgentSessionListResult, PermissionMode, PermissionOption, PromptImage, SavedSessionHint,

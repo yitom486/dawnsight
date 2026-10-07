@@ -1,4 +1,4 @@
-import type { ChatImageAttachment } from "@lumina/chat-ui/types";
+import type { ChatImageAttachment } from "@dawnsight/chat-ui/types";
 
 /** Mirror of the backend guardrails (model.rs): caps must match. */
 export const PASTED_IMAGE_LIMIT = 4;

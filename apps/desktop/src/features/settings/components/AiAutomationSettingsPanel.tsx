@@ -1,11 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { profilesHintFromStore } from "@lumina/chat-ui/defaultAgentProfiles";
-import { useAcpProfilesStore } from "@lumina/chat-ui/acpProfilesStore";
+import { profilesHintFromStore } from "@dawnsight/chat-ui/defaultAgentProfiles";
+import { useAcpProfilesStore } from "@dawnsight/chat-ui/acpProfilesStore";
 
 import { getAcpStatus } from "@/features/acp/api";
 import { AgentSettingsPanel } from "@/features/acp/components/AgentSettingsPanel";
-import { profilesSignature } from "@lumina/chat-ui/profilesSignature";
+import { profilesSignature } from "@dawnsight/chat-ui/profilesSignature";
 
 export function AiAutomationSettingsPanel() {
   const activeProfileId = useAcpProfilesStore((state) => state.activeProfileId);

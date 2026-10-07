@@ -11,6 +11,6 @@ export function hintForAcpFailure(code: string | undefined): string {
     case "NotConfigured":
       return "请在终端运行 codex login 完成登录，或检查 %USERPROFILE%\\.codex 中的 API 配置。";
     default:
-      return "可点击「新建对话」后重新提问；若仍失败请重启 Lumina。";
+      return "可点击「新建对话」后重新提问；若仍失败请重启 Dawnsight。";
   }
 }

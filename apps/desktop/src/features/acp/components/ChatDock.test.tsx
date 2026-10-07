@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { useChatUiStore } from "@lumina/chat-ui/chatUiStore";
+import { useChatUiStore } from "@dawnsight/chat-ui/chatUiStore";
 
 import { ChatDock } from "./ChatDock";
 

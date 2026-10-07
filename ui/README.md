@@ -1,17 +1,17 @@
-# Lumina UI 设计参考与交互约定
+# Dawnsight UI 设计参考与交互约定
 
-这里保存 Lumina 的 UI 视觉参考图和与实现相关的交互约定。图片用于统一信息层级、颜色、间距和面板关系；实际实现仍必须遵守项目的 HWND / React / Tauri 架构边界。
+这里保存 Dawnsight 的 UI 视觉参考图和与实现相关的交互约定。图片用于统一信息层级、颜色、间距和面板关系；实际实现仍必须遵守项目的 HWND / React / Tauri 架构边界。
 
 ## 视觉参考
 
 - `lumina-desktop-overview-reference.png`：主播放工作区与 AI 上下文面板。
 - `lumina-transcript-reading-reference.png`：文稿跟随播放、引用和询问 AI。
-- `lumina-notes-workspace-reference.png`：时间戳笔记、字幕引用和复习卡片入口。
+- `dawnsight-notes-workspace-reference.png`：时间戳笔记、字幕引用和复习卡片入口。
 - `lumina-settings-workspace-reference.png`：AI Agent 设置与字幕任务设置。
 - `lumina-general-chat-rich-output-reference.png`：通用聊天和富组件回答。
-- `lumina-ai-watch-feed-reference.png`：AI 观剧流与自由聊天 Tab、章节独立任务卡和信息流。
+- `dawnsight-ai-watch-feed-reference.png`：AI 观剧流与自由聊天 Tab、章节独立任务卡和信息流。
 - `lumina-chapter-generation-reference.png`：无容器章节时的 AI 分段工作区。
-- `lumina-ai-automation-settings-reference.png`：快捷提问、富输出和章节策略设置。
+- `dawnsight-ai-automation-settings-reference.png`：快捷提问、富输出和章节策略设置。
 
 ## 通用聊天
 

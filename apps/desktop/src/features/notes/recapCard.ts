@@ -130,7 +130,7 @@ export function renderRecapCard(
   // 页脚。
   ctx.fillStyle = "#475569";
   ctx.font = "600 14px system-ui, sans-serif";
-  ctx.fillText("Lumina · AI Video Reader", pad, size.height - pad - 6);
+  ctx.fillText("Dawnsight · AI Video Reader", pad, size.height - pad - 6);
 }
 
 function ellipsize(

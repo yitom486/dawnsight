@@ -6,9 +6,9 @@
 use std::path::{Path, PathBuf};
 
 use base64::{engine::general_purpose::STANDARD, Engine as _};
-use lumina_acp::AgentProfilesHint;
-use lumina_ai::prompts::{SpoilerBoundary, TaskId, ValidationReport};
-use lumina_library::{
+use dawnsight_acp::AgentProfilesHint;
+use dawnsight_ai::prompts::{SpoilerBoundary, TaskId, ValidationReport};
+use dawnsight_library::{
     AgentTaskRecord, ChapterAssetRecord, ChapterRecord, Database, DatabaseError, NewAgentTask,
 };
 use serde::{Deserialize, Serialize};
@@ -1112,7 +1112,7 @@ mod tests {
         );
 
         let error = ChapterCommandError::storage(DatabaseError {
-            code: lumina_library::DatabaseErrorCode::OpenFailed,
+            code: dawnsight_library::DatabaseErrorCode::OpenFailed,
             message: "无法打开应用数据存储".to_string(),
             details: Some("open C:\\private\\library.sqlite3: sqlite detail".to_string()),
         });
@@ -1468,7 +1468,7 @@ mod tests {
     #[test]
     fn chapter_asset_loader_returns_image_data_without_exposing_path() {
         let dir = std::env::temp_dir().join(format!(
-            "lumina-chapter-asset-success-{}",
+            "dawnsight-chapter-asset-success-{}",
             std::process::id()
         ));
         let root = dir.join(CHAPTER_ASSET_ROOT);
@@ -1495,7 +1495,7 @@ mod tests {
     #[test]
     fn chapter_asset_loader_degrades_missing_non_image_and_outside_paths_to_placeholder() {
         let dir = std::env::temp_dir().join(format!(
-            "lumina-chapter-asset-boundary-{}",
+            "dawnsight-chapter-asset-boundary-{}",
             std::process::id()
         ));
         let root = dir.join(CHAPTER_ASSET_ROOT);

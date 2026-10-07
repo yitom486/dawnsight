@@ -3,7 +3,7 @@
 //!
 //! Existing `crate::player::…` paths keep working through this re-export.
 
-pub use lumina_player::{
+pub use dawnsight_player::{
     error, model, service, source, MediaSource, MediaSourceKind, PlayerError, PlayerErrorCode,
     PlayerEvent, PlayerService, PlayerSnapshot, PlayerState,
 };

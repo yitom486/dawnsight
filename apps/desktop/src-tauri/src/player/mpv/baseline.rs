@@ -61,7 +61,7 @@ fn generate_fixture() -> Option<PathBuf> {
         return None;
     }
     let out = dir.join("baseline-1080p60.mp4");
-    let status = lumina_media::process::command(&ffmpeg)
+    let status = dawnsight_media::process::command(&ffmpeg)
         .args([
             "-y",
             "-f",

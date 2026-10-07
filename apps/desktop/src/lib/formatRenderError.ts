@@ -17,7 +17,7 @@ export function formatRenderError(
     return {
       title: `${panelLabel}暂时无法显示`,
       message: "界面状态发生冲突，对话面板无法完成加载。",
-      hint: "请点击「重试」。若问题仍在，请完全退出并重新打开 Lumina。",
+      hint: "请点击「重试」。若问题仍在，请完全退出并重新打开 Dawnsight。",
     };
   }
 
@@ -37,7 +37,7 @@ export function formatRenderError(
     return {
       title: `${panelLabel}设置异常`,
       message: "智能体偏好未能正确加载。",
-      hint: "请重启 Lumina 后再打开该标签页。",
+      hint: "请重启 Dawnsight 后再打开该标签页。",
     };
   }
 

@@ -6,13 +6,13 @@ import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@lumina/ui/collapsible";
+} from "@dawnsight/ui/collapsible";
 import {
   parseAssistantBlocksText,
   type AssistantAction,
-} from "@lumina/chat-ui/assistantBlocks";
-import { ChatColumn } from "@lumina/chat-ui/components/ChatShell";
-import { RichBlockRenderer } from "@lumina/chat-ui/components/RichBlockRenderer";
+} from "@dawnsight/chat-ui/assistantBlocks";
+import { ChatColumn } from "@dawnsight/chat-ui/components/ChatShell";
+import { RichBlockRenderer } from "@dawnsight/chat-ui/components/RichBlockRenderer";
 import { usePlayerStore } from "@/features/player";
 import {
   acpWatchFeedQueryKey,

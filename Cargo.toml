@@ -1,30 +1,30 @@
 [workspace]
 members = [
     "apps/desktop/src-tauri",
-    "crates/lumina-core",
-    "crates/lumina-acp",
-    "crates/lumina-ai",
-    "crates/lumina-library",
-    "crates/lumina-notes",
-    "crates/lumina-player",
-    "crates/lumina-ytdl",
-    "crates/lumina-mcp",
-    "crates/lumina-media",
-    "crates/lumina-subtitle",
-    "crates/lumina-asr",
+    "crates/dawnsight-core",
+    "crates/dawnsight-acp",
+    "crates/dawnsight-ai",
+    "crates/dawnsight-library",
+    "crates/dawnsight-notes",
+    "crates/dawnsight-player",
+    "crates/dawnsight-ytdl",
+    "crates/dawnsight-mcp",
+    "crates/dawnsight-media",
+    "crates/dawnsight-subtitle",
+    "crates/dawnsight-asr",
 ]
 resolver = "2"
 
 [workspace.dependencies]
-lumina-core = { path = "crates/lumina-core" }
-lumina-acp = { path = "crates/lumina-acp" }
-lumina-ai = { path = "crates/lumina-ai" }
-lumina-library = { path = "crates/lumina-library" }
-lumina-notes = { path = "crates/lumina-notes" }
-lumina-player = { path = "crates/lumina-player" }
-lumina-ytdl = { path = "crates/lumina-ytdl" }
-lumina-mcp = { path = "crates/lumina-mcp" }
-lumina-media = { path = "crates/lumina-media" }
-lumina-subtitle = { path = "crates/lumina-subtitle" }
-lumina-asr = { path = "crates/lumina-asr" }
+dawnsight-core = { path = "crates/dawnsight-core" }
+dawnsight-acp = { path = "crates/dawnsight-acp" }
+dawnsight-ai = { path = "crates/dawnsight-ai" }
+dawnsight-library = { path = "crates/dawnsight-library" }
+dawnsight-notes = { path = "crates/dawnsight-notes" }
+dawnsight-player = { path = "crates/dawnsight-player" }
+dawnsight-ytdl = { path = "crates/dawnsight-ytdl" }
+dawnsight-mcp = { path = "crates/dawnsight-mcp" }
+dawnsight-media = { path = "crates/dawnsight-media" }
+dawnsight-subtitle = { path = "crates/dawnsight-subtitle" }
+dawnsight-asr = { path = "crates/dawnsight-asr" }
 rusqlite = { version = "0.32", features = ["bundled"] }

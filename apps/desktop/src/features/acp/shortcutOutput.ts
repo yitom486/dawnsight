@@ -3,7 +3,7 @@ import {
   parseAssistantBlocksText,
   warnJsonShapeOnce,
   type AssistantBlock,
-} from "@lumina/chat-ui/assistantBlocks";
+} from "@dawnsight/chat-ui/assistantBlocks";
 
 import type { AcpTaskId } from "./api";
 

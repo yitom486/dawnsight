@@ -10,7 +10,7 @@ import {
   resolveModelSelection,
   useAcpProfilesStore,
   useAcpSettingsStore,
-} from "@lumina/chat-ui";
+} from "@dawnsight/chat-ui";
 
 import {
   getChapterSegmentationStatus,

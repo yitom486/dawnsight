@@ -1,5 +1,5 @@
 {
-  "name": "lumina-desktop",
+  "name": "dawnsight-desktop",
   "private": true,
   "version": "0.4.0",
   "type": "module",
@@ -20,12 +20,12 @@
     "tauri": "node ../../scripts/tauri-dev.mjs"
   },
   "dependencies": {
-    "@lumina/chat-ui": "workspace:*",
-    "@lumina/contracts": "workspace:*",
-    "@lumina/player-ui": "workspace:*",
-    "@lumina/query-keys": "workspace:*",
-    "@lumina/transcript-ui": "workspace:*",
-    "@lumina/ui": "workspace:*",
+    "@dawnsight/chat-ui": "workspace:*",
+    "@dawnsight/contracts": "workspace:*",
+    "@dawnsight/player-ui": "workspace:*",
+    "@dawnsight/query-keys": "workspace:*",
+    "@dawnsight/transcript-ui": "workspace:*",
+    "@dawnsight/ui": "workspace:*",
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/react-query": "^5.102.8",
     "@tauri-apps/api": "^2",

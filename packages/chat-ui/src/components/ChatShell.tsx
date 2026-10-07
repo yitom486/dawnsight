@@ -1,4 +1,4 @@
-import { cn } from "@lumina/ui";
+import { cn } from "@dawnsight/ui";
 
 /** Unified max-width column for the whole chat surface. */
 export function ChatShell({

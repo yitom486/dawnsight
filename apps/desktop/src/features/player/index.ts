@@ -1,6 +1,6 @@
-export type { PlayerErrorDto, PlayerEvent, PlayerSnapshot } from "@lumina/contracts";
+export type { PlayerErrorDto, PlayerEvent, PlayerSnapshot } from "@dawnsight/contracts";
 export { usePlayerStore } from "./store";
-export { useProgressStore } from "@lumina/player-ui";
+export { useProgressStore } from "@dawnsight/player-ui";
 export { useUiStore, type SidebarTab } from "./uiStore";
 export { useTrackStore } from "./trackStore";
 export { usePlayerEvents } from "./hooks/usePlayerEvents";

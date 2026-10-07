@@ -1,6 +1,6 @@
 import { MessageSquare, Sparkles } from "lucide-react";
 
-import { Button, Tooltip, TooltipContent, TooltipTrigger, cn } from "@lumina/ui";
+import { Button, Tooltip, TooltipContent, TooltipTrigger, cn } from "@dawnsight/ui";
 
 import { useChatUiStore } from "../chatUiStore";
 

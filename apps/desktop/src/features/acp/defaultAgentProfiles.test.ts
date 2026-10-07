@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   defaultAgentProfiles,
   profilesHintFromStore,
-} from "@lumina/chat-ui/defaultAgentProfiles";
+} from "@dawnsight/chat-ui/defaultAgentProfiles";
 
 describe("profilesHintFromStore", () => {
   it("falls back when persisted profiles are missing", () => {

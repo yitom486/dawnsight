@@ -82,7 +82,7 @@ describe("applyAcpEventToTurn", () => {
     );
     turn = applyAcpEventToTurn(
       turn,
-      { type: "toolCall", toolCallId: "t1", title: "lumina_get_transcript_window" },
+      { type: "toolCall", toolCallId: "t1", title: "dawnsight_get_transcript_window" },
       "minimal",
     );
     expect(turn.answer).toBe("");

@@ -1,4 +1,4 @@
-import type { SubtitleChoice } from "@lumina/contracts";
+import type { SubtitleChoice } from "@dawnsight/contracts";
 
 import { workspaceCwdFromMedia } from "./cwd";
 

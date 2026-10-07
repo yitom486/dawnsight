@@ -2,8 +2,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useAcpProfilesStore } from "@lumina/chat-ui/acpProfilesStore";
-import { useAcpSettingsStore } from "@lumina/chat-ui/acpSettingsStore";
+import { useAcpProfilesStore } from "@dawnsight/chat-ui/acpProfilesStore";
+import { useAcpSettingsStore } from "@dawnsight/chat-ui/acpSettingsStore";
 import type { AcpStatus } from "./types";
 import { useAgentModelControls } from "./useAgentModelControls";
 

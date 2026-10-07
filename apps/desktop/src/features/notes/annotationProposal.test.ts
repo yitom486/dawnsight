@@ -12,11 +12,11 @@ import {
 
 describe("annotationProposal", () => {
   it("detects propose annotation tool by title", () => {
-    expect(isProposeAnnotationTool("lumina_propose_video_annotation")).toBe(true);
+    expect(isProposeAnnotationTool("dawnsight_propose_video_annotation")).toBe(true);
     expect(
-      isProposeAnnotationTool("mcp.lumina.lumina_propose_video_annotation"),
+      isProposeAnnotationTool("mcp.lumina.dawnsight_propose_video_annotation"),
     ).toBe(true);
-    expect(isProposeAnnotationTool("lumina_get_transcript_window")).toBe(false);
+    expect(isProposeAnnotationTool("dawnsight_get_transcript_window")).toBe(false);
   });
 
   it("tracks propose tool on initial toolCall", () => {
@@ -24,7 +24,7 @@ describe("annotationProposal", () => {
       shouldTrackProposeToolCall({
         type: "toolCall",
         toolCallId: "1",
-        title: "mcp.lumina.lumina_propose_video_annotation",
+        title: "mcp.lumina.dawnsight_propose_video_annotation",
       }),
     ).toBe(true);
   });
@@ -56,7 +56,7 @@ describe("annotationProposal", () => {
               id: "tool-1",
               kind: "tool",
               toolCallId: "1",
-              title: "mcp.lumina.lumina_propose_video_annotation",
+              title: "mcp.lumina.dawnsight_propose_video_annotation",
               status: "running",
             },
           ],
@@ -76,7 +76,7 @@ describe("annotationProposal", () => {
           id: "tool-1",
           kind: "tool",
           toolCallId: "1",
-          title: "mcp.lumina.lumina_propose_video_annotation",
+          title: "mcp.lumina.dawnsight_propose_video_annotation",
           status: "completed",
         },
       ],
@@ -96,7 +96,7 @@ describe("annotationProposal", () => {
           id: "tool-1",
           kind: "tool",
           toolCallId: "1",
-          title: "mcp.lumina.lumina_propose_video_annotation",
+          title: "mcp.lumina.dawnsight_propose_video_annotation",
           status: "completed",
         },
       ],
@@ -134,7 +134,7 @@ describe("annotationProposal", () => {
           id: "tool-2",
           kind: "tool",
           toolCallId: "2",
-          title: "mcp.lumina.lumina_propose_video_annotation",
+          title: "mcp.lumina.dawnsight_propose_video_annotation",
           status: "completed",
         },
       ],

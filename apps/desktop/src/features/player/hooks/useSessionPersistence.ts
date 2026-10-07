@@ -3,8 +3,8 @@
 import { useEffect } from "react";
 
 import { usePlayerStore } from "../store";
-import { useProgressStore } from "@lumina/player-ui";
-import { parentDirectory, useSessionStore } from "@lumina/player-ui";
+import { useProgressStore } from "@dawnsight/player-ui";
+import { parentDirectory, useSessionStore } from "@dawnsight/player-ui";
 
 export function flushPlaybackPersistence(): void {
   const { currentFile: path, currentTimeMs: pos, status } =

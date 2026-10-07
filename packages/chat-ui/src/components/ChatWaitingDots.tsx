@@ -1,4 +1,4 @@
-import { cn } from "@lumina/ui";
+import { cn } from "@dawnsight/ui";
 
 type Props = {
   label?: string;

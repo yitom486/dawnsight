@@ -1,6 +1,6 @@
 import type { ChatTurn } from "@/features/acp/types";
 
-import type { VideoAnnotationProposal } from "@lumina/contracts";
+import type { VideoAnnotationProposal } from "@dawnsight/contracts";
 
 export type ProposalBindings = {
   handledProposalIds: Set<string>;

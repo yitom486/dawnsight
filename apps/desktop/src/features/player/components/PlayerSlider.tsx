@@ -3,9 +3,9 @@
  * compact player styling and vertical volume mode stay at this app boundary.
  */
 import * as React from "react";
-import { SliderPrimitive } from "@lumina/ui/slider";
+import { SliderPrimitive } from "@dawnsight/ui/slider";
 
-import { cn } from "@lumina/ui/utils";
+import { cn } from "@dawnsight/ui/utils";
 
 const PlayerSlider = React.forwardRef<
   React.ElementRef<typeof SliderPrimitive.Root>,

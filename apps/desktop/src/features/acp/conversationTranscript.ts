@@ -1,4 +1,4 @@
-import { createTurn } from "@lumina/chat-ui/chatTurns";
+import { createTurn } from "@dawnsight/chat-ui/chatTurns";
 
 import { SHORTCUT_TASK_LABELS, normalizeRestoredShortcutOutput } from "./shortcutOutput";
 import type { ChatTurn } from "./types";

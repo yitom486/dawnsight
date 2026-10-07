@@ -2,8 +2,8 @@
 
 import { Link2 } from "lucide-react";
 
-import { Button } from "@lumina/ui/button";
-import { useChatUiStore } from "@lumina/chat-ui/chatUiStore";
+import { Button } from "@dawnsight/ui/button";
+import { useChatUiStore } from "@dawnsight/chat-ui/chatUiStore";
 
 import { useUiStore } from "../uiStore";
 

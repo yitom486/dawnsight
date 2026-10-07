@@ -1,14 +1,14 @@
-# Lumina — AI Video Reader
+# Dawnsight — AI Video Reader
 
 > 当前版本 0.3.0 · Windows x64 / macOS arm64 / Linux x64
 
-Lumina 是一款桌面端 AI 视频阅读器。
+Dawnsight 是一款桌面端 AI 视频阅读器。
 
 它把“播放视频”和“阅读视频内容”放在同一个工作流里：你可以观看本地或在线媒体，打开可检索的字幕文稿，按时间点记录笔记，再在需要时让 AI 基于当前画面、台词和章节回答问题。
 
-Lumina 的基础体验以本地为主：播放、字幕和笔记不依赖 AI；AI、在线媒体解析和语音转写都是可选能力，按需启用。
+Dawnsight 的基础体验以本地为主：播放、字幕和笔记不依赖 AI；AI、在线媒体解析和语音转写都是可选能力，按需启用。
 
-安装包发布在 [lumina-app Releases](https://github.com/yitom486/lumina-app/releases)。版本变更见 [CHANGELOG.md](CHANGELOG.md)，产品路线见 [ROADMAP.md](ROADMAP.md)。
+安装包发布在 [dawnsight-app Releases](https://github.com/yitom486/dawnsight-app/releases)。版本变更见 [CHANGELOG.md](CHANGELOG.md)，产品路线见 [ROADMAP.md](ROADMAP.md)。
 
 ## 主要能力
 
@@ -57,7 +57,7 @@ Lumina 特别适合以下场景：
 
 ## 安装与开始使用
 
-1. 打开 [lumina-app Releases](https://github.com/yitom486/lumina-app/releases)。
+1. 打开 [dawnsight-app Releases](https://github.com/yitom486/dawnsight-app/releases)。
 2. 下载对应系统的安装包：Windows 使用 MSI / NSIS，macOS 使用 DMG，Linux 使用 AppImage / deb。
 3. 安装后打开 Lumina，选择本地视频即可开始播放和阅读。
 

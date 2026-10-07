@@ -51,7 +51,7 @@ const phases = [
     args: [
       "test",
       "-p",
-      "lumina-mcp",
+      "dawnsight-mcp",
       "--features",
       "test-support",
       "--test",
@@ -60,7 +60,7 @@ const phases = [
       "--nocapture",
     ],
     cwd: repoRoot,
-    env: { LUMINA_CHAPTER_BLACKBOX_DELAY_MS: "1000" },
+    env: { DAWNSIGHT_CHAPTER_BLACKBOX_DELAY_MS: "1000" },
   },
   {
     name: "acp-stdio-session-boundary",
@@ -146,7 +146,7 @@ for (const phase of phases) {
 
 const failed = results.find((result) => result.status !== "passed");
 const report = {
-  suite: "lumina-deterministic-e2e",
+  suite: "dawnsight-deterministic-e2e",
   status: failed ? "failed" : "passed",
   elapsedMs: Math.round(performance.now() - startedAt),
   phases: results,

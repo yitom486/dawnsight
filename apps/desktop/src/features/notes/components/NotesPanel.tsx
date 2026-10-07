@@ -1,18 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { Button } from "@lumina/ui/button";
-import { Checkbox } from "@lumina/ui/checkbox";
-import { Field as SharedField, FieldLabel } from "@lumina/ui/field";
-import { Textarea } from "@lumina/ui/textarea";
-import { ScrollArea } from "@lumina/ui/scroll-area";
+import { Button } from "@dawnsight/ui/button";
+import { Checkbox } from "@dawnsight/ui/checkbox";
+import { Field as SharedField, FieldLabel } from "@dawnsight/ui/field";
+import { Textarea } from "@dawnsight/ui/textarea";
+import { ScrollArea } from "@dawnsight/ui/scroll-area";
 import { usePlayerStore } from "@/features/player";
 import { useTrackStore } from "@/features/player/trackStore";
 import { loadSubtitleChoice } from "@/features/transcript/api";
-import { transcriptKey } from "@lumina/query-keys";
-import type { Cue } from "@lumina/contracts";
+import { transcriptKey } from "@dawnsight/query-keys";
+import type { Cue } from "@dawnsight/contracts";
 import { errorMessage, formatTime } from "@/lib/format";
-import { cn } from "@lumina/ui/utils";
+import { cn } from "@dawnsight/ui/utils";
 
 import {
   createNote,
@@ -22,7 +22,7 @@ import {
   listNotes,
   previewNoteQuotes,
 } from "../api";
-import { noteFrameKey, notesKey } from "@lumina/query-keys";
+import { noteFrameKey, notesKey } from "@dawnsight/query-keys";
 import { useNoteComposeStore } from "../noteComposeStore";
 import { RecapCardDialog } from "./RecapCardDialog";
 import {

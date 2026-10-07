@@ -6,11 +6,11 @@ import readline from "node:readline";
 import { fileURLToPath } from "node:url";
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const timeoutMs = Number.parseInt(process.env.LUMINA_MCP_E2E_TIMEOUT_MS ?? "90000", 10);
+const timeoutMs = Number.parseInt(process.env.DAWNSIGHT_MCP_E2E_TIMEOUT_MS ?? "90000", 10);
 const codexPath =
   process.env.CODEX_PATH ??
   "C:\\Users\\zheye\\AppData\\Local\\Programs\\OpenAI\\Codex\\bin\\codex.exe";
-const mcpCommand = process.env.LUMINA_MCP_COMMAND ?? path.join(root, "target", "debug", "lumina-app.exe");
+const mcpCommand = process.env.DAWNSIGHT_MCP_COMMAND ?? path.join(root, "target", "debug", "dawnsight-app.exe");
 const codexAcpCandidates = [
   process.env.CODEX_ACP_ENTRY,
   path.join(root, "node_modules", "@agentclientprotocol", "codex-acp", "dist", "index.js"),
@@ -27,20 +27,20 @@ const codexAcpCandidates = [
 ].filter(Boolean);
 const codexAcpEntry = codexAcpCandidates.find((candidate) => fs.existsSync(candidate)) ?? codexAcpCandidates[0];
 
-const PLOT_TOOLS = new Set(["lumina_get_library_context", "lumina_get_transcript_window"]);
+const PLOT_TOOLS = new Set(["dawnsight_get_library_context", "dawnsight_get_transcript_window"]);
 const WEB_SEARCH_PATTERN = /web[_-]?search/i;
 
 if (process.argv.includes("--help") || process.argv.includes("-h")) {
   console.log(`Real ACP/MCP priority E2E (opt-in)
 
 Run:
-  LUMINA_MCP_E2E=1 bun run test:e2e:acp-mcp-priority
+  DAWNSIGHT_MCP_E2E=1 bun run test:e2e:acp-mcp-priority
 
 Optional environment:
-  LUMINA_MCP_E2E_TIMEOUT_MS  Per-RPC timeout in milliseconds (default: 90000)
+  DAWNSIGHT_MCP_E2E_TIMEOUT_MS  Per-RPC timeout in milliseconds (default: 90000)
   CODEX_PATH                Codex executable path
   CODEX_ACP_ENTRY           codex-acp dist/index.js path override
-  LUMINA_MCP_COMMAND        Lumina executable with --lumina-mcp (default: target/debug/lumina-app.exe)
+  DAWNSIGHT_MCP_COMMAND        Lumina executable with --dawnsight-mcp (default: target/debug/dawnsight-app.exe)
 
 The test uses a temporary, redacted fixture snapshot and never prints snapshot
 contents, media paths, or Agent stderr. It is intentionally excluded from the
@@ -48,13 +48,13 @@ default unit/UI test suites.`);
   process.exit(0);
 }
 
-if (process.env.LUMINA_MCP_E2E !== "1") {
-  console.error("[skip] set LUMINA_MCP_E2E=1 to run the real Codex ACP/MCP priority check");
+if (process.env.DAWNSIGHT_MCP_E2E !== "1") {
+  console.error("[skip] set DAWNSIGHT_MCP_E2E=1 to run the real Codex ACP/MCP priority check");
   process.exit(0);
 }
 
 if (!Number.isInteger(timeoutMs) || timeoutMs < 1000) {
-  console.error("[fail] invalid timeout: set LUMINA_MCP_E2E_TIMEOUT_MS to an integer >= 1000");
+  console.error("[fail] invalid timeout: set DAWNSIGHT_MCP_E2E_TIMEOUT_MS to an integer >= 1000");
   process.exit(1);
 }
 
@@ -139,7 +139,7 @@ class RpcLines {
         reject(new E2eFailure("RPC response timed out", {
           code: "timeout",
           phase: this.label,
-          action: "increase LUMINA_MCP_E2E_TIMEOUT_MS or inspect local Agent/MCP startup",
+          action: "increase DAWNSIGHT_MCP_E2E_TIMEOUT_MS or inspect local Agent/MCP startup",
         }));
       }, timeoutMs);
       this.waiters.set(id, {
@@ -173,7 +173,7 @@ function attachProcessDiagnostics(child, rpc, label) {
       waiter.reject(new E2eFailure("local RPC process could not start", {
         code: "process",
         phase: label,
-        action: "verify the executable exists and can run outside Lumina",
+        action: "verify the executable exists and can run outside Dawnsight",
       }));
     }
     rpc.waiters.clear();
@@ -223,7 +223,7 @@ function failForAcpError(response, { phase, label, fallbackCode, fallbackAction 
     fail(label, {
       code: "auth",
       phase,
-      action: "log in to the local Codex client, then rerun with LUMINA_MCP_E2E=1",
+      action: "log in to the local Codex client, then rerun with DAWNSIGHT_MCP_E2E=1",
     });
   }
   fail(label, { code: fallbackCode, phase, action: fallbackAction });
@@ -232,8 +232,8 @@ function failForAcpError(response, { phase, label, fallbackCode, fallbackAction 
 function sessionEnv(snapshotPath) {
   return {
     ...process.env,
-    LUMINA_MCP_CONTEXT_FILE: snapshotPath,
-    LUMINA_MCP_TOOL_PROFILE: "chat",
+    DAWNSIGHT_MCP_CONTEXT_FILE: snapshotPath,
+    DAWNSIGHT_MCP_TOOL_PROFILE: "chat",
   };
 }
 
@@ -241,10 +241,10 @@ function mcpServer(snapshotPath) {
   return {
     name: "lumina",
     command: mcpCommand,
-    args: ["--lumina-mcp"],
+    args: ["--dawnsight-mcp"],
     env: [
-      { name: "LUMINA_MCP_CONTEXT_FILE", value: snapshotPath },
-      { name: "LUMINA_MCP_TOOL_PROFILE", value: "chat" },
+      { name: "DAWNSIGHT_MCP_CONTEXT_FILE", value: snapshotPath },
+      { name: "DAWNSIGHT_MCP_TOOL_PROFILE", value: "chat" },
     ],
   };
 }
@@ -254,8 +254,8 @@ function snapshotFixture() {
   return {
     schemaVersion: 5,
     anchor: {
-      mediaPath: path.join(os.tmpdir(), "lumina-mcp-e2e-fixture.mp4"),
-      mediaTitle: "Lumina MCP priority fixture",
+      mediaPath: path.join(os.tmpdir(), "dawnsight-mcp-e2e-fixture.mp4"),
+      mediaTitle: "Dawnsight MCP priority fixture",
       libraryRoot: null,
       groupKey: null,
       season: 1,
@@ -280,9 +280,9 @@ function snapshotFixture() {
     },
     online: {
       mediaId: "e2e-fixture",
-      title: "Lumina MCP priority fixture",
+      title: "Dawnsight MCP priority fixture",
       durationMs: 120000,
-      webpageUrl: "https://example.invalid/lumina-mcp-e2e",
+      webpageUrl: "https://example.invalid/dawnsight-mcp-e2e",
       extractor: "fixture",
       chapters: [],
       subtitles: [{
@@ -305,7 +305,7 @@ function snapshotFixture() {
           index: 0,
           startMs: 59000,
           endMs: 61000,
-          text: "The fixture verifies that Lumina transcript context is available.",
+          text: "The fixture verifies that Dawnsight transcript context is available.",
         }],
       },
     },
@@ -314,27 +314,27 @@ function snapshotFixture() {
 }
 
 async function verifyMcpCatalog(snapshotPath) {
-  const child = spawn(mcpCommand, ["--lumina-mcp"], {
+  const child = spawn(mcpCommand, ["--dawnsight-mcp"], {
     cwd: root,
     env: sessionEnv(snapshotPath),
     stdio: ["pipe", "pipe", "pipe"],
     windowsHide: true,
   });
-  const rpc = new RpcLines(child.stdout, "lumina MCP");
-  attachProcessDiagnostics(child, rpc, "lumina MCP");
+  const rpc = new RpcLines(child.stdout, "dawnsight MCP");
+  attachProcessDiagnostics(child, rpc, "dawnsight MCP");
   try {
     const initialized = await request(rpc, child, 1, "initialize", {}, "initialize");
     if (initialized.error) {
-      fail("Lumina MCP initialize failed", {
+      fail("Dawnsight MCP initialize failed", {
         code: "mcp_initialize",
         phase: "initialize",
-        action: "rebuild the Lumina MCP executable and inspect its diagnostic log",
+        action: "rebuild the Dawnsight MCP executable and inspect its diagnostic log",
       });
     }
     const instructions = initialized.result?.instructions ?? "";
-    for (const required of ["lumina_get_library_context", "lumina_get_transcript_window", "tools/list"]) {
+    for (const required of ["dawnsight_get_library_context", "dawnsight_get_transcript_window", "tools/list"]) {
       if (!instructions.includes(required)) {
-        fail(`Lumina MCP instructions omitted ${required}`, {
+        fail(`Dawnsight MCP instructions omitted ${required}`, {
           code: "mcp_instructions",
           phase: "initialize",
           action: "verify the stable MCP instructions contain the current tool directory",
@@ -344,16 +344,16 @@ async function verifyMcpCatalog(snapshotPath) {
 
     const listed = await request(rpc, child, 2, "tools/list", {}, "tools/list");
     if (listed.error) {
-      fail("Lumina MCP tools/list failed", {
+      fail("Dawnsight MCP tools/list failed", {
         code: "mcp_tools_list",
         phase: "tools/list",
-        action: "check the snapshot fixture and LUMINA_MCP_TOOL_PROFILE=chat",
+        action: "check the snapshot fixture and DAWNSIGHT_MCP_TOOL_PROFILE=chat",
       });
     }
     const names = (listed.result?.tools ?? []).map((tool) => tool.name);
-    for (const required of ["lumina_get_library_context", "lumina_get_transcript_window"]) {
+    for (const required of ["dawnsight_get_library_context", "dawnsight_get_transcript_window"]) {
       if (!names.includes(required)) {
-        fail(`Lumina MCP tools/list omitted ${required}`, {
+        fail(`Dawnsight MCP tools/list omitted ${required}`, {
           code: "mcp_tools_list",
           phase: "tools/list",
           action: "check the chat tool profile and snapshot capabilities",
@@ -361,10 +361,10 @@ async function verifyMcpCatalog(snapshotPath) {
       }
     }
     if (names.some((name) => WEB_SEARCH_PATTERN.test(name))) {
-      fail("Lumina MCP tools/list exposed a web-search tool", {
+      fail("Dawnsight MCP tools/list exposed a web-search tool", {
         code: "unexpected_tool",
         phase: "tools/list",
-        action: "remove network-search tools from the Lumina MCP chat profile",
+        action: "remove network-search tools from the Dawnsight MCP chat profile",
       });
     }
 
@@ -373,13 +373,13 @@ async function verifyMcpCatalog(snapshotPath) {
       child,
       3,
       "tools/call",
-      { name: "lumina_get_playback_context", arguments: {} },
+      { name: "dawnsight_get_playback_context", arguments: {} },
       "snapshot playback context",
     );
-    assertToolSuccess(playback, "lumina_get_playback_context", "snapshot playback context");
-    const playbackPayload = parseToolText(playback, "lumina_get_playback_context", "snapshot playback context");
+    assertToolSuccess(playback, "dawnsight_get_playback_context", "snapshot playback context");
+    const playbackPayload = parseToolText(playback, "dawnsight_get_playback_context", "snapshot playback context");
     if (playbackPayload?.anchor?.positionMs !== 60000 || playbackPayload?.currentEpisode?.episode !== 2) {
-      fail("Lumina MCP returned an unexpected media snapshot", {
+      fail("Dawnsight MCP returned an unexpected media snapshot", {
         code: "snapshot",
         phase: "snapshot playback context",
         action: "confirm the ACP prompt writes the current media snapshot before MCP startup",
@@ -391,13 +391,13 @@ async function verifyMcpCatalog(snapshotPath) {
       child,
       4,
       "tools/call",
-      { name: "lumina_get_transcript_window", arguments: { beforeSec: 30, afterSec: 30 } },
+      { name: "dawnsight_get_transcript_window", arguments: { beforeSec: 30, afterSec: 30 } },
       "snapshot transcript context",
     );
-    assertToolSuccess(transcript, "lumina_get_transcript_window", "snapshot transcript context");
-    const transcriptPayload = parseToolText(transcript, "lumina_get_transcript_window", "snapshot transcript context");
+    assertToolSuccess(transcript, "dawnsight_get_transcript_window", "snapshot transcript context");
+    const transcriptPayload = parseToolText(transcript, "dawnsight_get_transcript_window", "snapshot transcript context");
     if (!Array.isArray(transcriptPayload?.lines) || transcriptPayload.lines.length === 0) {
-      fail("Lumina MCP snapshot transcript was empty", {
+      fail("Dawnsight MCP snapshot transcript was empty", {
         code: "snapshot_transcript",
         phase: "snapshot transcript context",
         action: "select/cache a subtitle track before starting the ACP session",
@@ -413,7 +413,7 @@ async function verifyMcpCatalog(snapshotPath) {
 
 function assertToolSuccess(response, toolName, phase) {
   if (response.error || response.result?.isError === true) {
-    fail(`Lumina MCP ${toolName} returned an error`, {
+    fail(`Dawnsight MCP ${toolName} returned an error`, {
       code: "mcp_tool",
       phase,
       action: "check that the temporary media snapshot contains the required context",
@@ -424,7 +424,7 @@ function assertToolSuccess(response, toolName, phase) {
 function parseToolText(response, toolName, phase) {
   const text = response.result?.content?.find((item) => item.type === "text")?.text;
   if (typeof text !== "string") {
-    fail(`Lumina MCP ${toolName} returned no text payload`, {
+    fail(`Dawnsight MCP ${toolName} returned no text payload`, {
       code: "mcp_payload",
       phase,
       action: "check the MCP tool response contract",
@@ -433,7 +433,7 @@ function parseToolText(response, toolName, phase) {
   try {
     return JSON.parse(text);
   } catch {
-    fail(`Lumina MCP ${toolName} returned invalid JSON text`, {
+    fail(`Dawnsight MCP ${toolName} returned invalid JSON text`, {
       code: "mcp_payload",
       phase,
       action: "check the MCP tool response contract",
@@ -475,7 +475,7 @@ async function verifyAgentPriority(snapshotPath, workspace) {
     const init = await request(rpc, child, 1, "initialize", {
         protocolVersion: 1,
         clientCapabilities: { fs: { readTextFile: true, writeTextFile: true }, terminal: true },
-        clientInfo: { name: "lumina-mcp-e2e", title: "Lumina MCP E2E", version: "0.3.0" },
+        clientInfo: { name: "dawnsight-mcp-e2e", title: "Dawnsight MCP E2E", version: "0.3.0" },
       }, "ACP initialize");
     if (init.error) {
       failForAcpError(init, {
@@ -492,7 +492,7 @@ async function verifyAgentPriority(snapshotPath, workspace) {
         phase: "ACP authenticate",
         label: "Codex ACP authentication/login failed",
         fallbackCode: "auth",
-        fallbackAction: "log in to the local Codex client, then rerun with LUMINA_MCP_E2E=1",
+        fallbackAction: "log in to the local Codex client, then rerun with DAWNSIGHT_MCP_E2E=1",
       });
     }
 
@@ -510,13 +510,13 @@ async function verifyAgentPriority(snapshotPath, workspace) {
           phase: "ACP session/new",
           label: "Codex ACP session/new failed",
           fallbackCode: "session_new",
-          fallbackAction: "check the local ACP workspace and Lumina MCP executable configuration",
+          fallbackAction: "check the local ACP workspace and Dawnsight MCP executable configuration",
         });
       }
       fail("Codex ACP session/new returned no session", {
         code: "session_new",
         phase: "ACP session/new",
-        action: "check the local ACP workspace and Lumina MCP executable configuration",
+        action: "check the local ACP workspace and Dawnsight MCP executable configuration",
       });
     }
 
@@ -564,7 +564,7 @@ async function verifyAgentPriority(snapshotPath, workspace) {
   }
 }
 
-const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "lumina-mcp-priority-"));
+const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "dawnsight-mcp-priority-"));
 const snapshotPath = path.join(workspace, ".lumina", "agent-context.json");
 fs.mkdirSync(path.dirname(snapshotPath), { recursive: true });
 fs.writeFileSync(snapshotPath, JSON.stringify(snapshotFixture()));

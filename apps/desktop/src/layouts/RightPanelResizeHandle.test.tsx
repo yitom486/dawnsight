@@ -6,7 +6,7 @@ import {
   MAX_DOCK_WIDTH,
   MIN_DOCK_WIDTH,
   useChatUiStore,
-} from "@lumina/chat-ui/chatUiStore";
+} from "@dawnsight/chat-ui/chatUiStore";
 
 import { RightPanelResizeHandle } from "./RightPanelResizeHandle";
 

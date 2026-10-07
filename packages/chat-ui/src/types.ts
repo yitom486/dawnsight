@@ -1,5 +1,5 @@
-export type { NoteQuote, VideoAnnotationProposal } from "@lumina/contracts";
-import type { VideoAnnotationProposal } from "@lumina/contracts";
+export type { NoteQuote, VideoAnnotationProposal } from "@dawnsight/contracts";
+import type { VideoAnnotationProposal } from "@dawnsight/contracts";
 
 export type AgentKind =
   | "Codex"

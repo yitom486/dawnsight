@@ -1,0 +1,10 @@
+[package]
+name = "dawnsight-subtitle"
+version = "0.4.0"
+description = "Subtitle discovery, extraction, parsing, and export for Dawnsight"
+edition = "2021"
+
+[dependencies]
+dawnsight-media.workspace = true
+serde = { version = "1", features = ["derive"] }
+tracing = "0.1"

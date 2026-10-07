@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { usePlayerStore } from "@/features/player";
-import { ytdlResolveKey } from "@lumina/query-keys";
+import { ytdlResolveKey } from "@dawnsight/query-keys";
 
 import { ChaptersPanel, type ChaptersPanelProps } from "./ChaptersPanel";
 

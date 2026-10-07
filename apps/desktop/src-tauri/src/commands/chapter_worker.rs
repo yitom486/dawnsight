@@ -5,23 +5,23 @@
 
 use std::path::{Path, PathBuf};
 
-use lumina_acp::agent::workspace::resolve_session_cwd;
-use lumina_acp::jobs::isolated::ChapterSession;
-use lumina_acp::{AcpError, AcpErrorCode, AcpEvent, AcpSessionModelSelection};
-use lumina_ai::prompts::{
+use dawnsight_acp::agent::workspace::resolve_session_cwd;
+use dawnsight_acp::jobs::isolated::ChapterSession;
+use dawnsight_acp::{AcpError, AcpErrorCode, AcpEvent, AcpSessionModelSelection};
+use dawnsight_ai::prompts::{
     compose_prompt, EpisodeContext, MediaContext, PromptSlots, SpoilerBoundary, TaskId,
     TranscriptWindow, ValidationReport, ViewingContext,
 };
-use lumina_ai::{build_screenshot_reference, build_transcript_windows, ScreenshotMetadata};
-use lumina_library::{
+use dawnsight_ai::{build_screenshot_reference, build_transcript_windows, ScreenshotMetadata};
+use dawnsight_library::{
     AgentTaskRecord, Database, DatabaseError, DatabaseErrorCode, DatabaseResult,
     LegacyEpisodeMigration, NewAgentAttempt, NewEpisode, NewSeries, Repository,
 };
-use lumina_media::frame_capture::{
+use dawnsight_media::frame_capture::{
     capture_frames, detect_scene_times, select_keyframes, DEFAULT_SCENE_THRESHOLD,
 };
-use lumina_media::MediaInspector;
-use lumina_subtitle::{SubtitleService, Transcript};
+use dawnsight_media::MediaInspector;
+use dawnsight_subtitle::{SubtitleService, Transcript};
 use tauri::{AppHandle, Emitter};
 
 use super::{
@@ -102,7 +102,7 @@ impl WorkerFailure {
 #[derive(Debug)]
 struct EvidenceBundle {
     transcript_windows: Vec<TranscriptWindow>,
-    screenshots: Vec<lumina_ai::prompts::ScreenshotReference>,
+    screenshots: Vec<dawnsight_ai::prompts::ScreenshotReference>,
 }
 
 #[derive(Debug)]
@@ -198,7 +198,7 @@ impl ProgressEmitter {
 
 fn chapter_tool_progress(title: Option<&str>) -> Option<(&'static str, &'static str)> {
     let title = title?.to_ascii_lowercase();
-    use lumina_core::tool_contract as contract;
+    use dawnsight_core::tool_contract as contract;
     if title.contains(contract::TOOL_CREATE_CHAPTER_OUTLINE) {
         Some(("building_outline", "正在建立章节框架"))
     } else if title.contains(contract::TOOL_CAPTURE_CHAPTER_EVIDENCE) {
@@ -458,7 +458,7 @@ fn ensure_episode(
                 legacy_episode_id,
                 episode.id,
             ))?;
-            if migration.status == lumina_library::EpisodeMigrationStatus::Conflict {
+            if migration.status == dawnsight_library::EpisodeMigrationStatus::Conflict {
                 tracing::warn!(
                     legacy_episode_id,
                     authoritative_episode_id = episode.id,
@@ -682,8 +682,8 @@ fn load_transcript(
         .as_deref()
         .filter(|value| !value.trim().is_empty())
     {
-        if lumina_ytdl::provider::parse_cache_choice(choice_id).is_some() {
-            return lumina_ytdl::provider::load_cached_choice(
+        if dawnsight_ytdl::provider::parse_cache_choice(choice_id).is_some() {
+            return dawnsight_ytdl::provider::load_cached_choice(
                 &media_path.to_string_lossy(),
                 choice_id,
             )
@@ -723,7 +723,7 @@ fn collect_screenshots(
     task: &AgentTaskRecord,
     media_path: &Path,
     duration_ms: u64,
-) -> Result<Vec<lumina_ai::prompts::ScreenshotReference>, WorkerFailure> {
+) -> Result<Vec<dawnsight_ai::prompts::ScreenshotReference>, WorkerFailure> {
     let coverage = coverage_times(duration_ms);
     let scenes = detect_scene_times(media_path, DEFAULT_SCENE_THRESHOLD).unwrap_or_default();
     let selected = select_keyframes(&coverage, &scenes, MAX_SCREENSHOTS);
@@ -732,7 +732,7 @@ fn collect_screenshots(
     }
     let root = media_path.parent().unwrap_or_else(|| Path::new("."));
     let output_dir = root
-        .join(".lumina")
+        .join(".dawnsight")
         // Chapter evidence is referenced by the prompt and persisted as a
         // chapter asset. Keep it outside MCP's ephemeral tmp directory:
         // ACP snapshot synchronization clears `.lumina/tmp` before the
@@ -863,7 +863,7 @@ fn model_selection(request: &ChapterSegmentationRequest) -> Option<AcpSessionMod
 #[cfg(test)]
 mod tests {
     use super::*;
-    use lumina_library::{
+    use dawnsight_library::{
         Database, NewAgentAttempt, NewAgentTask, NewChapter, NewEpisode, NewSeries,
     };
 
@@ -885,11 +885,11 @@ mod tests {
     #[test]
     fn chapter_progress_maps_only_known_tools_and_safe_statuses() {
         assert_eq!(
-            chapter_tool_progress(Some("mcp__lumina__lumina_create_chapter_outline")),
+            chapter_tool_progress(Some("mcp__dawnsight__dawnsight_create_chapter_outline")),
             Some(("building_outline", "正在建立章节框架"))
         );
         assert_eq!(
-            chapter_tool_progress(Some("lumina_capture_chapter_evidence")),
+            chapter_tool_progress(Some("dawnsight_capture_chapter_evidence")),
             Some(("capturing_evidence", "正在获取字幕与画面证据"))
         );
         assert_eq!(chapter_tool_progress(Some("read_file")), None);

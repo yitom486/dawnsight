@@ -1,5 +1,5 @@
 {
-  "name": "lumina-workspace",
+  "name": "dawnsight-workspace",
   "private": true,
   "packageManager": "bun@1.3.14",
   "workspaces": ["apps/desktop", "packages/contracts", "packages/query-keys", "packages/player-ui", "packages/transcript-ui", "packages/chat-ui", "packages/ui"],

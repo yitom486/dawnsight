@@ -9,14 +9,14 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use lumina_acp::{AcpError, SessionEnvironment, SessionKind, VideoPromptContext};
-use lumina_core::{AgentConversation, AgentTaskError, IsolatedAgentTask};
+use dawnsight_acp::{AcpError, SessionEnvironment, SessionKind, VideoPromptContext};
+use dawnsight_core::{AgentConversation, AgentTaskError, IsolatedAgentTask};
 
 use crate::library::MediaLibraryService;
 use crate::mcp::{
     read_snapshot, snapshot_path_for_cwd, sync_snapshot_capabilities,
     write_chapter_task_snapshot as write_scoped_snapshot, write_snapshot, AgentCapabilities,
-    ChapterTaskContext, LuminaMcpSnapshot, PromptAnchor, PromptSnapshotState,
+    ChapterTaskContext, DawnsightMcpSnapshot, PromptAnchor, PromptSnapshotState,
 };
 
 /// MCP-backed [`SessionEnvironment`] for ACP spawn paths.
@@ -36,14 +36,14 @@ fn next_mcp_diagnostic_id() -> String {
 impl SessionEnvironment for AppSessionEnvironment {
     fn snapshot_path(&self, cwd: &Path, kind: SessionKind) -> PathBuf {
         match kind {
-            SessionKind::Chapter => cwd.join(".lumina").join("chapter-agent-context.json"),
+            SessionKind::Chapter => cwd.join(".dawnsight").join("chapter-agent-context.json"),
             SessionKind::Chat | SessionKind::Workshop => snapshot_path_for_cwd(cwd),
         }
     }
 
     fn sync_snapshot(&self, snapshot_path: &Path, vision_capable: bool) -> Result<(), String> {
         // MCP 反向控制（seek）按会话工作区登记：snapshot 在
-        // `<workspace>/.lumina/agent-context.json`，工作区是其祖父目录。
+        // `<workspace>/.dawnsight/agent-context.json`，工作区是其祖父目录。
         if let Some(workspace) = snapshot_path.parent().and_then(|parent| parent.parent()) {
             crate::acp::mcp_control::register_workspace(workspace);
         }
@@ -58,9 +58,9 @@ impl SessionEnvironment for AppSessionEnvironment {
             profile = %profile.env_value(),
             session_kind = ?kind,
             snapshot = %snapshot_path.display(),
-            "prepared Lumina MCP server environment"
+            "prepared Dawnsight MCP server environment"
         );
-        let mut servers = crate::mcp::lumina_mcp_servers(snapshot_path);
+        let mut servers = crate::mcp::dawnsight_mcp_servers(snapshot_path);
         if let Some(env) = servers
             .as_array_mut()
             .and_then(|list| list.first_mut())
@@ -104,7 +104,7 @@ fn mcp_profile_for_session(kind: SessionKind) -> crate::mcp::McpToolProfile {
 }
 
 /// Seed the isolated chapter session with the same media anchor that the
-/// interactive chat session exposes to Lumina MCP. The session remains
+/// interactive chat session exposes to Dawnsight MCP. The session remains
 /// independent from chat history, but its tools must resolve the current
 /// media, subtitle choice and playback boundary.
 pub fn write_chapter_snapshot(
@@ -116,7 +116,7 @@ pub fn write_chapter_snapshot(
 ) -> Result<PathBuf, AcpError> {
     let environment = AppSessionEnvironment;
     let snapshot_path = environment.snapshot_path(cwd, SessionKind::Chapter);
-    let snapshot = LuminaMcpSnapshot {
+    let snapshot = DawnsightMcpSnapshot {
         schema_version: crate::mcp::SNAPSHOT_SCHEMA_VERSION,
         anchor: Some(PromptAnchor {
             media_path: media_path.to_string_lossy().into_owned(),
@@ -170,7 +170,7 @@ pub fn write_chapter_task_snapshot(
 ) -> Result<PathBuf, AcpError> {
     let environment = AppSessionEnvironment;
     let snapshot_path = environment.snapshot_path(cwd, SessionKind::Chapter);
-    let snapshot = LuminaMcpSnapshot {
+    let snapshot = DawnsightMcpSnapshot {
         schema_version: crate::mcp::SNAPSHOT_SCHEMA_VERSION,
         anchor: Some(PromptAnchor {
             media_path: media_path.to_string_lossy().into_owned(),
@@ -212,7 +212,7 @@ pub fn write_chapter_task_snapshot(
 
 /// Installed once at startup; `session/new|resume` wiring uses it.
 pub fn install_session_environment() -> bool {
-    lumina_acp::set_default_environment(Arc::new(AppSessionEnvironment))
+    dawnsight_acp::set_default_environment(Arc::new(AppSessionEnvironment))
 }
 
 /// Build the next chat prompt snapshot (warm library policy). Mirrors the
@@ -223,7 +223,7 @@ pub fn build_prompt_snapshot(
     library: &MediaLibraryService,
     context: Option<&VideoPromptContext>,
     vision_capable: bool,
-) -> Result<(LuminaMcpSnapshot, bool), AcpError> {
+) -> Result<(DawnsightMcpSnapshot, bool), AcpError> {
     let context = context.map(|context| crate::mcp::McpPromptContext {
         media_path: context.media_path.clone(),
         media_title: context.media_title.clone(),
@@ -244,7 +244,7 @@ pub fn build_prompt_snapshot(
 /// Persist the chat prompt snapshot. Mirrors `write_prompt_snapshot`.
 pub fn write_prompt_snapshot(
     cwd: &Path,
-    snapshot: &LuminaMcpSnapshot,
+    snapshot: &DawnsightMcpSnapshot,
 ) -> Result<PathBuf, AcpError> {
     let path = snapshot_path_for_cwd(cwd);
     write_snapshot(&path, snapshot).map_err(|details| AcpError::internal(Some(&details)))?;
@@ -253,7 +253,7 @@ pub fn write_prompt_snapshot(
 
 /// Record session capabilities. Mirrors `sync_mcp_capabilities`.
 pub fn sync_mcp_capabilities(cwd_hint: Option<&str>, vision_capable: bool) -> Result<(), AcpError> {
-    let workspace = lumina_acp::agent::workspace::resolve_session_cwd(cwd_hint)?;
+    let workspace = dawnsight_acp::agent::workspace::resolve_session_cwd(cwd_hint)?;
     let path = snapshot_path_for_cwd(&workspace);
     sync_snapshot_capabilities(&path, vision_capable)
         .map_err(|details| AcpError::internal(Some(&details)))
@@ -267,21 +267,21 @@ pub fn reset_prompt_snapshot_state(snapshots: &Mutex<PromptSnapshotState>) {
     }
 }
 
-/// ACP-backed [`lumina_core::AgentInvoker`] for subtitle workshop tasks:
+/// ACP-backed [`dawnsight_core::AgentInvoker`] for subtitle workshop tasks:
 /// short-lived isolated calls, no chat history, no MCP tools.
 ///
 /// With a pool attached (workshop jobs), conversations route to a slot-pinned
-/// [`lumina_acp::WorkshopPool`] lease. Without one (library resolver), each
+/// [`dawnsight_acp::WorkshopPool`] lease. Without one (library resolver), each
 /// call runs the legacy one-shot isolated path. The adapter itself owns no
 /// pool lifecycle:
 /// creation and shutdown live with the caller (commands layer).
 pub struct AcpAgentInvoker {
-    profiles: lumina_acp::AgentProfilesHint,
-    pool: Option<Arc<lumina_acp::WorkshopPool>>,
+    profiles: dawnsight_acp::AgentProfilesHint,
+    pool: Option<Arc<dawnsight_acp::WorkshopPool>>,
 }
 
 impl AcpAgentInvoker {
-    pub fn new(profiles: lumina_acp::AgentProfilesHint) -> Self {
+    pub fn new(profiles: dawnsight_acp::AgentProfilesHint) -> Self {
         Self {
             profiles,
             pool: None,
@@ -289,8 +289,8 @@ impl AcpAgentInvoker {
     }
 
     pub fn with_pool(
-        profiles: lumina_acp::AgentProfilesHint,
-        pool: Arc<lumina_acp::WorkshopPool>,
+        profiles: dawnsight_acp::AgentProfilesHint,
+        pool: Arc<dawnsight_acp::WorkshopPool>,
     ) -> Self {
         Self {
             profiles,
@@ -299,7 +299,7 @@ impl AcpAgentInvoker {
     }
 }
 
-impl lumina_core::AgentInvoker for AcpAgentInvoker {
+impl dawnsight_core::AgentInvoker for AcpAgentInvoker {
     fn invoke_isolated(&self, task: IsolatedAgentTask) -> Result<String, AgentTaskError> {
         if let Some(pool) = self.pool.as_ref() {
             return pool
@@ -309,13 +309,13 @@ impl lumina_core::AgentInvoker for AcpAgentInvoker {
         let model_selection = task
             .model_id
             .filter(|id| !id.trim().is_empty())
-            .map(|model_id| lumina_acp::AcpSessionModelSelection {
+            .map(|model_id| dawnsight_acp::AcpSessionModelSelection {
                 model_id,
                 reasoning_effort: task
                     .reasoning_effort
                     .filter(|value| !value.trim().is_empty()),
             });
-        lumina_acp::jobs::isolated::prompt_isolated_restricted(
+        dawnsight_acp::jobs::isolated::prompt_isolated_restricted(
             task.prompt,
             task.profile_id,
             self.profiles.clone(),
@@ -343,17 +343,17 @@ struct AdapterOneShotConversation<'a> {
 
 impl AgentConversation for AdapterOneShotConversation<'_> {
     fn prompt(&mut self, task: IsolatedAgentTask) -> Result<String, AgentTaskError> {
-        lumina_core::AgentInvoker::invoke_isolated(self.invoker, task)
+        dawnsight_core::AgentInvoker::invoke_isolated(self.invoker, task)
     }
 }
 
 /// Shared ACP→port error mapping for both pool and legacy paths.
-fn map_acp_error(error: lumina_acp::AcpError) -> AgentTaskError {
-    if error.code == lumina_acp::AcpErrorCode::NotConfigured {
+fn map_acp_error(error: dawnsight_acp::AcpError) -> AgentTaskError {
+    if error.code == dawnsight_acp::AcpErrorCode::NotConfigured {
         AgentTaskError::NotConfigured {
             details: error.details,
         }
-    } else if error.code == lumina_acp::AcpErrorCode::NoOutput {
+    } else if error.code == dawnsight_acp::AcpErrorCode::NoOutput {
         AgentTaskError::NoOutput {
             details: error.details,
         }
@@ -387,14 +387,14 @@ mod tests {
     #[test]
     fn chapter_mcp_servers_inject_chat_profile() {
         let root = std::env::temp_dir().join(format!(
-            "lumina-chapter-mcp-config-{}-{}",
+            "dawnsight-chapter-mcp-config-{}-{}",
             std::process::id(),
             SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .map(|duration| duration.as_nanos())
                 .unwrap_or_default()
         ));
-        let snapshot_path = root.join(".lumina").join("chapter-agent-context.json");
+        let snapshot_path = root.join(".dawnsight").join("chapter-agent-context.json");
         let servers = AppSessionEnvironment.mcp_servers(&snapshot_path, SessionKind::Chapter);
         let env = servers
             .get(0)
@@ -412,7 +412,7 @@ mod tests {
     #[test]
     fn chapter_snapshot_contains_media_anchor_and_tool_capability() {
         let root = std::env::temp_dir().join(format!(
-            "lumina-chapter-snapshot-{}-{}",
+            "dawnsight-chapter-snapshot-{}-{}",
             std::process::id(),
             SystemTime::now()
                 .duration_since(UNIX_EPOCH)
@@ -440,7 +440,7 @@ mod tests {
     #[test]
     fn chapter_task_snapshot_contains_durable_scope() {
         let root = std::env::temp_dir().join(format!(
-            "lumina-chapter-task-snapshot-{}-{}",
+            "dawnsight-chapter-task-snapshot-{}-{}",
             std::process::id(),
             SystemTime::now()
                 .duration_since(UNIX_EPOCH)
@@ -479,14 +479,14 @@ mod tests {
     #[test]
     fn chapter_session_sync_preserves_scoped_snapshot() {
         let root = std::env::temp_dir().join(format!(
-            "lumina-chapter-sync-adapter-{}-{}",
+            "dawnsight-chapter-sync-adapter-{}-{}",
             std::process::id(),
             SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .map(|duration| duration.as_nanos())
                 .unwrap_or_default()
         ));
-        let snapshot_path = root.join(".lumina").join("chapter-agent-context.json");
+        let snapshot_path = root.join(".dawnsight").join("chapter-agent-context.json");
         let context = ChapterTaskContext {
             task_id: 51,
             attempt_id: 52,
@@ -498,7 +498,7 @@ mod tests {
             prompt_version: "chapter-v1".into(),
         };
 
-        write_scoped_snapshot(&snapshot_path, &LuminaMcpSnapshot::empty(), &context)
+        write_scoped_snapshot(&snapshot_path, &DawnsightMcpSnapshot::empty(), &context)
             .expect("write scoped snapshot");
         AppSessionEnvironment
             .sync_snapshot(&snapshot_path, true)

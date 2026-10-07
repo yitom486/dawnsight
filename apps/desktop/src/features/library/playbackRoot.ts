@@ -1,4 +1,4 @@
-import { parentDirectory } from "@lumina/player-ui";
+import { parentDirectory } from "@dawnsight/player-ui";
 
 /** Parent folder of the currently opened media file, for library watch roots. */
 export function libraryRootFromPlaybackPath(

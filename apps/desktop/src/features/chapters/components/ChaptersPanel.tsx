@@ -1,14 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
-import { Button } from "@lumina/ui/button";
+import { Button } from "@dawnsight/ui/button";
 
 import { useMediaInfoQuery } from "@/features/media";
 import { usePlayerStore } from "@/features/player";
-import { ytdlResolveKey } from "@lumina/query-keys";
+import { ytdlResolveKey } from "@dawnsight/query-keys";
 import { getCachedYtdlResolve } from "@/features/ytdl";
 import { formatTime } from "@/lib/format";
-import type { MediaChapter } from "@lumina/contracts";
+import type { MediaChapter } from "@dawnsight/contracts";
 import { chapterAssetKey, getChapterAsset, parseDraftChapters } from "../api";
 import type { ChapterAssetData, ChapterDetailSnapshot, ChapterDraftSnapshot } from "../api";
 import { useChapterSegmentation } from "../hooks/useChapterSegmentation";
