@@ -115,6 +115,28 @@ describe("AboutButton", () => {
       "https://github.com/yitom486/dawnsight-app/releases",
     );
   });
+
+  it("closes the about dialog when clicking 知道了 or close button", async () => {
+    vi.mocked(getVersion).mockResolvedValue("0.3.0");
+    const user = userEvent.setup();
+    render(
+      <TooltipProvider>
+        <AppShell>
+          <div />
+        </AppShell>
+      </TooltipProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "关于 Dawnsight" }));
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    expect(useUiStore.getState().aboutOpen).toBe(true);
+
+    await user.click(screen.getByRole("button", { name: "知道了" }));
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+    expect(useUiStore.getState().aboutOpen).toBe(false);
+  });
 });
 
 describe("AppShell AI entry", () => {

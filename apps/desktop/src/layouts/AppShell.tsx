@@ -1,18 +1,9 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { FileText, Info, Maximize2, Minimize2 } from "lucide-react";
+import { createPortal } from "react-dom";
+import { FileText, Info, Maximize2, Minimize2, X } from "lucide-react";
 import { getVersion } from "@tauri-apps/api/app";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { openUrl } from "@tauri-apps/plugin-opener";
-
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@dawnsight/ui/alert-dialog";
 import { Button } from "@dawnsight/ui/button";
 import {
   Tooltip,
@@ -114,6 +105,18 @@ export function AboutButton() {
     };
   }, []);
 
+  // Close on Escape key press
+  useEffect(() => {
+    if (!aboutOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setAboutOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [aboutOpen, setAboutOpen]);
+
   const openRepo = () => {
     void openUrl(REPO_URL).catch((error: unknown) => {
       usePlayerStore.getState().setStatusMessage(errorMessage(error));
@@ -146,43 +149,91 @@ export function AboutButton() {
         <TooltipContent>关于 Dawnsight</TooltipContent>
       </Tooltip>
 
-      <AlertDialog open={aboutOpen} onOpenChange={setAboutOpen}>
-        <AlertDialogContent className="border-border bg-card max-w-md shadow-2xl">
-          <AlertDialogHeader>
-            <div className="flex items-center gap-3">
-              <img
-                src={dawnsightLogo}
-                alt="Dawnsight Logo"
-                className="size-10 rounded-xl border border-ai/40 object-cover shadow-sm pointer-events-none"
-              />
-              <div className="flex flex-col text-left">
-                <AlertDialogTitle className="text-base font-semibold text-foreground">
-                  Dawnsight · AI Video Reader
-                </AlertDialogTitle>
-                <AlertDialogDescription className="text-xs text-muted-foreground">
-                  版本 {version}
-                </AlertDialogDescription>
+      {aboutOpen && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="about-dialog-title"
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+              onClick={(e) => {
+                if (e.target === e.currentTarget) {
+                  setAboutOpen(false);
+                }
+              }}
+            >
+              <div
+                className="relative flex flex-col gap-4 border border-border bg-card text-foreground max-w-md w-full rounded-2xl p-6 shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  type="button"
+                  onClick={() => setAboutOpen(false)}
+                  className="absolute right-4 top-4 rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors cursor-pointer"
+                  aria-label="关闭"
+                >
+                  <X className="size-4" />
+                </button>
+
+                <div className="flex items-center gap-3.5 pr-6">
+                  <img
+                    src={dawnsightLogo}
+                    alt="Dawnsight Logo"
+                    className="size-11 rounded-xl border border-ai/40 object-cover shadow-sm pointer-events-none shrink-0"
+                  />
+                  <div className="flex flex-col text-left min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h2
+                        id="about-dialog-title"
+                        className="text-base font-semibold text-foreground tracking-tight"
+                      >
+                        Dawnsight
+                      </h2>
+                      <span className="rounded-full bg-ai/10 border border-ai/30 px-2 py-0.5 text-[11px] font-medium text-ai">
+                        AI Video Reader
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      版本 {version}
+                    </p>
+                  </div>
+                </div>
+
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  桌面端 AI 观影阅读器：用原生播放器播放本地视频，把字幕文稿、章节、笔记与可选的
+                  AI 对话放在同一个阅读工作流里。
+                </p>
+
+                <div className="mt-2 flex flex-row items-center justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={openRepo}
+                  >
+                    GitHub 仓库
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={openReleases}
+                  >
+                    下载更新
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => setAboutOpen(false)}
+                  >
+                    知道了
+                  </Button>
+                </div>
               </div>
-            </div>
-          </AlertDialogHeader>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            桌面端 AI
-            观影阅读器：用原生播放器播放本地视频，把字幕文稿、章节、笔记与可选的
-            AI 对话放在同一个阅读工作流里。
-          </p>
-          <AlertDialogFooter className="mt-4 flex flex-row items-center justify-end gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={openRepo}>
-              GitHub 仓库
-            </Button>
-            <Button type="button" variant="outline" size="sm" onClick={openReleases}>
-              下载更新
-            </Button>
-            <AlertDialogAction size="sm" onClick={() => setAboutOpen(false)}>
-              知道了
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </div>,
+            document.body,
+          )
+        : null}
     </>
   );
 }
