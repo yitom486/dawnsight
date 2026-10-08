@@ -10,12 +10,37 @@ use crate::error::LibraryError;
 
 pub const DAWNSIGHT_DIR_NAME: &str = ".dawnsight";
 
+/// Pre-rename data dir. Read-only fallback: after the lumina→dawnsight
+/// rename, existing libraries only have `.lumina/index.json` + `groups`.
+/// Reads fall back to it when the new location has nothing yet; every write
+/// targets `.dawnsight`, so the next rescan migrates forward naturally.
+pub const LEGACY_DIR_NAME: &str = ".lumina";
+
 pub fn dawnsight_dir(root: &Path) -> PathBuf {
     root.join(DAWNSIGHT_DIR_NAME)
 }
 
 pub fn dawnsight_index_path(root: &Path) -> PathBuf {
     dawnsight_dir(root).join("index.json")
+}
+
+pub fn legacy_index_path(root: &Path) -> PathBuf {
+    root.join(LEGACY_DIR_NAME).join("index.json")
+}
+
+/// Read-side index location: new dir wins when it has an index, otherwise
+/// the pre-rename copy. Falls back to the new path (for future writes) when
+/// neither exists.
+pub fn index_path_for_read(root: &Path) -> PathBuf {
+    let modern = dawnsight_index_path(root);
+    if modern.is_file() {
+        return modern;
+    }
+    let legacy = legacy_index_path(root);
+    if legacy.is_file() {
+        return legacy;
+    }
+    modern
 }
 
 pub fn dawnsight_groups_dir(root: &Path) -> PathBuf {
@@ -67,11 +92,12 @@ pub fn display_relative_path(root: &Path, path: &Path) -> String {
     relativize_under_root(root, path).unwrap_or_else(|_| normalize_slashes(path))
 }
 
-/// Walk parents of `media_path` looking for `.lumina/index.json`.
+/// Walk parents of `media_path` looking for an index (new `.dawnsight` first,
+/// then the pre-rename `.lumina` copy).
 pub fn discover_library_root_for_media(media_path: &Path) -> Option<PathBuf> {
     let mut current = media_path.parent()?;
     loop {
-        if dawnsight_index_path(current).is_file() {
+        if dawnsight_index_path(current).is_file() || legacy_index_path(current).is_file() {
             return Some(current.to_path_buf());
         }
         current = current.parent()?;
@@ -175,6 +201,52 @@ mod tests {
         let root = PathBuf::from(r"D:\movie\A");
         let media = PathBuf::from(r"D:\movie\B\file.mkv");
         assert!(relativize_under_root(&root, &media).is_err());
+    }
+
+    #[test]
+    fn legacy_lumina_index_is_discovered_when_new_dir_is_absent() {
+        use std::time::{SystemTime, UNIX_EPOCH};
+
+        let suffix = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or_default();
+        let show = std::env::temp_dir().join(format!("lumina-legacy-{suffix}"));
+        let legacy = show.join(LEGACY_DIR_NAME);
+        fs::create_dir_all(&legacy).expect("mkdir legacy");
+        fs::write(
+            legacy.join("index.json"),
+            r#"{"schemaVersion":1,"root":"","updatedAtMs":0,"files":[],"groups":[]}"#,
+        )
+        .expect("write legacy index");
+        let media = show.join("S01E01.mkv");
+        fs::write(&media, b"").expect("write media");
+
+        assert_eq!(discover_library_root_for_media(&media), Some(show.clone()));
+        assert_eq!(index_path_for_read(&show), legacy.join("index.json"));
+        let _ = fs::remove_dir_all(&show);
+    }
+
+    #[test]
+    fn new_index_wins_over_legacy_copy() {
+        use std::time::{SystemTime, UNIX_EPOCH};
+
+        let suffix = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or_default();
+        let show = std::env::temp_dir().join(format!("lumina-both-{suffix}"));
+        for dir in [DAWNSIGHT_DIR_NAME, LEGACY_DIR_NAME] {
+            let target = show.join(dir);
+            fs::create_dir_all(&target).expect("mkdir");
+            fs::write(
+                target.join("index.json"),
+                r#"{"schemaVersion":1,"root":"","updatedAtMs":0,"files":[],"groups":[]}"#,
+            )
+            .expect("write index");
+        }
+        assert_eq!(index_path_for_read(&show), dawnsight_index_path(&show));
+        let _ = fs::remove_dir_all(&show);
     }
 
     #[test]
