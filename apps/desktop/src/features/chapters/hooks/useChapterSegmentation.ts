@@ -61,7 +61,9 @@ export function useChapterSegmentation() {
   const queryClient = useQueryClient();
   const agentConfigured = Boolean(
     activeProfileId?.trim() &&
-      profiles.some((profile) => profile.id === activeProfileId),
+      (profiles.length === 0 ||
+        profiles.some((profile) => profile.id === activeProfileId) ||
+        activeProfileId === "codex"),
   );
   const metadataQuery = useQuery({
     queryKey: ["library-context-for-media", mediaPath ?? null],

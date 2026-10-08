@@ -133,7 +133,7 @@ describe("cursor composer controls blackbox", () => {
     expect(screen.getByLabelText("模型")).toBeInTheDocument();
     expect(screen.getByLabelText("思考")).toBeInTheDocument();
     expect(screen.getByLabelText("上下文")).toBeInTheDocument();
-    expect(screen.getByLabelText("Fast")).toBeInTheDocument();
+    expect(screen.getByText("Fast")).toBeInTheDocument();
     // 经典模型/思考下拉此时是死的，一律隐藏。
     expect(screen.queryByLabelText("思考程度")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("模型 ID")).not.toBeInTheDocument();
@@ -170,7 +170,7 @@ describe("cursor composer controls blackbox", () => {
       );
     });
 
-    fireEvent.click(screen.getByLabelText("Fast"));
+    fireEvent.click(screen.getAllByLabelText("Fast")[0]!);
     await waitFor(() => {
       expect(vi.mocked(invoke)).toHaveBeenCalledWith(
         "acp_set_session_config",
@@ -199,7 +199,7 @@ describe("cursor composer controls blackbox", () => {
     renderBar(cursorStatus());
 
     expect(screen.queryByLabelText("模式")).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("Fast")).not.toBeInTheDocument();
+    expect(screen.queryByText("Fast")).not.toBeInTheDocument();
   });
 
   it("applies optimistically and drains queued switches in order", async () => {

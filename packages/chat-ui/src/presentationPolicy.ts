@@ -60,7 +60,7 @@ export function presentChatActivities(
 function safeToolIdentifier(activity: ChatActivity): string | null {
   for (const candidate of [activity.title, activity.toolCallId]) {
     const value = candidate?.trim() ?? "";
-    if (/^(?:lumina|mcp|acp)_[a-z0-9_]{1,96}$/i.test(value)) {
+    if (/^(?:dawnsight|lumina|mcp|acp)_[a-z0-9_]{1,96}$/i.test(value)) {
       return value;
     }
   }
