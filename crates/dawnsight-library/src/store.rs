@@ -11,7 +11,7 @@ use serde_json::Value;
 
 use crate::error::LibraryError;
 use crate::model::LibraryIndex;
-use crate::paths::{dawnsight_groups_dir, dawnsight_index_path};
+use crate::paths::{dawnsight_groups_dir, dawnsight_index_path, index_path_for_read};
 
 /// The index format currently written by the scanner.  Older known shapes
 /// are normalized in memory only; no legacy file is rewritten implicitly.
@@ -22,7 +22,7 @@ pub fn index_path(root: &Path) -> PathBuf {
 }
 
 pub fn load(root: &Path) -> Result<Option<LibraryIndex>, LibraryError> {
-    let path = index_path(root);
+    let path = index_path_for_read(root);
     if !path.exists() {
         return Ok(None);
     }
@@ -293,6 +293,27 @@ pub fn cleanup_stale_tmps(root: &Path) -> usize {
 }
 
 pub fn group_dir(root: &Path, group_key: &str) -> PathBuf {
+    dawnsight_groups_dir(root).join(group_dir_name(group_key))
+}
+
+/// Read-side group dir: new location wins when present, otherwise the
+/// pre-rename `.lumina` copy. Writes always go through [`group_dir`].
+pub fn group_dir_for_read(root: &Path, group_key: &str) -> PathBuf {
+    let modern = group_dir(root, group_key);
+    if modern.is_dir() {
+        return modern;
+    }
+    let legacy = root
+        .join(crate::paths::LEGACY_DIR_NAME)
+        .join("groups")
+        .join(group_dir_name(group_key));
+    if legacy.is_dir() {
+        return legacy;
+    }
+    modern
+}
+
+fn group_dir_name(group_key: &str) -> String {
     let readable: String = group_key
         .chars()
         .map(|ch| match ch {
@@ -307,7 +328,7 @@ pub fn group_dir(root: &Path, group_key: &str) -> PathBuf {
     } else {
         readable
     };
-    dawnsight_groups_dir(root).join(format!("{readable}-{:08x}", stable_hash(group_key)))
+    format!("{readable}-{:08x}", stable_hash(group_key))
 }
 
 pub fn save_group_json<T: serde::Serialize>(
@@ -339,7 +360,7 @@ pub fn load_group_json<T: serde::de::DeserializeOwned>(
     group_key: &str,
     file_name: &str,
 ) -> Result<Option<T>, LibraryError> {
-    let path = group_dir(root, group_key).join(file_name);
+    let path = group_dir_for_read(root, group_key).join(file_name);
     if !path.exists() {
         return Ok(None);
     }
@@ -437,6 +458,44 @@ mod tests {
         let original = fs::read_to_string(&path).expect("read source");
         assert!(original.contains("schema_version"));
         assert!(!original.contains("schemaVersion"));
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn load_reads_prerename_lumina_index_without_rewriting_it() {
+        use crate::paths::LEGACY_DIR_NAME;
+
+        let root = test_root("lumina-store-prerename");
+        let legacy = root.join(LEGACY_DIR_NAME);
+        fs::create_dir_all(&legacy).expect("mkdir legacy");
+        let source = r#"{
+            "schemaVersion": 1,
+            "root": "D:/media",
+            "updatedAtMs": 1,
+            "files": [{
+                "relativePath": "Example.Show/S01E02.mkv",
+                "fileName": "S01E02.mkv",
+                "sizeBytes": 1,
+                "modifiedAtMs": 1,
+                "groupKey": "Example.Show",
+                "season": 1,
+                "episode": 2
+            }],
+            "groups": []
+        }"#;
+        fs::write(legacy.join("index.json"), source).expect("seed legacy index");
+
+        let index = load(&root)
+            .expect("pre-rename index should be readable")
+            .expect("pre-rename index should exist");
+        assert_eq!(index.files[0].relative_path, "Example.Show/S01E02.mkv");
+        // Read-only fallback: the legacy file is adopted, never rewritten,
+        // and no new-location file is created as a side effect.
+        assert_eq!(
+            fs::read_to_string(legacy.join("index.json")).expect("read source"),
+            source
+        );
+        assert!(!index_path(&root).exists());
         let _ = fs::remove_dir_all(&root);
     }
 
