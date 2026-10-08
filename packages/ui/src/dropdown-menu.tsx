@@ -25,7 +25,13 @@ type DropdownMenuContentProps = Omit<MenuPrimitive.Popup.Props, "className"> & {
 } &
   Pick<
     MenuPrimitive.Positioner.Props,
-    "align" | "alignOffset" | "side" | "sideOffset"
+    | "align"
+    | "alignOffset"
+    | "side"
+    | "sideOffset"
+    | "collisionBoundary"
+    | "collisionPadding"
+    | "collisionAvoidance"
   >;
 
 function DropdownMenuSubTrigger({
@@ -86,6 +92,9 @@ function DropdownMenuContent({
   alignOffset = 0,
   side = "bottom",
   sideOffset = 4,
+  collisionBoundary,
+  collisionPadding = 8,
+  collisionAvoidance = { side: "flip", align: "shift" },
   ...props
 }: DropdownMenuContentProps) {
   return (
@@ -96,6 +105,9 @@ function DropdownMenuContent({
         alignOffset={alignOffset}
         side={side}
         sideOffset={sideOffset}
+        collisionBoundary={collisionBoundary}
+        collisionPadding={collisionPadding}
+        collisionAvoidance={collisionAvoidance}
       >
         <MenuPrimitive.Popup
           data-slot="dropdown-menu-content"

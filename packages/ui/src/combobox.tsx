@@ -44,7 +44,13 @@ function ComboboxInput({
 type ComboboxContentProps = StringClassName<ComboboxPrimitive.Popup.Props> &
   Pick<
     ComboboxPrimitive.Positioner.Props,
-    "align" | "alignOffset" | "side" | "sideOffset"
+    | "align"
+    | "alignOffset"
+    | "side"
+    | "sideOffset"
+    | "collisionBoundary"
+    | "collisionPadding"
+    | "collisionAvoidance"
   >;
 
 function ComboboxContent({
@@ -53,6 +59,9 @@ function ComboboxContent({
   sideOffset = 4,
   align = "start",
   alignOffset = 0,
+  collisionBoundary,
+  collisionPadding = 8,
+  collisionAvoidance = { side: "flip", align: "shift" },
   ...props
 }: ComboboxContentProps) {
   return (
@@ -63,6 +72,9 @@ function ComboboxContent({
         sideOffset={sideOffset}
         align={align}
         alignOffset={alignOffset}
+        collisionBoundary={collisionBoundary}
+        collisionPadding={collisionPadding}
+        collisionAvoidance={collisionAvoidance}
         className="isolate z-50"
       >
         <ComboboxPrimitive.Popup

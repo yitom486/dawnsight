@@ -39,6 +39,7 @@ export function QualitySelect() {
       triggerLabel={current?.label ?? "清晰度"}
       disabled={busy}
       className="min-w-16 tabular-nums"
+      contentClassName="w-48"
       onValueChange={(formatId) => {
         void (async () => {
           await setPlaybackFormat(formatId);

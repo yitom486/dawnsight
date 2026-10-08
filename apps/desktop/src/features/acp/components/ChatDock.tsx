@@ -34,6 +34,7 @@ export function ChatDock() {
 
   return (
     <aside
+      data-panel-boundary=""
       aria-hidden={!chatOpen}
       aria-label="AI 对话"
       inert={!chatOpen}

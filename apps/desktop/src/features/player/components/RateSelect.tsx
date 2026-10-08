@@ -18,6 +18,7 @@ export function RateSelect() {
       ariaLabel="选择播放速度"
       triggerLabel={`${rate}x`}
       className="min-w-14 tabular-nums"
+      contentClassName="w-36"
       onValueChange={(value) => void setRate(Number(value))}
     />
   );

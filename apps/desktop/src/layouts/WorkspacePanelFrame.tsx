@@ -26,6 +26,7 @@ export function WorkspacePanelFrame({
 }: WorkspacePanelFrameProps) {
   return (
     <section
+      data-panel-boundary=""
       aria-label={title}
       style={style}
       className={cn(
