@@ -259,7 +259,7 @@ pub fn episode_index_for_group(
     root: &Path,
     group_key: &str,
 ) -> Result<Vec<EpisodeIndexEntry>, LibraryError> {
-    let dir = store::group_dir(root, group_key);
+    let dir = store::group_dir_for_read(root, group_key);
     if !dir.is_dir() {
         return Ok(Vec::new());
     }
