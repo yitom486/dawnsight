@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@dawnsight/ui/button";
@@ -9,7 +9,6 @@ import {
   CollapsibleTrigger,
 } from "@dawnsight/ui/collapsible";
 import { Field as SharedField, FieldLabel } from "@dawnsight/ui/field";
-import { Input } from "@dawnsight/ui/input";
 import { Label } from "@dawnsight/ui/label";
 import { NativeSelect, NativeSelectOption } from "@dawnsight/ui/native-select";
 
@@ -49,13 +48,11 @@ export function AgentSettingsPanel({
 }: Props) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [customCommand, setCustomCommand] = useState("");
 
   const activeProfileId = useAcpProfilesStore((s) => s.activeProfileId);
   // 切换唯一入口：与表头 ChatToolbar 下拉同规则，恒走 switchActiveProfileId。
   // 裸 setActiveProfileId 只留给非切换场景，这里不用。
   const switchActiveProfileId = useAcpProfilesStore((s) => s.switchActiveProfileId);
-  const upsertProfile = useAcpProfilesStore((s) => s.upsertProfile);
   const thinkingLevel = useAcpSettingsStore((s) => s.thinkingLevel);
   const agentMode = useAcpSettingsStore((s) => s.agentMode);
   const visionCapable = useAcpSettingsStore((s) => s.visionCapable);
@@ -76,39 +73,15 @@ export function AgentSettingsPanel({
     sessionConnected,
   });
 
-  const customProfileCommand = status?.profiles.find(
-    (profile) => profile.id === "custom",
-  )?.command;
-
-  useEffect(() => {
-    if (customProfileCommand !== undefined) {
-      setCustomCommand(customProfileCommand);
-    }
-  }, [customProfileCommand]);
-
-  const profileList = status?.profiles ?? [];
-  const active = profileList.find((profile) => profile.id === activeProfileId);
-  const showResponsesNote =
-    active?.kind === "Codex" || activeProfileId === "codex";
-
   const refreshStatus = () => {
     void queryClient.invalidateQueries({ queryKey: ["acp-status"] });
   };
 
-  const saveCustomProfile = () => {
-    const command = customCommand.trim();
-    if (!command) return;
-    upsertProfile({
-      id: "custom",
-      name: "自定义",
-      kind: "Custom",
-      command,
-      args: [],
-      env: {},
-    });
-    switchActiveProfileId("custom");
-    refreshStatus();
-  };
+  // Lineup is engine-owned (`status.profiles`): the app adds nothing.
+  const profileList = status?.profiles ?? [];
+  const active = profileList.find((profile) => profile.id === activeProfileId);
+  const showResponsesNote =
+    active?.kind === "Codex" || activeProfileId === "codex";
 
   return (
     <ChatColumn className="shrink-0 border-t border-border py-2">
@@ -145,25 +118,6 @@ export function AgentSettingsPanel({
                 ))}
               </NativeSelect>
             </Field>
-
-            {activeProfileId === "custom" ? (
-              <div className="flex gap-2">
-                <Input
-                  className="h-8 min-w-0 flex-1 rounded-md border border-border bg-background px-2 text-xs"
-                  placeholder="自定义 Agent 命令"
-                  value={customCommand}
-                  onChange={(e) => setCustomCommand(e.target.value)}
-                />
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={!customCommand.trim() || controlsDisabled}
-                  onClick={saveCustomProfile}
-                >
-                  保存
-                </Button>
-              </div>
-            ) : null}
 
             {canDiscover ? (
               <Button
