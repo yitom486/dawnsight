@@ -3,7 +3,6 @@ import { persist } from "zustand/middleware";
 
 import {
   defaultAgentProfiles,
-  isDefaultCodexPackageSpec,
   normalizeProfileInput,
   profilesHintFromStore,
 } from "./defaultAgentProfiles";
@@ -14,77 +13,19 @@ import type {
 } from "./types";
 
 /**
- * Profile ids removed from the app. Copies persisted by older builds must be
- * dropped on load: the backend no longer deserializes their kind/preset
- * variants, and a single stale entry used to poison the whole profiles hint
- * (every ACP command failed argument parsing → "未配置" + generic retry).
- */
-const REMOVED_PROFILE_IDS = new Set(["antigravity"]);
-
-/** Kind/launcher/env/auth variant markers of removed runtimes. Matched by id
- * above first; these catch hand-renamed copies carrying the stale variants. */
-const REMOVED_VARIANT_MARKERS = new Set([
-  "Antigravity",
-  "antigravity-acp",
-  "antigravity-proxy",
-  "antigravity-oauth",
-]);
-
-function isRemovedProfile(item: AgentProfileInput): boolean {
-  if (REMOVED_PROFILE_IDS.has(item.id)) return true;
-  const markers = [item.kind, item.launcher, item.envPreset, item.authPolicy];
-  return markers.some(
-    (marker) =>
-      typeof marker === "string" && REMOVED_VARIANT_MARKERS.has(marker),
-  );
-}
-
-/**
- * Reconcile persisted profiles with the current builtin lineup. Runs on every
- * rehydration so upgrades never leave stale entries behind:
- * - drop removed runtimes (by id or by stale kind/preset markers);
- * - refresh builtin shells (display name / presets) from the new defaults
- *   while preserving the user's own launch command/args/env (except codex:
- *   untouched same-package specs of any version upgrade to the floating
- *   default, so nobody stays stuck on a stale cached adapter);
- * - emit builtins in default order, user custom ids after, extras last.
+ * Reconcile persisted state with the engine-owned lineup. Runs on every
+ * rehydration: the app keeps no agent matrix of its own, so any persisted
+ * lineup (builtin-era copies, hand-added customs, stale duplicates) is
+ * dropped outright. The next `acp_status` poll repopulates from the engine
+ * registry via `syncEngineProfiles`. Only the active key is carried over,
+ * and only when it still names a synced entry (validated on sync).
  */
 export function mergeProfiles(
   persisted: unknown,
   fallback: AgentProfileInput[],
 ): AgentProfileInput[] {
-  const saved = Array.isArray(persisted) ? persisted : [];
-  const byId = new Map<string, AgentProfileInput>();
-  for (const raw of saved) {
-    const item = normalizeProfileInput(raw as AgentProfileInput);
-    if (!item.id || isRemovedProfile(item)) continue;
-    byId.set(item.id, item);
-  }
-  const next: AgentProfileInput[] = [];
-  for (const fallbackItem of fallback) {
-    const kept = byId.get(fallbackItem.id);
-    byId.delete(fallbackItem.id);
-    if (!kept) {
-      next.push(fallbackItem);
-      continue;
-    }
-    next.push({
-      ...fallbackItem,
-      command: kept.command ?? fallbackItem.command,
-      // codex 例外：裸包名只按天重新解析，旧版 shape 指向哪个缓存版本全凭
-      // 运气（曾解析到 1.7.0 的 5.6 时代目录）。同包任意版本都算"原封未动"，
-      // 一律升级到当前默认；用户自己改过的 args 一律保留。
-      args:
-        fallbackItem.id === "codex" &&
-        kept.args?.length === 1 &&
-        isDefaultCodexPackageSpec(kept.args[0])
-          ? (fallbackItem.args ?? kept.args)
-          : (kept.args ?? fallbackItem.args),
-      env: kept.env ?? fallbackItem.env,
-    });
-  }
-  for (const extra of byId.values()) next.push(extra);
-  return next.length > 0 ? next : fallback;
+  void persisted;
+  return [...fallback];
 }
 
 type AcpProfilesStore = {
@@ -101,15 +42,14 @@ type AcpProfilesStore = {
    * 快照按 profile 分键保留，这里绝不删任何键。
    */
   switchActiveProfileId: (id: string) => void;
-  upsertProfile: (profile: AgentProfileInput) => void;
   profilesHint: () => AgentProfilesHint;
   /**
-   * Adopt the engine runtime registry (`acp_status` profiles) as the lineup.
-   * Engine entries arrive in canonical order with canonical launch specs;
-   * user-modified command/args/env are preserved per entry (except codex
-   * same-package specs, which always float to the canonical adapter spec).
-   * Entries unknown to the engine (user customs, incl. the empty template)
-   * are preserved untouched. No-op when nothing changed (status polls).
+   * Adopt the engine runtime registry (`acp_status` profiles) as the whole
+   * lineup, replacing whatever was there. The engine is the only lineup
+   * source: no custom entries are preserved, merged, or reordered — stale
+   * app-side copies can never resurface as duplicate rows. No-op when the
+   * lineup is empty (engine down carries no information) or nothing changed
+   * (status polls stay quiet).
    */
   syncEngineProfiles: (engine: AgentProfileStatus[]) => void;
 };
@@ -128,90 +68,25 @@ export const useAcpProfilesStore = create<AcpProfilesStore>()(
           state.activeProfileId === next ? state : { activeProfileId: next },
         );
       },
-      upsertProfile: (profile) => {
-        const next = normalizeProfileInput(profile);
-        set((state) => {
-          const profiles = [...state.profiles];
-          const index = profiles.findIndex((item) => item.id === next.id);
-          if (index >= 0) {
-            profiles[index] = next;
-          } else {
-            profiles.push(next);
-          }
-          return { profiles };
-        });
-      },
       profilesHint: () =>
         profilesHintFromStore(get().activeProfileId, get().profiles),
       syncEngineProfiles: (engine) => {
         // An empty lineup carries no information (engine down, error
         // payload): never destroy local state on it.
         if (!Array.isArray(engine) || engine.length === 0) return;
-        const incoming = new Map(engine.map((item) => [item.id, item]));
-        const sameArgs = (a: string[] | undefined, b: string[] | undefined) => {
-          const left = a ?? [];
-          const right = b ?? [];
-          return (
-            left.length === right.length &&
-            left.every((value, index) => value === right[index])
-          );
-        };
-        const sameEnv = (
-          a: Record<string, string> | undefined,
-          b: Record<string, string> | undefined,
-        ) => {
-          const left = a ?? {};
-          const right = b ?? {};
-          const keys = new Set([...Object.keys(left), ...Object.keys(right)]);
-          for (const key of keys) {
-            if ((left[key] ?? "") !== (right[key] ?? "")) return false;
-          }
-          return true;
-        };
         set((state) => {
-          const next: AgentProfileInput[] = [];
-          for (const item of engine) {
-            if (!item.id) continue;
-            const kept = state.profiles.find((entry) => entry.id === item.id);
-            const canonical: AgentProfileInput = normalizeProfileInput({
-              id: item.id,
-              name: item.name,
-              kind: item.kind,
-              command: item.command ?? "",
-              args: item.args ?? [],
-              env: item.env ?? {},
-            });
-            if (!kept) {
-              next.push(canonical);
-              continue;
-            }
-            const codexFloat =
-              item.id === "codex" &&
-              kept.args?.length === 1 &&
-              isDefaultCodexPackageSpec(kept.args[0]);
-            // Preserve only the launch triple; display name/kind always
-            // track the engine registry.
-            const modified =
-              !codexFloat &&
-              (kept.command !== canonical.command ||
-                !sameArgs(kept.args, canonical.args) ||
-                !sameEnv(kept.env, canonical.env));
-            next.push(
-              modified
-                ? normalizeProfileInput({
-                    ...canonical,
-                    command: kept.command ?? canonical.command,
-                    args: kept.args ?? canonical.args,
-                    env: kept.env ?? canonical.env,
-                  })
-                : canonical,
+          const next: AgentProfileInput[] = engine
+            .filter((item) => item.id)
+            .map((item) =>
+              normalizeProfileInput({
+                id: item.id,
+                name: item.name,
+                kind: item.kind,
+                command: item.command ?? "",
+                args: item.args ?? [],
+                env: item.env ?? {},
+              }),
             );
-          }
-          for (const kept of state.profiles) {
-            if (!kept.id || incoming.has(kept.id)) continue;
-            if (isRemovedProfile(kept)) continue;
-            next.push(normalizeProfileInput(kept));
-          }
           const finalProfiles = next.length > 0 ? next : state.profiles;
           const active = finalProfiles.some(
             (item) => item.id === state.activeProfileId,

@@ -1,15 +1,11 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import type { AgentProfileInput, AgentProfileStatus } from "./types";
-import {
-  CODEX_ACP_PACKAGE,
-  LEGACY_CODEX_ACP_PACKAGE,
-} from "./defaultAgentProfiles";
 import { mergeProfiles, useAcpProfilesStore } from "./acpProfilesStore";
 
 beforeEach(() => {
   localStorage.clear();
-  useAcpProfilesStore.setState({ activeProfileId: "codex" });
+  useAcpProfilesStore.setState({ activeProfileId: "codex", profiles: [] });
 });
 
 describe("switchActiveProfileId (switch world entry)", () => {
@@ -42,106 +38,28 @@ describe("switchActiveProfileId (switch world entry)", () => {
   });
 });
 
-describe("mergeProfiles (upgrade migration)", () => {
-  // Explicit shell fixture: the builtin lineup now comes from the engine,
-  // so migration tests pin their own fallback instead of the static seed.
-  const codexShell = (): AgentProfileInput => ({
-    id: "codex",
-    name: "ChatGPT",
-    kind: "Codex",
-    command: "bunx",
-    args: [CODEX_ACP_PACKAGE],
-    env: {},
-  });
-  const cursorShell = (): AgentProfileInput => ({
-    id: "cursor",
-    name: "Cursor",
-    kind: "Cursor",
-    command: "agent",
-    args: ["acp"],
-    env: {},
-  });
-  const fallback = [codexShell(), cursorShell()];
-  const asInput = (items: unknown[]) => items as AgentProfileInput[];
-
-  it("drops removed runtime entries by id or stale variant markers", () => {
-    const persisted = asInput([
-      {
-        id: "antigravity",
-        name: "Google Antigravity",
-        kind: "Antigravity",
-        command: "agy_acp_server.exe",
-        launcher: "antigravity-acp",
-        envPreset: "antigravity-proxy",
-        authPolicy: "antigravity-oauth",
-      },
-      {
-        id: "sneaky",
-        name: "Renamed copy",
-        kind: "Antigravity",
-        command: "agy_acp_server.exe",
-      },
-      { id: "codex", name: "Codex（默认）", kind: "Codex", command: "bunx" },
-    ]);
-    const ids = mergeProfiles(persisted, fallback).map((p) => p.id);
-    expect(ids).not.toContain("antigravity");
-    expect(ids).not.toContain("sneaky");
-    expect(ids).toContain("codex");
+describe("mergeProfiles (stale app-side lineups are dropped)", () => {
+  it("drops persisted builtin-era copies and hand-added customs", () => {
+    const persisted = [
+      { id: "codex", name: "ChatGPT", kind: "Codex", command: "bunx" },
+      { id: "stale-copy", name: "ChatGPT", kind: "Custom", command: "" },
+      { id: "custom", name: "自定义", kind: "Custom", command: "" },
+    ] as AgentProfileInput[];
+    expect(mergeProfiles(persisted, [])).toEqual([]);
   });
 
-  it("refreshes builtin display names while preserving the user's launch command", () => {
-    const persisted = asInput([
-      {
-        id: "codex",
-        name: "Codex（默认）",
-        kind: "Codex",
-        command: "C:\\tools\\bunx.exe",
-        args: ["pkg"],
-        env: { X: "1" },
-      },
-    ]);
-    const codex = mergeProfiles(persisted, fallback).find(
-      (p) => p.id === "codex",
-    );
-    expect(codex?.name).toBe("ChatGPT");
-    expect(codex?.command).toBe("C:\\tools\\bunx.exe");
-    expect(codex?.args).toEqual(["pkg"]);
-    expect(codex?.env).toEqual({ X: "1" });
-  });
-
-  it("orders builtins per new defaults and keeps custom ids last", () => {
-    const persisted = asInput([
-      { id: "my-agent", name: "Mine", kind: "Custom", command: "my-acp" },
-      { id: "cursor", name: "Cursor CLI", kind: "Cursor", command: "agent" },
-    ]);
-    const ids = mergeProfiles(persisted, fallback).map((p) => p.id);
-    expect(ids.slice(0, fallback.length)).toEqual(
-      fallback.map((p) => p.id),
-    );
-    expect(ids[ids.length - 1]).toBe("my-agent");
-  });
-
-  it("resets an active key pointing at a removed profile on rehydrate", async () => {
+  it("resets an active key pointing at a dropped profile on rehydrate", async () => {
     localStorage.setItem(
       "dawnsight-acp-profiles",
       JSON.stringify({
         state: {
-          activeProfileId: "antigravity",
+          activeProfileId: "stale-copy",
           profiles: [
             {
-              id: "antigravity",
-              name: "Google Antigravity",
-              kind: "Antigravity",
-              command: "agy_acp_server.exe",
-              launcher: "antigravity-acp",
-              envPreset: "antigravity-proxy",
-              authPolicy: "antigravity-oauth",
-            },
-            {
-              id: "codex",
-              name: "Codex（默认）",
-              kind: "Codex",
-              command: "bunx",
+              id: "stale-copy",
+              name: "ChatGPT",
+              kind: "Custom",
+              command: "",
             },
           ],
         },
@@ -150,74 +68,9 @@ describe("mergeProfiles (upgrade migration)", () => {
     );
     await useAcpProfilesStore.persist.rehydrate();
     const state = useAcpProfilesStore.getState();
+    expect(state.profiles).toEqual([]);
+    // No synced entry matches the saved key: fall back to the default key.
     expect(state.activeProfileId).toBe("codex");
-    expect(state.profiles.map((p) => p.id)).not.toContain("antigravity");
-    // Display names now refresh from the engine registry, not the static
-    // seed: sync an engine codex entry and the stale name heals.
-    state.syncEngineProfiles([
-      {
-        id: "codex",
-        name: "ChatGPT",
-        kind: "Codex",
-        command: "bunx",
-        args: [CODEX_ACP_PACKAGE],
-        env: {},
-        available: true,
-      },
-    ]);
-    expect(
-      useAcpProfilesStore.getState().profiles.find((p) => p.id === "codex")
-        ?.name,
-    ).toBe("ChatGPT");
-  });
-
-  it("upgrades untouched legacy-unpinned codex args to the pinned adapter", () => {
-    const upgraded = mergeProfiles(
-      [
-        {
-          id: "codex",
-          name: "Codex（默认）",
-          kind: "Codex",
-          command: "bunx",
-          args: [LEGACY_CODEX_ACP_PACKAGE],
-        } as AgentProfileInput,
-      ],
-      [codexShell()],
-    ).find((p) => p.id === "codex");
-    expect(upgraded?.args).toEqual([CODEX_ACP_PACKAGE]);
-  });
-
-  it("upgrades explicit version pins of the same package to the floating default", () => {
-    const upgraded = mergeProfiles(
-      [
-        {
-          id: "codex",
-          name: "ChatGPT",
-          kind: "Codex",
-          command: "bunx",
-          args: ["@agentclientprotocol/codex-acp@1.12.0"],
-        } as AgentProfileInput,
-      ],
-      [codexShell()],
-    ).find((p) => p.id === "codex");
-    expect(upgraded?.args).toEqual([CODEX_ACP_PACKAGE]);
-  });
-
-  it("keeps user-customized codex args untouched", () => {
-    const kept = mergeProfiles(
-      [
-        {
-          id: "codex",
-          name: "ChatGPT",
-          kind: "Codex",
-          command: "C:\\tools\\codex-acp.exe",
-          args: ["--yolo"],
-        } as AgentProfileInput,
-      ],
-      [codexShell()],
-    ).find((p) => p.id === "codex");
-    expect(kept?.command).toBe("C:\\tools\\codex-acp.exe");
-    expect(kept?.args).toEqual(["--yolo"]);
   });
 });
 
@@ -229,7 +82,7 @@ describe("syncEngineProfiles (engine-owned lineup)", () => {
     name: "ChatGPT",
     kind: "Codex",
     command: "bunx",
-    args: [CODEX_ACP_PACKAGE],
+    args: ["-y", "pkg@latest"],
     env: {},
     available: true,
     ...overrides,
@@ -242,14 +95,14 @@ describe("syncEngineProfiles (engine-owned lineup)", () => {
     });
   };
 
-  it("adopts engine order and specs, keeps user customs last", () => {
+  it("replaces the whole lineup with the engine registry, nothing preserved", () => {
     resetStore([
       {
-        id: "opencode-v2",
-        name: "OpenCode v2",
+        id: "stale-copy",
+        name: "ChatGPT",
         kind: "Custom",
-        command: "D:\\tools\\opencode.exe",
-        args: ["acp"],
+        command: "",
+        args: [],
         env: {},
       },
     ]);
@@ -258,10 +111,10 @@ describe("syncEngineProfiles (engine-owned lineup)", () => {
       { ...engineEntry(), id: "claude", name: "Claude", kind: "Claude" },
     ]);
     const ids = useAcpProfilesStore.getState().profiles.map((p) => p.id);
-    expect(ids).toEqual(["codex", "claude", "opencode-v2"]);
+    expect(ids).toEqual(["codex", "claude"]);
   });
 
-  it("preserves user-modified launch triples but tracks engine names", () => {
+  it("adopts engine launch specs verbatim (no app-side overrides)", () => {
     resetStore([
       {
         id: "codex",
@@ -277,27 +130,18 @@ describe("syncEngineProfiles (engine-owned lineup)", () => {
       .getState()
       .profiles.find((p) => p.id === "codex");
     expect(codex?.name).toBe("ChatGPT");
-    expect(codex?.command).toBe("C:\\tools\\codex.exe");
-    expect(codex?.args).toEqual(["--yolo"]);
-    expect(codex?.env).toEqual({ A: "1" });
+    expect(codex?.command).toBe("bunx");
+    expect(codex?.args).toEqual(["-y", "pkg@latest"]);
+    expect(codex?.env).toEqual({});
   });
 
-  it("floats untouched same-package codex specs to the canonical adapter", () => {
-    resetStore([
-      {
-        id: "codex",
-        name: "ChatGPT",
-        kind: "Codex",
-        command: "bunx",
-        args: [LEGACY_CODEX_ACP_PACKAGE],
-        env: {},
-      },
+  it("resets the active key when it names no synced entry", () => {
+    useAcpProfilesStore.setState({ activeProfileId: "stale-copy" });
+    useAcpProfilesStore.getState().syncEngineProfiles([
+      engineEntry(),
+      { ...engineEntry(), id: "claude", name: "Claude", kind: "Claude" },
     ]);
-    useAcpProfilesStore.getState().syncEngineProfiles([engineEntry()]);
-    expect(
-      useAcpProfilesStore.getState().profiles.find((p) => p.id === "codex")
-        ?.args,
-    ).toEqual([CODEX_ACP_PACKAGE]);
+    expect(useAcpProfilesStore.getState().activeProfileId).toBe("codex");
   });
 
   it("ignores an empty engine lineup (engine down destroys nothing)", () => {
@@ -307,7 +151,7 @@ describe("syncEngineProfiles (engine-owned lineup)", () => {
         name: "ChatGPT",
         kind: "Codex",
         command: "bunx",
-        args: [CODEX_ACP_PACKAGE],
+        args: ["-y", "pkg@latest"],
         env: {},
       },
     ]);
@@ -325,7 +169,7 @@ describe("syncEngineProfiles (engine-owned lineup)", () => {
         name: "ChatGPT",
         kind: "Codex",
         command: "bunx",
-        args: [CODEX_ACP_PACKAGE],
+        args: ["-y", "pkg@latest"],
         env: {},
       },
     ]);
