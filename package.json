@@ -4,6 +4,7 @@
   "packageManager": "bun@1.3.14",
   "workspaces": ["apps/desktop", "packages/contracts", "packages/query-keys", "packages/player-ui", "packages/transcript-ui", "packages/chat-ui", "packages/ui"],
   "devDependencies": {
+    "@yitom/acp-client": "0.1.2",
     "oxlint": "^1.81.0"
   },
   "scripts": {

@@ -4,6 +4,8 @@
 # Local planning (not tracked)
 project.md
 .plan/
+scratch/
+
 
 # Dependencies
 node_modules/
@@ -67,6 +69,8 @@ apps/desktop/src-tauri/native/whisper/*
 # Native yt-dlp (optional online source; keep README only)
 apps/desktop/src-tauri/native/ytdl/*
 !apps/desktop/src-tauri/native/ytdl/README.md
+# ACP sidecar engine (built locally via node scripts/build-acp-engine.mjs)
+apps/desktop/src-tauri/bin/*
 
 apps/desktop/src-tauri/native/acp/*
 !apps/desktop/src-tauri/native/acp/README.md

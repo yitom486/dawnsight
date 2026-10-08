@@ -7,14 +7,13 @@ use tauri::ipc::Channel;
 use tauri::{AppHandle, Manager, State};
 
 use crate::acp::adapter;
+use crate::acp::workspace::resolve_agent_workspace;
 use crate::acp::{
-    AcpError, AcpEvent, AcpStatus, AgentProfilesHint, AgentSessionListResult, PromptImage,
-    SavedSessionHint, VideoPromptContext,
+    AcpClientSettings, AcpError, AcpEvent, AcpStatus, AgentProfilesHint, AgentSessionListResult,
+    LoadedTurn, PromptImage, SavedSessionHint, VideoPromptContext,
 };
 use crate::mcp::OnlineMediaSnapshot;
 use crate::state::AppState;
-use dawnsight_acp::agent::workspace::resolve_session_cwd;
-use dawnsight_acp::AcpClientSettings;
 use dawnsight_ai::prompts::{
     compose_prompt, ComposedPrompt, EpisodeContext, MediaContext, PromptRepository, PromptSlots,
     SpoilerBoundary, TaskId, ViewingContext,
@@ -579,7 +578,7 @@ pub async fn acp_load_session(
     profile_id: Option<String>,
     session_id: String,
     cwd: Option<String>,
-) -> Result<Vec<dawnsight_acp::runtime::service::LoadedTurn>, AcpError> {
+) -> Result<Vec<LoadedTurn>, AcpError> {
     let acp = state.acp.clone();
     tauri::async_runtime::spawn_blocking(move || {
         acp.load_session_transcript(profile_id, session_id, cwd)
@@ -639,7 +638,7 @@ pub async fn acp_prompt(
     let ytdl = state.ytdl.clone();
     let settings = client_settings.unwrap_or_default();
     tauri::async_runtime::spawn_blocking(move || {
-        let session_cwd = resolve_session_cwd(cwd.as_deref())?;
+        let session_cwd = resolve_agent_workspace(cwd.as_deref())?;
         let (mut snapshot, media_changed) = adapter::build_prompt_snapshot(
             &snapshots,
             &library,
@@ -724,10 +723,9 @@ pub async fn acp_prompt(
                 let initial = composed.initial_prompt().to_string();
                 let mut sender = |retry_text: &str| {
                     acp.prompt(
-                        retry_text,
+                        retry_text.to_string(),
                         cwd.clone(),
                         profile_id.clone(),
-                        context.clone(),
                         images.clone(),
                         saved_session.clone(),
                         settings.clone(),
@@ -746,7 +744,6 @@ pub async fn acp_prompt(
                     prompt_text,
                     cwd,
                     profile_id,
-                    context,
                     images,
                     saved_session,
                     settings,
@@ -759,11 +756,11 @@ pub async fn acp_prompt(
                 )
             }
         } else {
+            let prompt_text = fold_context_text(&context, text);
             acp.prompt(
-                text,
+                prompt_text,
                 cwd,
                 profile_id,
-                context,
                 images,
                 saved_session,
                 settings,
@@ -891,6 +888,60 @@ fn run_shortcut_with_validation(
             }
             Err(_) => return Ok(reply),
         }
+    }
+}
+
+/// Fold the enriched video context into plain prompt text.
+///
+/// The sidecar engine takes text + image blocks (no structured context
+/// envelope), so the media anchor travels as a compact header. Information
+/// content matches the previous wire envelope; only the framing changed.
+fn fold_context_text(context: &Option<VideoPromptContext>, text: String) -> String {
+    let Some(context) = context.as_ref().filter(|value| !value.is_empty()) else {
+        return text;
+    };
+    let mut header = String::from("【当前媒体】");
+    if let Some(title) = context
+        .media_title
+        .as_deref()
+        .filter(|value| !value.trim().is_empty())
+    {
+        header.push_str(title);
+    } else if let Some(path) = context
+        .media_path
+        .as_deref()
+        .filter(|value| !value.trim().is_empty())
+    {
+        header.push_str(path);
+    }
+    if let Some(position_ms) = context.position_ms {
+        header.push_str(&format!("｜位置{}", format_timestamp_ms(position_ms)));
+    }
+    if let Some(duration_ms) = context.duration_ms {
+        header.push_str(&format!(" / 时长{}", format_timestamp_ms(duration_ms)));
+    }
+    if let Some(choice) = context
+        .subtitle_choice_id
+        .as_deref()
+        .filter(|value| !value.trim().is_empty())
+    {
+        header.push_str(&format!("｜字幕{choice}"));
+    }
+    if text.trim().is_empty() {
+        return header;
+    }
+    format!("{header}\n{text}")
+}
+
+fn format_timestamp_ms(ms: u64) -> String {
+    let total_sec = ms / 1000;
+    let hours = total_sec / 3600;
+    let minutes = (total_sec % 3600) / 60;
+    let seconds = total_sec % 60;
+    if hours > 0 {
+        format!("{hours}:{minutes:02}:{seconds:02}")
+    } else {
+        format!("{minutes}:{seconds:02}")
     }
 }
 
@@ -1299,7 +1350,7 @@ mod tests {
             Ok(reply) => panic!("expected sender error, got reply {reply}"),
             Err(error) => error,
         };
-        assert_eq!(error.code, dawnsight_acp::AcpErrorCode::Cancelled);
+        assert_eq!(error.code, crate::acp::AcpErrorCode::Cancelled);
         assert_eq!(calls.len(), 1);
     }
 

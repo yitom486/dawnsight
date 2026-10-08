@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 
 use dawnsight_core::BatchCheckpoint;
 
-use crate::acp::AgentProfilesHint;
+use crate::agent_stub::AgentProfilesHint;
 use crate::state::{workshop_now_ms, AppState, WorkshopJobPhase, WorkshopJobSnapshot};
 use crate::subtitle::model::Cue;
 use crate::subtitle::translate;
@@ -184,34 +184,9 @@ fn workshop_job_id() -> String {
     format!("ws-{}-{}", std::process::id(), nanos)
 }
 
-/// Build the per-job workshop pool (P2): fixed slots on reused ACP processes.
-/// Session reuse and lease ownership belong to `lumina-acp`; this command only
-/// creates one pool for the job and shuts it down after the caller finishes.
-fn workshop_pool(
-    profiles: &AgentProfilesHint,
-    profile_id: &str,
-    model_id: Option<&str>,
-    reasoning_effort: Option<&str>,
-    job_id: &str,
-) -> std::sync::Arc<dawnsight_acp::WorkshopPool> {
-    let model_selection = model_id.filter(|id| !id.trim().is_empty()).map(|model_id| {
-        dawnsight_acp::AcpSessionModelSelection {
-            model_id: model_id.to_string(),
-            reasoning_effort: reasoning_effort
-                .filter(|value| !value.trim().is_empty())
-                .map(str::to_string),
-        }
-    });
-    std::sync::Arc::new(dawnsight_acp::WorkshopPool::new(
-        dawnsight_acp::PoolConfig {
-            size: dawnsight_acp::DEFAULT_POOL_SIZE,
-            profile_id: profile_id.to_string(),
-            profiles: profiles.clone(),
-            model_selection,
-        },
-        job_id.to_string(),
-    ))
-}
+/// Workshop pool over agentpools (ACP transport): agent-backed
+/// translation/proofreading runs isolated per-job pools with unattended
+/// permissions. Pool construction failures surface as NotConfigured.
 
 #[tauri::command]
 pub async fn subtitle_list_choices(
@@ -516,9 +491,8 @@ fn translate_cached_track(
         .ok_or_else(|| SubtitleError::extract_failed(Some("invalid cached subtitle choice")))?;
     let target_lang = translate::normalize_translation_language(target_lang)?;
     let token = write::normalize_lang_token(&target_lang)?;
-    let pool = workshop_pool(&profiles, profile_id, model_id, reasoning_effort, job_id);
-    let invoker =
-        crate::acp::adapter::AcpAgentInvoker::with_pool(profiles, std::sync::Arc::clone(&pool));
+    let invoker = crate::agent_pool::workshop_invoker(&profiles, profile_id, model_id, None)
+        .map_err(|details| SubtitleError::translate_not_configured(Some(&details)))?;
     let progress = |update: translate::ProgressUpdate| {
         let done = update.done;
         let total = update.total;
@@ -549,7 +523,6 @@ fn translate_cached_track(
         Some(&checkpoint),
         job_id,
     )?;
-    pool.shutdown();
     if let Some(message) = backfill_glossary_names(
         state,
         path,
@@ -839,15 +812,9 @@ pub async fn subtitle_proofread_track(
             finish_translate(&app, &on_event, &job_id, &result);
             return result;
         }
-        let pool = workshop_pool(
-            &profiles,
-            &profile_id,
-            model_id.as_deref(),
-            reasoning_effort.as_deref(),
-            &job_id,
-        );
         let invoker =
-            crate::acp::adapter::AcpAgentInvoker::with_pool(profiles, std::sync::Arc::clone(&pool));
+            crate::agent_pool::workshop_invoker(&profiles, &profile_id, model_id.as_deref(), None)
+                .map_err(|details| SubtitleError::translate_not_configured(Some(&details)))?;
         let context = app
             .try_state::<AppState>()
             .and_then(|state| translation_context_for_media(&state, &path));
@@ -880,7 +847,6 @@ pub async fn subtitle_proofread_track(
             Some(&checkpoint),
             &job_id,
         )?;
-        pool.shutdown();
         let _ = on_event.send(indeterminate_progress(format!(
             "正在保存校对字幕（{proof_token}）…"
         )));
@@ -946,9 +912,8 @@ fn proofread_cached_track(
         &source.cues,
     );
     let context = translation_context_for_media(state, path);
-    let pool = workshop_pool(&profiles, profile_id, model_id, reasoning_effort, job_id);
-    let invoker =
-        crate::acp::adapter::AcpAgentInvoker::with_pool(profiles, std::sync::Arc::clone(&pool));
+    let invoker = crate::agent_pool::workshop_invoker(&profiles, profile_id, model_id, None)
+        .map_err(|details| SubtitleError::translate_not_configured(Some(&details)))?;
     let mut progress = |update: translate::ProgressUpdate| {
         let done = update.done;
         let total = update.total;
@@ -968,7 +933,6 @@ fn proofread_cached_track(
         Some(&checkpoint),
         job_id,
     )?;
-    pool.shutdown();
     let _ = on_event.send(indeterminate_progress(format!(
         "正在保存缓存字幕（{token}）…"
     )));
@@ -1044,15 +1008,9 @@ pub async fn subtitle_translate_track(
             finish_translate(&app, &on_event, &job_id, &result);
             return result;
         }
-        let pool = workshop_pool(
-            &profiles,
-            &profile_id,
-            model_id.as_deref(),
-            reasoning_effort.as_deref(),
-            &job_id,
-        );
         let invoker =
-            crate::acp::adapter::AcpAgentInvoker::with_pool(profiles, std::sync::Arc::clone(&pool));
+            crate::agent_pool::workshop_invoker(&profiles, &profile_id, model_id.as_deref(), None)
+                .map_err(|details| SubtitleError::translate_not_configured(Some(&details)))?;
         let context = app
             .try_state::<AppState>()
             .and_then(|state| translation_context_for_media(&state, &path));
@@ -1088,7 +1046,6 @@ pub async fn subtitle_translate_track(
             Some(&checkpoint_factory),
             &job_id,
         )?;
-        pool.shutdown();
         if let Some(state) = app.try_state::<AppState>() {
             if let Some(message) = backfill_glossary_names(
                 &state,

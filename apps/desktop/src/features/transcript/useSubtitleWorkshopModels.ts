@@ -3,9 +3,9 @@ import { useEffect } from "react";
 
 import { discoverAcpModels } from "@/features/acp/api";
 import {
-  defaultAgentProfiles,
   profilesHintFromStore,
 } from "@dawnsight/chat-ui/defaultAgentProfiles";
+import { useAcpProfilesStore } from "@dawnsight/chat-ui/acpProfilesStore";
 import {
   buildModelOptions,
   buildReasoningOptions,
@@ -17,11 +17,12 @@ import { useSubtitleWorkshopStore } from "@dawnsight/transcript-ui";
 
 export function useSubtitleWorkshopModels(enabled = true) {
   const profileId = useSubtitleWorkshopStore((s) => s.profileId);
+  const storeProfiles = useAcpProfilesStore((s) => s.profiles);
   const modelId = useSubtitleWorkshopStore((s) => s.modelId);
   const reasoningEffort = useSubtitleWorkshopStore((s) => s.reasoningEffort);
   const patchSettings = useSubtitleWorkshopStore((s) => s.patchSettings);
 
-  const profilesHint = profilesHintFromStore(profileId, defaultAgentProfiles());
+  const profilesHint = profilesHintFromStore(profileId, storeProfiles);
 
   const discoveryQuery = useQuery({
     queryKey: ["subtitleWorkshopModels", profileId],

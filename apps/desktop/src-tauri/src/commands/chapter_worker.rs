@@ -5,14 +5,13 @@
 
 use std::path::{Path, PathBuf};
 
-use dawnsight_acp::agent::workspace::resolve_session_cwd;
-use dawnsight_acp::jobs::isolated::ChapterSession;
-use dawnsight_acp::{AcpError, AcpErrorCode, AcpEvent, AcpSessionModelSelection};
+use crate::acp::workspace::resolve_agent_workspace;
 use dawnsight_ai::prompts::{
     compose_prompt, EpisodeContext, MediaContext, PromptSlots, SpoilerBoundary, TaskId,
     TranscriptWindow, ValidationReport, ViewingContext,
 };
 use dawnsight_ai::{build_screenshot_reference, build_transcript_windows, ScreenshotMetadata};
+use dawnsight_core::{AgentInvoker, AgentTaskError, IsolatedAgentTask};
 use dawnsight_library::{
     AgentTaskRecord, Database, DatabaseError, DatabaseErrorCode, DatabaseResult,
     LegacyEpisodeMigration, NewAgentAttempt, NewEpisode, NewSeries, Repository,
@@ -64,18 +63,13 @@ impl WorkerFailure {
         }
     }
 
-    fn agent_unavailable(error: AcpError) -> Self {
-        let details = error.details.clone().unwrap_or_else(|| error.to_string());
-        if error.code == AcpErrorCode::NotConfigured {
-            Self::agent_not_configured(details)
-        } else {
-            Self {
-                code: "AgentUnavailable",
-                message: "章节 Agent 暂时不可用，请检查 Agent 设置后重试。",
-                details,
-                validation_report: None,
-                retry_count: 0,
-            }
+    fn agent_unavailable(details: impl Into<String>) -> Self {
+        Self {
+            code: "AgentUnavailable",
+            message: "章节 Agent 暂时不可用，请检查 Agent 设置后重试。",
+            details: details.into(),
+            validation_report: None,
+            retry_count: 0,
         }
     }
 
@@ -167,56 +161,8 @@ impl ProgressEmitter {
         }
     }
 
-    fn on_acp_event(&mut self, event: AcpEvent) {
-        match event {
-            AcpEvent::Started => self.emit("agent_running", "正在执行章节 Agent", false),
-            AcpEvent::ToolCall { title, .. } => {
-                if let Some((phase, message)) = chapter_tool_progress(title.as_deref()) {
-                    self.emit(phase, message, false);
-                }
-            }
-            AcpEvent::ToolCallUpdate { title, status, .. } => {
-                if let Some((phase, message)) = chapter_tool_progress(title.as_deref()) {
-                    let committed = status.as_deref().is_some_and(is_completed_tool_status);
-                    self.emit(phase, message, committed);
-                }
-            }
-            AcpEvent::Finished { .. } => self.emit("checking_result", "正在确认章节结果", false),
-            AcpEvent::Failed { .. } => {
-                self.emit("agent_failed", "章节 Agent 执行失败，正在整理结果", false)
-            }
-            AcpEvent::Progress { .. }
-            | AcpEvent::AgentMessage { .. }
-            | AcpEvent::AgentThought { .. }
-            | AcpEvent::Plan { .. }
-            | AcpEvent::SessionSaved { .. }
-            | AcpEvent::PermissionRequest { .. }
-            | AcpEvent::PermissionResolved { .. } => {}
-        }
-    }
-}
-
-fn chapter_tool_progress(title: Option<&str>) -> Option<(&'static str, &'static str)> {
-    let title = title?.to_ascii_lowercase();
-    use dawnsight_core::tool_contract as contract;
-    if title.contains(contract::TOOL_CREATE_CHAPTER_OUTLINE) {
-        Some(("building_outline", "正在建立章节框架"))
-    } else if title.contains(contract::TOOL_CAPTURE_CHAPTER_EVIDENCE) {
-        Some(("capturing_evidence", "正在获取字幕与画面证据"))
-    } else if title.contains(contract::TOOL_UPDATE_CHAPTER_DRAFT) {
-        Some(("updating_draft", "正在补充章节内容"))
-    } else if title.contains(contract::TOOL_FINALIZE_CHAPTER_TASK) {
-        Some(("finalizing", "正在校验并保存章节"))
-    } else {
-        None
-    }
-}
-
-fn is_completed_tool_status(status: &str) -> bool {
-    matches!(
-        status.to_ascii_lowercase().as_str(),
-        "completed" | "complete" | "finished" | "succeeded" | "success"
-    )
+    // Pool leases stream no per-tool updates (v1): progress stays coarse.
+    // `chapter_tool_progress` mapping was removed with the ACP event bridge.
 }
 
 /// Execute one claimed task. Concurrent callers for the same task key are
@@ -542,7 +488,7 @@ fn execute_attempt(
         .position_ms
         .unwrap_or(scope.duration_ms)
         .min(scope.duration_ms);
-    let cwd = resolve_session_cwd(Some(&request.media_path)).map_err(|error| {
+    let cwd = resolve_agent_workspace(Some(&request.media_path)).map_err(|error| {
         WorkerFailure::business("章节 Agent 工作区不可用，请重试", error.to_string())
     })?;
     crate::acp::adapter::write_chapter_task_snapshot(
@@ -562,7 +508,7 @@ fn execute_attempt(
             prompt_version: task.prompt_version.clone(),
         },
     )
-    .map_err(WorkerFailure::agent_unavailable)?;
+    .map_err(|error| WorkerFailure::agent_unavailable(error.to_string()))?;
 
     // Prewarming is only a prompt optimization.  The isolated session has
     // task-scoped MCP read/write tools and must still start when both local
@@ -582,29 +528,55 @@ fn execute_attempt(
         WorkerFailure::business("章节分析提示词准备失败，请重试", error.to_string())
     })?;
 
+    let profiles = request
+        .profiles
+        .clone()
+        .ok_or_else(|| WorkerFailure::agent_not_configured("missing profiles"))?;
     let profile_id = request
         .profile_id
         .as_deref()
         .filter(|value| !value.trim().is_empty())
         .ok_or_else(|| WorkerFailure::agent_not_configured("missing profile id"))?;
-    let profiles = request
-        .profiles
-        .clone()
-        .ok_or_else(|| WorkerFailure::agent_not_configured("missing profiles"))?;
-    let session = ChapterSession::new(
-        Some(cwd.to_string_lossy().into_owned()),
-        profile_id.to_string(),
-        profiles,
-        model_selection(request),
-        Some(format!("chapter-{}", task.id)),
-    );
+
+    // Task-scoped MCP tools: snapshot first (authority for task ownership),
+    // then hand its server specs to the pool session. Workspace registration
+    // keeps MCP reverse control (seek) routed to this media directory.
+    let session_label = format!("chapter-{}", task.id);
+    let mcp_servers = {
+        use crate::acp::environment::SessionEnvironment;
+        let env = crate::acp::adapter::AppSessionEnvironment;
+        let path = env.snapshot_path(&cwd, crate::acp::SessionKind::Chapter);
+        if let Err(details) = env.sync_snapshot(&path, true) {
+            tracing::warn!(details = %details, "chapter snapshot sync failed; continuing");
+        }
+        let servers = env.mcp_servers(&path, crate::acp::SessionKind::Chapter);
+        servers.as_array().cloned().unwrap_or_default()
+    };
+    let invoker = crate::agent_pool::build_pool(&crate::agent_pool::PoolSpec {
+        profiles: &profiles,
+        profile_id,
+        model_id: chapter_model_id(request),
+        cwd: Some(&cwd),
+        mcp_servers,
+    })
+    .map_err(WorkerFailure::agent_unavailable)?;
 
     progress.emit("agent_running", "正在执行章节 Agent", false);
-    let response = session
-        .prompt_with_events(composed.initial_prompt(), |event| {
-            progress.on_acp_event(event)
+    let mut conversation = invoker
+        .open_conversation(Some(session_label.clone()))
+        .map_err(agent_task_failure)?;
+    let response = conversation
+        .prompt(IsolatedAgentTask {
+            prompt: composed.initial_prompt().to_string(),
+            bootstrap_prompt: None,
+            profile_id: profile_id.to_string(),
+            model_id: request.model_id.clone(),
+            reasoning_effort: request.reasoning_effort.clone(),
+            task_label: Some(session_label),
+            retry_task_label: None,
         })
-        .map_err(WorkerFailure::agent_unavailable)?;
+        .map_err(agent_task_failure)?;
+    progress.emit("checking_result", "正在确认章节结果", false);
     Ok(AttemptResult {
         assistant_response: response,
     })
@@ -844,20 +816,28 @@ fn build_prompt_slots(
     slots
 }
 
-fn model_selection(request: &ChapterSegmentationRequest) -> Option<AcpSessionModelSelection> {
-    let model_id = request.model_id.as_deref()?.trim();
-    if model_id.is_empty() {
-        return None;
+fn chapter_model_id(request: &ChapterSegmentationRequest) -> Option<&str> {
+    request
+        .model_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+}
+
+/// Map an isolated pool call failure onto the durable worker failure.
+fn agent_task_failure(error: AgentTaskError) -> WorkerFailure {
+    match error {
+        AgentTaskError::NotConfigured { details } => WorkerFailure::agent_not_configured(
+            details.unwrap_or_else(|| "agent is not configured".to_string()),
+        ),
+        AgentTaskError::NoOutput { details } => WorkerFailure::business(
+            "章节 Agent 未返回可用内容，请再次尝试。",
+            details.unwrap_or_else(|| "agent returned no text".to_string()),
+        ),
+        AgentTaskError::Failed { details } => WorkerFailure::agent_unavailable(
+            details.unwrap_or_else(|| "agent task failed".to_string()),
+        ),
     }
-    Some(AcpSessionModelSelection {
-        model_id: model_id.to_string(),
-        reasoning_effort: request
-            .reasoning_effort
-            .as_deref()
-            .map(str::trim)
-            .filter(|value| !value.is_empty())
-            .map(str::to_string),
-    })
 }
 
 #[cfg(test)]
@@ -883,19 +863,7 @@ mod tests {
     }
 
     #[test]
-    fn chapter_progress_maps_only_known_tools_and_safe_statuses() {
-        assert_eq!(
-            chapter_tool_progress(Some("mcp__dawnsight__dawnsight_create_chapter_outline")),
-            Some(("building_outline", "正在建立章节框架"))
-        );
-        assert_eq!(
-            chapter_tool_progress(Some("dawnsight_capture_chapter_evidence")),
-            Some(("capturing_evidence", "正在获取字幕与画面证据"))
-        );
-        assert_eq!(chapter_tool_progress(Some("read_file")), None);
-        assert!(is_completed_tool_status("completed"));
-        assert!(!is_completed_tool_status("running"));
-
+    fn chapter_progress_event_stays_a_safe_projection() {
         let event = ChapterProgressEvent {
             task_key: "chapter-segmentation:test".to_string(),
             task_id: 7,

@@ -10,8 +10,8 @@ use std::sync::{Arc, OnceLock};
 
 use serde_json::Value;
 
-use crate::domain::model::SessionKind;
-use crate::error::AcpError;
+use super::error::AcpError;
+use super::model::SessionKind;
 
 /// Generalized MCP/session surroundings, implemented once by the app.
 pub trait SessionEnvironment: Send + Sync + 'static {

@@ -129,6 +129,12 @@ pub struct AgentProfileStatus {
     pub env: HashMap<String, String>,
     pub available: bool,
     pub resolved_command: Option<String>,
+    /// Canonical one-liner from the engine runtime registry, if advertised.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// Login guidance from the engine runtime registry, if advertised.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub auth_hint: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -150,25 +156,25 @@ pub struct PromptImage {
 
 /// Pasted-image guardrails: user input validation, so failures speak
 /// plain business Chinese (`bad_request`) instead of leaking wire terms.
-pub fn validate_prompt_images(images: &[PromptImage]) -> Result<(), crate::error::AcpError> {
+pub fn validate_prompt_images(images: &[PromptImage]) -> Result<(), super::error::AcpError> {
     const ALLOWED: [&str; 4] = ["image/png", "image/jpeg", "image/webp", "image/gif"];
     /// Base64 chars per image (~6MB decoded).
     const MAX_IMAGE_CHARS: usize = 8 * 1024 * 1024;
     const MAX_IMAGES: usize = 4;
     if images.len() > MAX_IMAGES {
-        return Err(crate::error::AcpError::bad_request("一次最多发送 4 张图片"));
+        return Err(super::error::AcpError::bad_request("一次最多发送 4 张图片"));
     }
     for image in images {
         if !ALLOWED.contains(&image.mime_type.trim().to_ascii_lowercase().as_str()) {
-            return Err(crate::error::AcpError::bad_request(
+            return Err(super::error::AcpError::bad_request(
                 "图片格式不支持，仅支持 PNG/JPEG/WebP/GIF",
             ));
         }
         if image.data.trim().is_empty() {
-            return Err(crate::error::AcpError::bad_request("图片内容为空"));
+            return Err(super::error::AcpError::bad_request("图片内容为空"));
         }
         if image.data.len() > MAX_IMAGE_CHARS {
-            return Err(crate::error::AcpError::bad_request(
+            return Err(super::error::AcpError::bad_request(
                 "图片过大，单张不能超过 8MB",
             ));
         }

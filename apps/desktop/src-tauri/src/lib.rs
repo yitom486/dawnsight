@@ -1,4 +1,6 @@
 pub mod acp;
+pub mod agent_pool;
+pub mod agent_stub;
 pub mod asr;
 mod commands;
 pub mod library;
@@ -10,11 +12,6 @@ mod state;
 pub mod subtitle;
 pub mod ytdl;
 
-pub use acp::{
-    AcpClientSettings, AcpError, AcpErrorCode, AcpEvent, AcpService, AcpStatus, AgentKind,
-    AgentProfileInput, AgentProfileStatus, AgentProfilesHint, PermissionMode, PermissionOption,
-    SavedSessionHint, ThinkingLevel, VideoPromptContext,
-};
 pub use asr::{
     AsrCatalogModel, AsrError, AsrErrorCode, AsrEvent, AsrInstallEvent, AsrModelInfo, AsrRange,
     AsrService, AsrStatus,

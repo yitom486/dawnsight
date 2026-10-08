@@ -106,7 +106,8 @@ pub struct AppState {
     workshop_jobs: Mutex<HashMap<String, WorkshopJobSnapshot>>,
     pub asr: Arc<AsrService>,
     pub acp: Arc<AcpService>,
-    /// Warm chat-snapshot state (M5: owned by app, used by the ACP adapter).
+    /// Warm chat-snapshot state (M5: owned by app; ACP transport removed, kept for MCP snapshot IO).
+    #[allow(dead_code)]
     pub prompt_snapshots: Arc<Mutex<PromptSnapshotState>>,
     pub library: Arc<MediaLibraryService>,
     pub notes: Arc<NoteService>,

@@ -33,6 +33,10 @@ export type AgentProfileStatus = {
   env: Record<string, string>;
   available: boolean;
   resolvedCommand?: string | null;
+  /** Canonical one-liner from the engine runtime registry, if advertised. */
+  description?: string | null;
+  /** Login guidance from the engine runtime registry, if advertised. */
+  authHint?: string | null;
 };
 
 export type SavedSessionHint = {

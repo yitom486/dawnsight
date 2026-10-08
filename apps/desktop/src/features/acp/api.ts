@@ -1,5 +1,6 @@
 import { Channel, invoke } from "@tauri-apps/api/core";
 import type { ChatShortcutTaskId } from "@dawnsight/chat-ui";
+import { useAcpProfilesStore } from "@dawnsight/chat-ui/acpProfilesStore";
 
 import type {
   AcpClientSettings,
@@ -14,7 +15,17 @@ import type {
 } from "./types";
 
 export function getAcpStatus(profiles: AgentProfilesHint): Promise<AcpStatus> {
-  return invoke("acp_status", { profiles });
+  return invoke<AcpStatus>("acp_status", { profiles }).then((status) => {
+    // The engine runtime registry is the lineup source of truth: adopt it
+    // into the store (user customs preserved) so dropdowns, settings and
+    // launch specs never drift from what the backend actually runs.
+    try {
+      useAcpProfilesStore.getState().syncEngineProfiles(status.profiles ?? []);
+    } catch {
+      // Store sync must never break status reads.
+    }
+    return status;
+  });
 }
 
 export async function acpConnect(

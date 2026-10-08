@@ -15,8 +15,10 @@ pkg-config = "0.3"
 
 [dependencies]
 dawnsight-core.workspace = true
-dawnsight-acp.workspace = true
 dawnsight-ai.workspace = true
+# agentpools via crates.io (published 0.1.10).
+agentpools = "0.1.10"
+agentpools-acp = "0.1.10"
 dawnsight-library.workspace = true
 dawnsight-notes.workspace = true
 dawnsight-player.workspace = true

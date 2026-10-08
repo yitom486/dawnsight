@@ -1,16 +1,40 @@
 //! App-side library adapters (M7).
 //!
-//! Agent-backed resolver/discovery orchestration that needs ACP session
-//! access lives here. The crate only sees the core invoker port plus an
-//! opaque profiles payload.
+//! Agent-backed resolver/discovery orchestration over agentpools (ACP
+//! transport, per-call pools). Direct-API providers never touch the agent.
 
-use dawnsight_acp::AgentProfilesHint;
-
-use crate::acp::adapter::AcpAgentInvoker;
+use crate::agent_pool::workshop_invoker;
+use crate::agent_stub::{AgentProfilesHint, OfflineAgentInvoker};
 use crate::library::{
-    AgentModelDiscoveryResult, AgentModelOption, AgentModelOptions, LibraryError,
-    ResolverProviderConfig,
+    AgentModelDiscoveryResult, AgentModelOptions, LibraryError, ResolverProviderConfig,
 };
+use dawnsight_core::{AgentInvoker, AgentTaskError, IsolatedAgentTask};
+
+/// Agent invoker for library calls: pooled ACP session when profiles resolve,
+/// offline otherwise (direct-API providers never invoke it successfully).
+pub enum LibraryAgentInvoker {
+    Pool(crate::agent_pool::PoolAgentInvoker),
+    Offline(OfflineAgentInvoker),
+}
+
+impl AgentInvoker for LibraryAgentInvoker {
+    fn invoke_isolated(&self, task: IsolatedAgentTask) -> Result<String, AgentTaskError> {
+        match self {
+            Self::Pool(invoker) => invoker.invoke_isolated(task),
+            Self::Offline(invoker) => invoker.invoke_isolated(task),
+        }
+    }
+
+    fn open_conversation<'a>(
+        &'a self,
+        task_label: Option<String>,
+    ) -> Result<Box<dyn dawnsight_core::AgentConversation + 'a>, AgentTaskError> {
+        match self {
+            Self::Pool(invoker) => invoker.open_conversation(task_label),
+            Self::Offline(invoker) => invoker.open_conversation(task_label),
+        }
+    }
+}
 
 /// Parse the opaque profiles payload from library configs into the ACP hint.
 /// Unparseable payloads map to the same not-configured error the crate used
@@ -33,88 +57,47 @@ pub fn require_agent_profiles(
     Ok(profiles)
 }
 
-/// Isolated resolver invoker bound to an explicit profile selection.
-pub fn resolver_invoker(profiles: AgentProfilesHint) -> AcpAgentInvoker {
-    AcpAgentInvoker::new(profiles)
-}
-
-/// Build the resolver invoker for a provider config. Direct API providers get
-/// an empty selection that is never invoked; ACP providers go through the
-/// same empty-selection guard the crate used to enforce.
+/// Build the resolver invoker for a provider config. ACP providers get a
+/// pooled ACP invoker; direct API providers get an offline invoker that is
+/// never successfully invoked.
 pub fn resolver_invoker_for_provider(
     provider: &ResolverProviderConfig,
-) -> Result<AcpAgentInvoker, LibraryError> {
+) -> Result<LibraryAgentInvoker, LibraryError> {
     match provider {
-        ResolverProviderConfig::AcpAgent { profiles, .. } => {
-            Ok(resolver_invoker(require_agent_profiles(profiles)?))
+        ResolverProviderConfig::AcpAgent {
+            profile_id,
+            profiles,
+            model_id,
+            ..
+        } => {
+            let hint = require_agent_profiles(profiles)?;
+            workshop_invoker(&hint, profile_id, model_id.as_deref(), None)
+                .map(LibraryAgentInvoker::Pool)
+                .map_err(|details| LibraryError::resolver_not_configured(Some(&details)))
         }
-        ResolverProviderConfig::DirectApi { .. } => Ok(resolver_invoker(empty_hint())),
+        ResolverProviderConfig::DirectApi { .. } => {
+            Ok(LibraryAgentInvoker::Offline(OfflineAgentInvoker))
+        }
     }
 }
 
 /// Lenient invoker for credential validation. The validation flow reports
-/// per-service failure items instead of typed errors, so an empty selection
-/// falls back to a hint that can never successfully invoke (the pre-invoke
-/// guard rejects it before any spawn, exactly like the crate-side guard did).
-pub fn validation_invoker(provider: &ResolverProviderConfig) -> AcpAgentInvoker {
-    resolver_invoker_for_provider(provider).unwrap_or_else(|_| resolver_invoker(empty_hint()))
+/// per-service failure items instead of typed errors, so pool construction
+/// failures fall back to offline (exactly like the old empty-selection guard).
+pub fn validation_invoker(provider: &ResolverProviderConfig) -> LibraryAgentInvoker {
+    resolver_invoker_for_provider(provider)
+        .unwrap_or(LibraryAgentInvoker::Offline(OfflineAgentInvoker))
 }
 
-fn empty_hint() -> AgentProfilesHint {
-    AgentProfilesHint {
-        active_profile_id: String::new(),
-        profiles: Vec::new(),
-    }
-}
-
-/// Short-lived agent model discovery. Mirrors the removed
-/// `library::discover_agent_models`; errors unchanged.
-/// A missing/empty selection flows into the agent call exactly as before and
-/// surfaces as the generic connection-failure result, not a typed error.
+/// Short-lived agent model discovery. The pool transport exposes no model
+/// catalogue, so this stays offline until a discovery path lands.
 pub fn discover_agent_models(
-    profile_id: String,
-    profiles: &serde_json::Value,
+    _profile_id: String,
+    _profiles: &serde_json::Value,
 ) -> AgentModelDiscoveryResult {
-    let profiles = parse_agent_profiles(profiles).unwrap_or(AgentProfilesHint {
-        active_profile_id: String::new(),
-        profiles: Vec::new(),
-    });
-    match dawnsight_acp::jobs::isolated::discover_isolated_models(profile_id, profiles) {
-        Ok(result) => AgentModelDiscoveryResult {
-            connected: result.connected,
-            options: AgentModelOptions {
-                models: result
-                    .options
-                    .models
-                    .into_iter()
-                    .map(|option| AgentModelOption {
-                        value: option.value,
-                        name: option.name,
-                        description: option.description,
-                    })
-                    .collect(),
-                reasoning_efforts: result
-                    .options
-                    .reasoning_efforts
-                    .into_iter()
-                    .map(|option| AgentModelOption {
-                        value: option.value,
-                        name: option.name,
-                        description: option.description,
-                    })
-                    .collect(),
-                current_model_id: result.options.current_model_id,
-                current_reasoning_effort: result.options.current_reasoning_effort,
-            },
-            message: result.message,
-        },
-        Err(error) => {
-            tracing::warn!(details = %error, "agent model discovery failed");
-            AgentModelDiscoveryResult {
-                connected: false,
-                options: AgentModelOptions::default(),
-                message: "无法连接 Agent，请检查 Agent 配置或登录状态后重试".into(),
-            }
-        }
+    AgentModelDiscoveryResult {
+        connected: false,
+        options: AgentModelOptions::default(),
+        message: "ACP transport 已下线，请等待 npm 客户端接入后重试".into(),
     }
 }

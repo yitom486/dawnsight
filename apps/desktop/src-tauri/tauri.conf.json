@@ -36,6 +36,9 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "externalBin": [
+      "bin/acp-engine"
+    ],
     "resources": {
       "native/mpv/runtime/": "mpv/"
     },

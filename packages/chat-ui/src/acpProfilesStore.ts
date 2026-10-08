@@ -7,7 +7,11 @@ import {
   normalizeProfileInput,
   profilesHintFromStore,
 } from "./defaultAgentProfiles";
-import type { AgentProfileInput, AgentProfilesHint } from "./types";
+import type {
+  AgentProfileInput,
+  AgentProfileStatus,
+  AgentProfilesHint,
+} from "./types";
 
 /**
  * Profile ids removed from the app. Copies persisted by older builds must be
@@ -99,6 +103,15 @@ type AcpProfilesStore = {
   switchActiveProfileId: (id: string) => void;
   upsertProfile: (profile: AgentProfileInput) => void;
   profilesHint: () => AgentProfilesHint;
+  /**
+   * Adopt the engine runtime registry (`acp_status` profiles) as the lineup.
+   * Engine entries arrive in canonical order with canonical launch specs;
+   * user-modified command/args/env are preserved per entry (except codex
+   * same-package specs, which always float to the canonical adapter spec).
+   * Entries unknown to the engine (user customs, incl. the empty template)
+   * are preserved untouched. No-op when nothing changed (status polls).
+   */
+  syncEngineProfiles: (engine: AgentProfileStatus[]) => void;
 };
 
 /** Agent spawn profiles; persisted in WebView storage, passed to Rust on invoke. */
@@ -130,6 +143,90 @@ export const useAcpProfilesStore = create<AcpProfilesStore>()(
       },
       profilesHint: () =>
         profilesHintFromStore(get().activeProfileId, get().profiles),
+      syncEngineProfiles: (engine) => {
+        // An empty lineup carries no information (engine down, error
+        // payload): never destroy local state on it.
+        if (!Array.isArray(engine) || engine.length === 0) return;
+        const incoming = new Map(engine.map((item) => [item.id, item]));
+        const sameArgs = (a: string[] | undefined, b: string[] | undefined) => {
+          const left = a ?? [];
+          const right = b ?? [];
+          return (
+            left.length === right.length &&
+            left.every((value, index) => value === right[index])
+          );
+        };
+        const sameEnv = (
+          a: Record<string, string> | undefined,
+          b: Record<string, string> | undefined,
+        ) => {
+          const left = a ?? {};
+          const right = b ?? {};
+          const keys = new Set([...Object.keys(left), ...Object.keys(right)]);
+          for (const key of keys) {
+            if ((left[key] ?? "") !== (right[key] ?? "")) return false;
+          }
+          return true;
+        };
+        set((state) => {
+          const next: AgentProfileInput[] = [];
+          for (const item of engine) {
+            if (!item.id) continue;
+            const kept = state.profiles.find((entry) => entry.id === item.id);
+            const canonical: AgentProfileInput = normalizeProfileInput({
+              id: item.id,
+              name: item.name,
+              kind: item.kind,
+              command: item.command ?? "",
+              args: item.args ?? [],
+              env: item.env ?? {},
+            });
+            if (!kept) {
+              next.push(canonical);
+              continue;
+            }
+            const codexFloat =
+              item.id === "codex" &&
+              kept.args?.length === 1 &&
+              isDefaultCodexPackageSpec(kept.args[0]);
+            // Preserve only the launch triple; display name/kind always
+            // track the engine registry.
+            const modified =
+              !codexFloat &&
+              (kept.command !== canonical.command ||
+                !sameArgs(kept.args, canonical.args) ||
+                !sameEnv(kept.env, canonical.env));
+            next.push(
+              modified
+                ? normalizeProfileInput({
+                    ...canonical,
+                    command: kept.command ?? canonical.command,
+                    args: kept.args ?? canonical.args,
+                    env: kept.env ?? canonical.env,
+                  })
+                : canonical,
+            );
+          }
+          for (const kept of state.profiles) {
+            if (!kept.id || incoming.has(kept.id)) continue;
+            if (isRemovedProfile(kept)) continue;
+            next.push(normalizeProfileInput(kept));
+          }
+          const finalProfiles = next.length > 0 ? next : state.profiles;
+          const active = finalProfiles.some(
+            (item) => item.id === state.activeProfileId,
+          )
+            ? state.activeProfileId
+            : (finalProfiles[0]?.id ?? state.activeProfileId);
+          if (
+            active === state.activeProfileId &&
+            JSON.stringify(finalProfiles) === JSON.stringify(state.profiles)
+          ) {
+            return state;
+          }
+          return { profiles: finalProfiles, activeProfileId: active };
+        });
+      },
     }),
     {
       name: "dawnsight-acp-profiles",

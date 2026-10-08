@@ -1,16 +1,15 @@
-//! App-side ACP adapters (M5).
+//! App-side ACP adapters.
 //!
-//! Warm chat-snapshot state and all MCP/library IO live here so `lumina-acp`
-//! stays a generic Client. Spawn paths (`session/new|resume`) additionally go
-//! through [`AppSessionEnvironment`], installed once at startup.
+//! Warm chat-snapshot state and all MCP/library IO live here so the
+//! sidecar engine stays a generic transport. Session launch itself is owned
+//! by `@yitom/acp-client` (compiled to the `acp-engine` sidecar).
 
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use dawnsight_acp::{AcpError, SessionEnvironment, SessionKind, VideoPromptContext};
-use dawnsight_core::{AgentConversation, AgentTaskError, IsolatedAgentTask};
+use super::{AcpError, SessionEnvironment, SessionKind, VideoPromptContext};
 
 use crate::library::MediaLibraryService;
 use crate::mcp::{
@@ -19,7 +18,7 @@ use crate::mcp::{
     ChapterTaskContext, DawnsightMcpSnapshot, PromptAnchor, PromptSnapshotState,
 };
 
-/// MCP-backed [`SessionEnvironment`] for ACP spawn paths.
+/// MCP-backed [`SessionEnvironment`] for sidecar sessions.
 pub struct AppSessionEnvironment;
 
 static MCP_DIAGNOSTIC_SEQUENCE: AtomicU64 = AtomicU64::new(1);
@@ -103,63 +102,16 @@ fn mcp_profile_for_session(kind: SessionKind) -> crate::mcp::McpToolProfile {
     }
 }
 
-/// Seed the isolated chapter session with the same media anchor that the
-/// interactive chat session exposes to Dawnsight MCP. The session remains
-/// independent from chat history, but its tools must resolve the current
-/// media, subtitle choice and playback boundary.
-pub fn write_chapter_snapshot(
-    cwd: &Path,
-    media_path: &Path,
-    position_ms: u64,
-    duration_ms: u64,
-    subtitle_choice_id: Option<&str>,
-) -> Result<PathBuf, AcpError> {
-    let environment = AppSessionEnvironment;
-    let snapshot_path = environment.snapshot_path(cwd, SessionKind::Chapter);
-    let snapshot = DawnsightMcpSnapshot {
-        schema_version: crate::mcp::SNAPSHOT_SCHEMA_VERSION,
-        anchor: Some(PromptAnchor {
-            media_path: media_path.to_string_lossy().into_owned(),
-            media_title: None,
-            library_root: None,
-            group_key: None,
-            season: None,
-            episode: None,
-            position_ms,
-            duration_ms: Some(duration_ms),
-            sent_at_ms: SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .map(|duration| duration.as_millis())
-                .unwrap_or_default(),
-            subtitle_choice_id: subtitle_choice_id
-                .map(str::trim)
-                .filter(|value| !value.is_empty())
-                .map(str::to_string),
-            transcript_window_radius_sec: None,
-        }),
-        current_episode: None,
-        library: None,
-        session: None,
-        capabilities: Some(AgentCapabilities {
-            vision_capable: true,
-            subtitle_workshop_enabled: false,
-            video_annotations_enabled: true,
-        }),
-        online: None,
-        updated_at_ms: SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map(|duration| duration.as_millis())
-            .unwrap_or_default(),
-    };
-    write_snapshot(&snapshot_path, &snapshot).map_err(|error| AcpError::internal(Some(&error)))?;
-    Ok(snapshot_path)
+/// Installed once at startup; sidecar `session/open` wiring uses it.
+pub fn install_session_environment() -> bool {
+    super::environment::set_default_environment(Arc::new(AppSessionEnvironment))
 }
 
 /// Seed an isolated chapter session with its complete durable scope.
 ///
-/// The MCP server must treat the snapshot as the authority for task/attempt/
-/// episode ownership.  In particular, the database path is supplied by the
-/// desktop command rather than by Agent arguments.
+/// The MCP server treats the snapshot as the authority for task/attempt/
+/// episode ownership. The database path is supplied by the desktop command
+/// rather than by Agent arguments.
 pub fn write_chapter_task_snapshot(
     cwd: &Path,
     media_path: &Path,
@@ -210,13 +162,7 @@ pub fn write_chapter_task_snapshot(
     Ok(snapshot_path)
 }
 
-/// Installed once at startup; `session/new|resume` wiring uses it.
-pub fn install_session_environment() -> bool {
-    dawnsight_acp::set_default_environment(Arc::new(AppSessionEnvironment))
-}
-
-/// Build the next chat prompt snapshot (warm library policy). Mirrors the
-/// removed `AcpService::build_prompt_snapshot`; errors unchanged.
+/// Build the next chat prompt snapshot (warm library policy).
 /// Converts the ACP prompt context into MCP's own generic input (M7).
 pub fn build_prompt_snapshot(
     snapshots: &Mutex<PromptSnapshotState>,
@@ -241,7 +187,7 @@ pub fn build_prompt_snapshot(
     Ok((built.snapshot, built.media_changed))
 }
 
-/// Persist the chat prompt snapshot. Mirrors `write_prompt_snapshot`.
+/// Persist the chat prompt snapshot.
 pub fn write_prompt_snapshot(
     cwd: &Path,
     snapshot: &DawnsightMcpSnapshot,
@@ -251,270 +197,17 @@ pub fn write_prompt_snapshot(
     Ok(path)
 }
 
-/// Record session capabilities. Mirrors `sync_mcp_capabilities`.
+/// Record session capabilities.
 pub fn sync_mcp_capabilities(cwd_hint: Option<&str>, vision_capable: bool) -> Result<(), AcpError> {
-    let workspace = dawnsight_acp::agent::workspace::resolve_session_cwd(cwd_hint)?;
+    let workspace = super::workspace::resolve_agent_workspace(cwd_hint)?;
     let path = snapshot_path_for_cwd(&workspace);
     sync_snapshot_capabilities(&path, vision_capable)
         .map_err(|details| AcpError::internal(Some(&details)))
 }
 
-/// Clear chat snapshot warm state (close / new chat). Failure is ignored,
-/// mirroring the removed `reset_prompt_snapshot_state`.
+/// Clear chat snapshot warm state (close / new chat).
 pub fn reset_prompt_snapshot_state(snapshots: &Mutex<PromptSnapshotState>) {
     if let Ok(mut guard) = snapshots.lock() {
         guard.reset();
-    }
-}
-
-/// ACP-backed [`dawnsight_core::AgentInvoker`] for subtitle workshop tasks:
-/// short-lived isolated calls, no chat history, no MCP tools.
-///
-/// With a pool attached (workshop jobs), conversations route to a slot-pinned
-/// [`dawnsight_acp::WorkshopPool`] lease. Without one (library resolver), each
-/// call runs the legacy one-shot isolated path. The adapter itself owns no
-/// pool lifecycle:
-/// creation and shutdown live with the caller (commands layer).
-pub struct AcpAgentInvoker {
-    profiles: dawnsight_acp::AgentProfilesHint,
-    pool: Option<Arc<dawnsight_acp::WorkshopPool>>,
-}
-
-impl AcpAgentInvoker {
-    pub fn new(profiles: dawnsight_acp::AgentProfilesHint) -> Self {
-        Self {
-            profiles,
-            pool: None,
-        }
-    }
-
-    pub fn with_pool(
-        profiles: dawnsight_acp::AgentProfilesHint,
-        pool: Arc<dawnsight_acp::WorkshopPool>,
-    ) -> Self {
-        Self {
-            profiles,
-            pool: Some(pool),
-        }
-    }
-}
-
-impl dawnsight_core::AgentInvoker for AcpAgentInvoker {
-    fn invoke_isolated(&self, task: IsolatedAgentTask) -> Result<String, AgentTaskError> {
-        if let Some(pool) = self.pool.as_ref() {
-            return pool
-                .submit(task.prompt, task.task_label, task.retry_task_label)
-                .map_err(map_acp_error);
-        }
-        let model_selection = task
-            .model_id
-            .filter(|id| !id.trim().is_empty())
-            .map(|model_id| dawnsight_acp::AcpSessionModelSelection {
-                model_id,
-                reasoning_effort: task
-                    .reasoning_effort
-                    .filter(|value| !value.trim().is_empty()),
-            });
-        dawnsight_acp::jobs::isolated::prompt_isolated_restricted(
-            task.prompt,
-            task.profile_id,
-            self.profiles.clone(),
-            model_selection,
-            task.task_label,
-        )
-        .map_err(map_acp_error)
-    }
-
-    fn open_conversation<'a>(
-        &'a self,
-        task_label: Option<String>,
-    ) -> Result<Box<dyn AgentConversation + 'a>, AgentTaskError> {
-        let Some(pool) = self.pool.as_ref() else {
-            let _ = task_label;
-            return Ok(Box::new(AdapterOneShotConversation { invoker: self }));
-        };
-        pool.open_conversation(task_label).map_err(map_acp_error)
-    }
-}
-
-struct AdapterOneShotConversation<'a> {
-    invoker: &'a AcpAgentInvoker,
-}
-
-impl AgentConversation for AdapterOneShotConversation<'_> {
-    fn prompt(&mut self, task: IsolatedAgentTask) -> Result<String, AgentTaskError> {
-        dawnsight_core::AgentInvoker::invoke_isolated(self.invoker, task)
-    }
-}
-
-/// Shared ACP→port error mapping for both pool and legacy paths.
-fn map_acp_error(error: dawnsight_acp::AcpError) -> AgentTaskError {
-    if error.code == dawnsight_acp::AcpErrorCode::NotConfigured {
-        AgentTaskError::NotConfigured {
-            details: error.details,
-        }
-    } else if error.code == dawnsight_acp::AcpErrorCode::NoOutput {
-        AgentTaskError::NoOutput {
-            details: error.details,
-        }
-    } else {
-        AgentTaskError::Failed {
-            details: error.details,
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn session_kind_selects_explicit_mcp_profiles() {
-        assert_eq!(
-            mcp_profile_for_session(SessionKind::Chat),
-            crate::mcp::McpToolProfile::Chat
-        );
-        assert_eq!(
-            mcp_profile_for_session(SessionKind::Workshop),
-            crate::mcp::McpToolProfile::NoTools
-        );
-        assert_eq!(
-            mcp_profile_for_session(SessionKind::Chapter),
-            crate::mcp::McpToolProfile::Chat
-        );
-    }
-
-    #[test]
-    fn chapter_mcp_servers_inject_chat_profile() {
-        let root = std::env::temp_dir().join(format!(
-            "dawnsight-chapter-mcp-config-{}-{}",
-            std::process::id(),
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .map(|duration| duration.as_nanos())
-                .unwrap_or_default()
-        ));
-        let snapshot_path = root.join(".dawnsight").join("chapter-agent-context.json");
-        let servers = AppSessionEnvironment.mcp_servers(&snapshot_path, SessionKind::Chapter);
-        let env = servers
-            .get(0)
-            .and_then(|server| server.get("env"))
-            .and_then(serde_json::Value::as_array)
-            .expect("chapter MCP server environment");
-        assert!(env.iter().any(|entry| {
-            entry.get("name").and_then(serde_json::Value::as_str)
-                == Some(crate::mcp::TOOL_PROFILE_ENV)
-                && entry.get("value").and_then(serde_json::Value::as_str) == Some("chat")
-        }));
-        let _ = std::fs::remove_dir_all(root);
-    }
-
-    #[test]
-    fn chapter_snapshot_contains_media_anchor_and_tool_capability() {
-        let root = std::env::temp_dir().join(format!(
-            "dawnsight-chapter-snapshot-{}-{}",
-            std::process::id(),
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .map(|duration| duration.as_nanos())
-                .unwrap_or_default()
-        ));
-        let media = root.join("episode.mp4");
-        let result = write_chapter_snapshot(&root, &media, 12_345, 60_000, Some("cache:subdl:en"))
-            .expect("chapter snapshot should be written");
-        let snapshot = read_snapshot(&result).expect("chapter snapshot should be readable");
-        let anchor = snapshot.anchor.expect("chapter anchor");
-        assert_eq!(anchor.media_path, media.to_string_lossy());
-        assert_eq!(anchor.position_ms, 12_345);
-        assert_eq!(anchor.duration_ms, Some(60_000));
-        assert_eq!(anchor.subtitle_choice_id.as_deref(), Some("cache:subdl:en"));
-        assert!(
-            snapshot
-                .capabilities
-                .expect("chapter capabilities")
-                .vision_capable
-        );
-        let _ = std::fs::remove_dir_all(root);
-    }
-
-    #[test]
-    fn chapter_task_snapshot_contains_durable_scope() {
-        let root = std::env::temp_dir().join(format!(
-            "dawnsight-chapter-task-snapshot-{}-{}",
-            std::process::id(),
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .map(|duration| duration.as_nanos())
-                .unwrap_or_default()
-        ));
-        let media = root.join("episode.mp4");
-        let result = write_chapter_task_snapshot(
-            &root,
-            &media,
-            12_345,
-            60_000,
-            Some("cache:subdl:en"),
-            ChapterTaskContext {
-                task_id: 7,
-                attempt_id: 8,
-                episode_id: 9,
-                database_path: "C:\\data\\lumina.sqlite3".to_string(),
-                media_path: media.to_string_lossy().into_owned(),
-                duration_ms: 60_000,
-                spoiler_boundary: "full_media".to_string(),
-                prompt_version: "1.0".to_string(),
-            },
-        )
-        .expect("chapter task snapshot should be written");
-        let scope = crate::mcp::read_chapter_task_context(&result)
-            .expect("chapter task snapshot should be readable")
-            .expect("chapter task scope");
-        assert_eq!(scope.task_id, 7);
-        assert_eq!(scope.attempt_id, 8);
-        assert_eq!(scope.episode_id, 9);
-        assert_eq!(scope.database_path, "C:\\data\\lumina.sqlite3");
-        let _ = std::fs::remove_dir_all(root);
-    }
-
-    #[test]
-    fn chapter_session_sync_preserves_scoped_snapshot() {
-        let root = std::env::temp_dir().join(format!(
-            "dawnsight-chapter-sync-adapter-{}-{}",
-            std::process::id(),
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .map(|duration| duration.as_nanos())
-                .unwrap_or_default()
-        ));
-        let snapshot_path = root.join(".dawnsight").join("chapter-agent-context.json");
-        let context = ChapterTaskContext {
-            task_id: 51,
-            attempt_id: 52,
-            episode_id: 53,
-            database_path: r"C:\data\lumina.sqlite3".into(),
-            media_path: r"C:\videos\episode.mkv".into(),
-            duration_ms: 90_000,
-            spoiler_boundary: "episode".into(),
-            prompt_version: "chapter-v1".into(),
-        };
-
-        write_scoped_snapshot(&snapshot_path, &DawnsightMcpSnapshot::empty(), &context)
-            .expect("write scoped snapshot");
-        AppSessionEnvironment
-            .sync_snapshot(&snapshot_path, true)
-            .expect("sync chapter snapshot");
-
-        assert_eq!(
-            crate::mcp::read_chapter_task_context(&snapshot_path).expect("read chapter scope"),
-            Some(context)
-        );
-        let snapshot = read_snapshot(&snapshot_path).expect("read synced snapshot");
-        assert!(
-            snapshot
-                .capabilities
-                .expect("chapter capabilities")
-                .vision_capable
-        );
-        let _ = std::fs::remove_dir_all(root);
     }
 }

@@ -5,8 +5,8 @@
 
 use std::path::{Path, PathBuf};
 
+use crate::agent_stub::AgentProfilesHint;
 use base64::{engine::general_purpose::STANDARD, Engine as _};
-use dawnsight_acp::AgentProfilesHint;
 use dawnsight_ai::prompts::{SpoilerBoundary, TaskId, ValidationReport};
 use dawnsight_library::{
     AgentTaskRecord, ChapterAssetRecord, ChapterRecord, Database, DatabaseError, NewAgentTask,

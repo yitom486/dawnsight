@@ -1,13 +1,32 @@
-//! App-facing ACP exports; implementation lives in `lumina-acp` (M5).
+//! ACP chat backend over the `acp-engine` sidecar.
 //!
-//! Chat snapshot lifecycle + MCP session environment live in `adapter`.
+//! The ACP wire protocol, agent adapters and process lifecycle live in
+//! `@yitom/acp-client` (compiled to `bin/acp-engine`); this module only
+//! translates between the engine's JSON-RPC and the long-standing `acp_*`
+//! Tauri surface the frontend already uses.
 
 pub mod adapter;
+pub mod context;
+pub mod engine;
+pub mod environment;
+pub mod error;
 pub mod mcp_control;
+pub mod model;
+pub mod service;
+pub mod settings;
+pub mod updates;
+pub mod workspace;
 
-pub use dawnsight_acp::{
-    AcpClientSettings, AcpError, AcpErrorCode, AcpEvent, AcpService, AcpSessionModelOptions,
-    AcpStatus, AgentKind, AgentProfileInput, AgentProfileStatus, AgentProfilesHint,
-    AgentSessionListResult, PermissionMode, PermissionOption, PromptImage, SavedSessionHint,
-    ThinkingLevel, VideoPromptContext,
+pub use context::VideoPromptContext;
+pub use engine::{engine_binary_present, resolve_engine_path, SidecarEngine};
+pub use environment::SessionEnvironment;
+pub use error::{AcpError, AcpErrorCode};
+pub use model::{
+    AcpEvent, AcpModelDiscoveryResult, AcpSessionModelOptions, AcpSessionModelSelection,
+    AcpSessionOption, AcpStatus, AgentKind, AgentProfileInput, AgentProfileStatus,
+    AgentProfilesHint, AgentSessionInfo, AgentSessionListResult, PermissionOption, PromptImage,
+    ResumeOutcome, SavedSessionHint, SessionConfigKind, SessionConfigOption, SessionConfigValue,
+    SessionKind,
 };
+pub use service::{AcpService, LiveSession, LoadedTurn};
+pub use settings::{AcpClientSettings, PermissionMode, ThinkingLevel};

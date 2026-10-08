@@ -1,8 +1,9 @@
 //! ACP session workspace (cwd resolution).
 
+use sha2::{Digest, Sha256};
 use std::path::PathBuf;
 
-use crate::error::AcpError;
+use super::error::AcpError;
 
 /// Resolve an absolute session `cwd` for ACP.
 ///
@@ -54,7 +55,7 @@ pub fn resolve_session_cwd(hint: Option<&str>) -> Result<PathBuf, AcpError> {
     Ok(normalize_abs(workspace))
 }
 
-fn default_session_cwd() -> PathBuf {
+pub(crate) fn default_session_cwd() -> PathBuf {
     #[cfg(windows)]
     if let Some(base) = std::env::var_os("APPDATA") {
         return PathBuf::from(base).join("lumina").join("acp-workspace");
@@ -151,6 +152,34 @@ fn normalize_workspace_spelling(raw: &str) -> String {
     }
 }
 
+/// Resolve the on-disk workspace an agent session actually runs in.
+///
+/// Measured: a non-ASCII session cwd (e.g. a CJK media directory) slows
+/// some agents' prompts ~20x (5s -> 117s same model/prompt). The session
+/// directory therefore stays ASCII: the media directory maps to a stable
+/// `ws-<sha256>` slot under the default root, so sessions stay separated
+/// per media location and stable across restarts. Media itself always
+/// travels as data (prompt text, snapshot anchor), never as cwd.
+pub fn resolve_agent_workspace(hint: Option<&str>) -> Result<PathBuf, AcpError> {
+    if hint.map(str::trim).is_none_or(str::is_empty) {
+        return resolve_session_cwd(None);
+    }
+    let media_dir = resolve_session_cwd(hint)?;
+    let root = default_session_cwd();
+    let mut hasher = Sha256::new();
+    hasher.update(normalize_workspace_spelling(&media_dir.to_string_lossy()).as_bytes());
+    let digest = format!("{:x}", hasher.finalize());
+    let workspace = root.join(format!("ws-{}", &digest[..16]));
+    std::fs::create_dir_all(&workspace).map_err(|error| {
+        tracing::warn!(cwd = %workspace.display(), %error, "failed to create hashed ACP workspace");
+        AcpError::workspace_unavailable(Some(&format!(
+            "create agent workspace {}: {error}",
+            workspace.display()
+        )))
+    })?;
+    Ok(workspace)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -167,7 +196,10 @@ mod tests {
     fn resolve_cwd_rejects_remote_urls_with_business_error() {
         let error = resolve_session_cwd(Some("https://www.youtube.com/watch?v=test"))
             .expect_err("URL must not become cwd");
-        assert_eq!(error.code, crate::AcpErrorCode::WorkspaceUnavailable);
+        assert_eq!(
+            error.code,
+            crate::acp::error::AcpErrorCode::WorkspaceUnavailable
+        );
         assert!(error.message.contains("工作目录"));
         assert!(!error.message.contains("https"));
     }
@@ -227,5 +259,43 @@ mod tests {
     #[test]
     fn same_workspace_is_case_insensitive_on_windows() {
         assert!(same_workspace("D:\\Movie\\x", "d:\\movie\\X"));
+    }
+
+    #[test]
+    fn agent_workspace_is_stable_ascii_and_per_directory() {
+        let base = std::env::temp_dir().join("lumina-acp-ws-test");
+        let dir_a = base.join("剧集A");
+        let dir_b = base.join("剧集B");
+        std::fs::create_dir_all(&dir_a).expect("mkdir a");
+        std::fs::create_dir_all(&dir_b).expect("mkdir b");
+        let wa1 = resolve_agent_workspace(Some(dir_a.to_str().expect("utf8"))).expect("ws a");
+        let wa2 = resolve_agent_workspace(Some(dir_a.to_str().expect("utf8"))).expect("ws a again");
+        let wb = resolve_agent_workspace(Some(dir_b.to_str().expect("utf8"))).expect("ws b");
+        // Stable across calls, separated per media directory.
+        assert_eq!(wa1, wa2);
+        assert_ne!(wa1, wb);
+        // Pure ASCII: safe for every agent's cwd handling.
+        for path in [&wa1, &wb] {
+            assert!(
+                path.to_string_lossy().is_ascii(),
+                "agent workspace must be ASCII, got {}",
+                path.display()
+            );
+            assert!(path.is_dir());
+        }
+        // No hint falls back to the default root itself.
+        let root = resolve_agent_workspace(None).expect("default root");
+        assert!(root.ends_with("acp-workspace"));
+        let _ = std::fs::remove_dir_all(&base);
+    }
+
+    #[test]
+    fn agent_workspace_rejects_remote_urls() {
+        let error = resolve_agent_workspace(Some("https://example.com/v.mp4"))
+            .expect_err("remote URL errors");
+        assert_eq!(
+            error.code,
+            crate::acp::error::AcpErrorCode::WorkspaceUnavailable
+        );
     }
 }
