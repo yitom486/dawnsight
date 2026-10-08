@@ -173,18 +173,18 @@ impl AcpService {
         if !super::engine::engine_binary_present() {
             status.message = "ACP 引擎缺失".to_string();
             status.hint = "运行 node scripts/build-acp-engine.mjs 构建 acp-engine".to_string();
-            status.profiles = profiles
-                .profiles
-                .iter()
-                .map(|profile| Self::profile_status(profile, false))
-                .collect();
+            // Engine-only lineup: with no engine there is nothing to offer.
+            // App-side copies are never echoed back, so they cannot linger as
+            // duplicate rows once the engine is back.
+            status.profiles = Vec::new();
             return status;
         }
         status.adapter_found = true;
-        // The engine runtime registry is the single source of truth for the
-        // agent lineup (ids, names, launch specs, auth probes). Frontend
-        // entries only survive here when the engine does not know their id
-        // (user custom profiles).
+        // The engine runtime registry is the only lineup source: ids, names,
+        // launch specs and auth probes all come from `runtimes/list`. The app
+        // keeps no agent matrix of its own; anything the engine does not
+        // report is not offered, so stale app-side copies can never resurface
+        // as duplicate dropdown rows.
         let runtimes = self.engine.ensure_running().ok().and_then(|_| {
             self.engine
                 .call("runtimes/list", Value::Null)
@@ -197,13 +197,11 @@ impl AcpService {
             .map(|list| list.iter().collect())
             .unwrap_or_default();
         let mut any_available = false;
-        let mut known_ids = std::collections::HashSet::new();
         for entry in &runtime_entries {
             let Some(engine_id) = entry.get("id").and_then(Value::as_str) else {
                 continue;
             };
             let id = Self::profile_id_for_runtime_id(engine_id);
-            known_ids.insert(id.to_string());
             let available = entry
                 .get("looksLoggedIn")
                 .and_then(Value::as_bool)
@@ -249,31 +247,6 @@ impl AcpService {
                     .and_then(Value::as_str)
                     .map(str::to_string),
             });
-        }
-        // User customs (unknown to the engine) pass through with a local
-        // launch check; they are owned by the frontend store.
-        for profile in &profiles.profiles {
-            if known_ids.contains(&profile.id) {
-                continue;
-            }
-            let available = match Self::runtime_for(profile) {
-                Ok(EngineRuntime::Custom(program, _)) => {
-                    let program = program.trim();
-                    if program.is_empty() {
-                        false
-                    } else if program.contains(['/', '\\']) {
-                        PathBuf::from(program).is_file()
-                    } else {
-                        which::which(program).is_ok()
-                    }
-                }
-                Ok(EngineRuntime::Builtin(_)) => false,
-                Err(_) => false,
-            };
-            any_available |= available;
-            status
-                .profiles
-                .push(Self::profile_status(profile, available));
         }
         status.available = any_available;
         if any_available {
@@ -323,24 +296,6 @@ impl AcpService {
             "codex-acp" => "codex",
             "cursor-cli" => "cursor",
             _ => id,
-        }
-    }
-
-    fn profile_status(
-        profile: &super::model::AgentProfileInput,
-        available: bool,
-    ) -> AgentProfileStatus {
-        AgentProfileStatus {
-            id: profile.id.clone(),
-            name: profile.name.clone(),
-            kind: profile.kind,
-            command: profile.command.clone(),
-            args: profile.args.clone(),
-            env: profile.env.clone(),
-            available,
-            resolved_command: None,
-            description: None,
-            auth_hint: None,
         }
     }
 
@@ -1657,6 +1612,53 @@ mod tests {
             .expect("codex entry");
         assert!(!codex.command.trim().is_empty());
         assert!(!codex.args.is_empty());
+        service.close_session_for_shutdown();
+    }
+
+    /// Engine-only lineup: app-side hint entries never surface in status.
+    /// Runs without the engine binary (that is exactly the path under test);
+    /// skips when a binary is present since the live registry takes over.
+    #[test]
+    fn status_without_engine_reports_empty_lineup() {
+        if super::super::engine::engine_binary_present() {
+            eprintln!("SKIP: acp-engine binary present, live registry owns lineup");
+            return;
+        }
+        let service = AcpService::new();
+        let hint = AgentProfilesHint {
+            active_profile_id: "codex".to_string(),
+            profiles: vec![
+                crate::acp::model::AgentProfileInput {
+                    id: "codex".to_string(),
+                    name: "ChatGPT".to_string(),
+                    kind: crate::acp::model::AgentKind::Codex,
+                    command: "bunx".to_string(),
+                    args: vec!["pkg".to_string()],
+                    env: std::collections::HashMap::new(),
+                    launcher: None,
+                    env_preset: None,
+                    auth_policy: None,
+                    auth_methods: Vec::new(),
+                    session_storage: None,
+                },
+                crate::acp::model::AgentProfileInput {
+                    id: "stale-copy".to_string(),
+                    name: "ChatGPT".to_string(),
+                    kind: crate::acp::model::AgentKind::Custom,
+                    command: String::new(),
+                    args: Vec::new(),
+                    env: std::collections::HashMap::new(),
+                    launcher: None,
+                    env_preset: None,
+                    auth_policy: None,
+                    auth_methods: Vec::new(),
+                    session_storage: None,
+                },
+            ],
+        };
+        let status = service.status(&hint);
+        assert!(!status.adapter_found);
+        assert!(status.profiles.is_empty());
         service.close_session_for_shutdown();
     }
 
