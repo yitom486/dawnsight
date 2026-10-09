@@ -5,7 +5,7 @@ import { invoke } from "@tauri-apps/api/core";
  *
  * 对齐 Rust 侧 `apps/desktop/src-tauri/src/commands/chat_store.rs` 的 6 个
  * Tauri Command（camelCase serde）：chat_snapshot_upsert/get/delete、
- * chat_hint_upsert/get/delete。表由 `lumina.sqlite3` migration 4 提供
+ * chat_hint_upsert/get/delete。表由 `dawnsight.sqlite3` migration 4 提供
  * （`chat_snapshots` / `acp_session_hints`），本文件不建表、不迁移。
  *
  * 约定：

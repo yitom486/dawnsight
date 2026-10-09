@@ -76,7 +76,7 @@ export const useTrackStore = create<TrackState>()(
       },
     }),
     {
-      name: "lumina-track-prefs",
+      name: "dawnsight-track-prefs",
       partialize: (state) => ({
         directoryPrefs: state.directoryPrefs,
         subtitleVisible: state.subtitleVisible,

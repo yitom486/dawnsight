@@ -148,13 +148,13 @@ cargo test -p dawnsight-mcp --features test-support --test chapter_blackbox_stdi
 
 ## UI design references
 
-- 主界面视觉参考图：`ui/lumina-desktop-overview-reference.png`
-- 文稿阅读工作区参考图：`ui/lumina-transcript-reading-reference.png`
+- 主界面视觉参考图：`ui/dawnsight-desktop-overview-reference.png`
+- 文稿阅读工作区参考图：`ui/dawnsight-transcript-reading-reference.png`
 - 时间戳笔记工作区参考图：`ui/dawnsight-notes-workspace-reference.png`
-- 设置与资源管理工作区参考图：`ui/lumina-settings-workspace-reference.png`
-- 通用聊天与富输出参考图：`ui/lumina-general-chat-rich-output-reference.png`
+- 设置与资源管理工作区参考图：`ui/dawnsight-settings-workspace-reference.png`
+- 通用聊天与富输出参考图：`ui/dawnsight-general-chat-rich-output-reference.png`
 - AI 观剧流与自由聊天 Tab 参考图：`ui/dawnsight-ai-watch-feed-reference.png`
-- 无章节视频的章节工作区参考图：`ui/lumina-chapter-generation-reference.png`
+- 无章节视频的章节工作区参考图：`ui/dawnsight-chapter-generation-reference.png`
 - AI 与自动化设置参考图：`ui/dawnsight-ai-automation-settings-reference.png`
 - UI 交互与渲染约定：`ui/README.md`
 - 设计方向：深蓝石墨背景、蓝青色 AI 状态光感、橙色播放操作强调，整体保持科技简约与低干扰。

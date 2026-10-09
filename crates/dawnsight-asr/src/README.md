@@ -1,23 +1,23 @@
-# lumina-asr
+# dawnsight-asr
 
-`lumina-asr` 是 Lumina 的可选本地离线自动语音识别（Automatic Speech Recognition）领域库。它基于 `whisper.cpp` 引擎生态构建，提供完全在用户本地运行的模型下载管理、音频提取切片、转写调度及结构化字幕生成功能。
+`dawnsight-asr` 是 Dawnsight 的可选本地离线自动语音识别（Automatic Speech Recognition）领域库。它基于 `whisper.cpp` 引擎生态构建，提供完全在用户本地运行的模型下载管理、音频提取切片、转写调度及结构化字幕生成功能。
 
 ---
 
 ## 1. 模块定位与职责
 
-在 Lumina 产品体系中，ASR 是纯粹的**按需（On-Demand）增强特性**：
+在 Dawnsight 产品体系中，ASR 是纯粹的**按需（On-Demand）增强特性**：
 
 ```text
-[lumina-media] (探测音频流)
+[dawnsight-media] (探测音频流)
       │
       ▼
- [lumina-asr] ──(提取16kHz音频)──► ffmpeg (native)
+ [dawnsight-asr] ──(提取16kHz音频)──► ffmpeg (native)
       │
       ├──(运行识别)──► whisper-cli (native / ggml-*.bin)
       │
       ▼
-[lumina-subtitle] (将识别结果输出为标准 Transcript / Cue 结构)
+[dawnsight-subtitle] (将识别结果输出为标准 Transcript / Cue 结构)
 ```
 
 - **职责**：
@@ -35,7 +35,7 @@
 ## 2. 构建思路与设计原则
 
 1. **零内存常驻（Zero Startup Footprint）**：
-   - 语音识别模型体量较大（从 75MB 到数 GB 不等）。`lumina-asr` 将模型加载与进程生命周期完全绑定在单次任务调用中，任务结束即释放，不占用桌面日常播放的宝贵内存。
+   - 语音识别模型体量较大（从 75MB 到数 GB 不等）。`dawnsight-asr` 将模型加载与进程生命周期完全绑定在单次任务调用中，任务结束即释放，不占用桌面日常播放的宝贵内存。
 2. **抽象转写引擎接口（Transcriber Port）**：
    - 定义了 `Transcriber` 特征（Trait），默认实现为基于外部子进程的 `WhisperCliTranscriber`。这种设计使得在单测时可以轻松 Mock，且未来可以平滑替换为 C-FFI 绑定或其它轻量端侧引擎。
 3. **单并发互斥保护（Busy Guarding）**：
@@ -49,7 +49,7 @@
 
 ```toml
 [dependencies]
-lumina-asr.workspace = true
+dawnsight-asr.workspace = true
 ```
 
 ### 代码使用示例
@@ -57,7 +57,7 @@ lumina-asr.workspace = true
 #### 1. 检查 ASR 环境状态与已安装模型
 
 ```rust
-use lumina_asr::AsrService;
+use dawnsight_asr::AsrService;
 
 let asr = AsrService::new();
 let status = asr.status();
@@ -70,7 +70,7 @@ println!("当前已安装模型数量: {}", status.installed_models.len());
 
 ```rust
 use std::path::Path;
-use lumina_asr::{AsrService, AsrRange};
+use dawnsight_asr::{AsrService, AsrRange};
 
 let asr = AsrService::new();
 let video_path = Path::new("D:/Podcasts/episode.mp4");
@@ -92,7 +92,7 @@ println!("成功生成字幕，共 {} 句", transcript.cues.len());
 
 ## 4. 内部子模块全景
 
-`lumina-asr/src/` 的主要实现模块如下；列表聚焦稳定的核心文件，内部辅助文件可随实现调整：
+`dawnsight-asr/src/` 的主要实现模块如下；列表聚焦稳定的核心文件，内部辅助文件可随实现调整：
 
 | 源码文件 | 模块名称 | 核心职责与导出项 |
 | :--- | :--- | :--- |
@@ -133,7 +133,7 @@ sequenceDiagram
     end
     Bin-->>Wh: 退出并输出 SRT 内容
     Wh-->>Svc: 返回原始 SRT 文本
-    Svc->>Svc: 解析为 lumina_subtitle::Transcript
+    Svc->>Svc: 解析为 dawnsight_subtitle::Transcript
     Svc->>Svc: 释放 busy 原子锁，清理临时 wav
     Svc-->>App: 返回完整识别结果
 ```

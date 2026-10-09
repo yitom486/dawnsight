@@ -13,7 +13,7 @@
 - `apps/desktop/src-tauri/native/ffmpeg/ffmpeg.exe` 与 `ffprobe.exe` 已准备好（或明确传入等价路径）；安装包验收还要确认 Tauri resources 中的 `ffmpeg/` 资源存在。
 - libmpv runtime 和 Windows 原生播放依赖已准备好；播放器必须实际显示 native surface。
 - Agent Settings 已配置一个可运行 profile（默认 `codex`），并完成所需登录/授权。Agent 是按需启动的；打开应用或媒体不应提前 spawn。
-- 关闭会持有同一 Codex rollout/session 的其他桌面客户端，避免 writer lock 把“恢复失败”伪装成 Lumina 数据丢失。
+- 关闭会持有同一 Codex rollout/session 的其他桌面客户端，避免 writer lock 把“恢复失败”伪装成 Dawnsight 数据丢失。
 - 记录本轮测试的应用数据目录、媒体路径、profile、模型和 reasoning 档位；不要把 token、完整 stderr 或用户目录中的敏感内容贴入缺陷。
 
 ## 2. 生成并验证 deterministic fixture
@@ -21,7 +21,7 @@
 脚本只生成输入媒体并调用 ffprobe 校验，不启动 Tauri、ACP 或 Agent，因此可以在没有外部 Agent 的机器上重复运行：
 
 ```powershell
-$out = Join-Path $env:TEMP "lumina-chapter-agent-e2e"
+$out = Join-Path $env:TEMP "dawnsight-chapter-agent-e2e"
 bun scripts/chapter-agent-e2e-fixture.mjs --out $out
 bun scripts/chapter-agent-e2e-fixture.mjs --verify (Join-Path $out "chapter-agent-fixture.mkv")
 ```
@@ -51,8 +51,8 @@ chapter evidence prepared task_key=<stable-key> transcript_windows>0 screenshots
 
 1. 在无容器章节的章节工作区点击「开始 AI 分段」；这是本流程唯一的启动动作。重复点击同一媒体/episode key，应该复用或拒绝重复作业，不应产生第二套章节资产。
 2. 立即记录返回的任务身份和 UI 状态：任务进入 queued/running，且任务卡属于 **AI 观剧流**，不是自由聊天 turn。
-3. 确认新建的是独立 ACP session：它可以使用当前 Agent profile、工作目录和 Lumina MCP，但不能复用主聊天 session，也不能把章节 prompt/产物写入自由聊天历史。
-4. 在 Agent/MCP 事件或开发日志中确认按时间轴逐步读取字幕窗口，并至少成功请求一次 `lumina_capture_frames`；只读完整段字幕后凭空生成章节、或没有任何画面证据，不通过。
+3. 确认新建的是独立 ACP session：它可以使用当前 Agent profile、工作目录和 Dawnsight MCP，但不能复用主聊天 session，也不能把章节 prompt/产物写入自由聊天历史。
+4. 在 Agent/MCP 事件或开发日志中确认按时间轴逐步读取字幕窗口，并至少成功请求一次 `dawnsight_capture_frames`；只读完整段字幕后凭空生成章节、或没有任何画面证据，不通过。
 5. 检查专有任务是版本化 `chapter_segment` prompt；快捷按钮只传任务 ID、参数和用户补充，不把专有 prompt 文本散落到 React 可见消息中。
 6. 章节 Agent 的会话生命周期由 Rust/ACP 管理。React 不应接触 HWND、FFI pointer、子进程生命周期或原始协议内容。
 
@@ -139,10 +139,10 @@ attempt=3 mode=incremental validation=success   # 可修复样例
 ## 9. 清理
 
 1. 正常结束章节 Agent 会话，确认没有孤儿 `codex-acp`/Node/Codex 进程。
-2. 退出 Tauri 后，删除本次生成的临时 fixture 目录；先确认路径只位于 `%TEMP%\lumina-chapter-agent-e2e`，再执行：
+2. 退出 Tauri 后，删除本次生成的临时 fixture 目录；先确认路径只位于 `%TEMP%\dawnsight-chapter-agent-e2e`，再执行：
 
 ```powershell
-$out = Join-Path $env:TEMP "lumina-chapter-agent-e2e"
+$out = Join-Path $env:TEMP "dawnsight-chapter-agent-e2e"
 if (Test-Path -LiteralPath $out) { Remove-Item -LiteralPath $out -Recurse -Force }
 ```
 

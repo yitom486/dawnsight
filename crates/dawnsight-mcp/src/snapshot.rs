@@ -474,7 +474,7 @@ mod tests {
             task_id: 7,
             attempt_id: 3,
             episode_id: 11,
-            database_path: r"C:\data\lumina.sqlite3".into(),
+            database_path: r"C:\data\dawnsight.sqlite3".into(),
             media_path: r"C:\videos\episode.mkv".into(),
             duration_ms: 90_000,
             spoiler_boundary: "episode".into(),
@@ -509,7 +509,7 @@ mod tests {
             task_id: 21,
             attempt_id: 22,
             episode_id: 23,
-            database_path: r"C:\data\lumina.sqlite3".into(),
+            database_path: r"C:\data\dawnsight.sqlite3".into(),
             media_path: r"C:\videos\episode.mkv".into(),
             duration_ms: 120_000,
             spoiler_boundary: "episode".into(),
@@ -537,7 +537,7 @@ mod tests {
     #[test]
     fn syncing_ordinary_snapshot_drops_stale_chapter_scope() {
         let dir = std::env::temp_dir().join(format!(
-            "lumina-chat-sync-{}-{}",
+            "dawnsight-chat-sync-{}-{}",
             std::process::id(),
             now_ms()
         ));
@@ -548,7 +548,7 @@ mod tests {
             task_id: 31,
             attempt_id: 32,
             episode_id: 33,
-            database_path: r"C:\data\lumina.sqlite3".into(),
+            database_path: r"C:\data\dawnsight.sqlite3".into(),
             media_path: r"C:\videos\episode.mkv".into(),
             duration_ms: 120_000,
             spoiler_boundary: "episode".into(),

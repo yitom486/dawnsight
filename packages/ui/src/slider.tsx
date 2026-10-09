@@ -1,5 +1,5 @@
 /**
- * shadcn/ui Base UI implementation, retaining Lumina's existing visual API.
+ * shadcn/ui Base UI implementation, retaining Dawnsight's existing visual API.
  * Source/API reference: https://ui.shadcn.com/docs/components/base/slider
  */
 import { Slider as SliderPrimitive } from "@base-ui/react/slider";

@@ -1,6 +1,6 @@
-//! Shared path rules for the local media library and Lumina data dirs.
+//! Shared path rules for the local media library and Dawnsight data dirs.
 //!
-//! All code that writes or reads `.lumina/**` or compares media paths against
+//! All code that writes or reads `.dawnsight/**` or compares media paths against
 //! library roots should go through this module so scan, index lookup, MCP tools,
 //! and metadata I/O stay aligned.
 
@@ -10,12 +10,6 @@ use crate::error::LibraryError;
 
 pub const DAWNSIGHT_DIR_NAME: &str = ".dawnsight";
 
-/// Pre-rename data dir. Read-only fallback: after the lumina→dawnsight
-/// rename, existing libraries only have `.lumina/index.json` + `groups`.
-/// Reads fall back to it when the new location has nothing yet; every write
-/// targets `.dawnsight`, so the next rescan migrates forward naturally.
-pub const LEGACY_DIR_NAME: &str = ".lumina";
-
 pub fn dawnsight_dir(root: &Path) -> PathBuf {
     root.join(DAWNSIGHT_DIR_NAME)
 }
@@ -24,23 +18,10 @@ pub fn dawnsight_index_path(root: &Path) -> PathBuf {
     dawnsight_dir(root).join("index.json")
 }
 
-pub fn legacy_index_path(root: &Path) -> PathBuf {
-    root.join(LEGACY_DIR_NAME).join("index.json")
-}
-
-/// Read-side index location: new dir wins when it has an index, otherwise
-/// the pre-rename copy. Falls back to the new path (for future writes) when
-/// neither exists.
+/// Read-side index location. Single location since the rename (no users to
+/// migrate): callers that only need the path keep using this helper.
 pub fn index_path_for_read(root: &Path) -> PathBuf {
-    let modern = dawnsight_index_path(root);
-    if modern.is_file() {
-        return modern;
-    }
-    let legacy = legacy_index_path(root);
-    if legacy.is_file() {
-        return legacy;
-    }
-    modern
+    dawnsight_index_path(root)
 }
 
 pub fn dawnsight_groups_dir(root: &Path) -> PathBuf {
@@ -92,12 +73,11 @@ pub fn display_relative_path(root: &Path, path: &Path) -> String {
     relativize_under_root(root, path).unwrap_or_else(|_| normalize_slashes(path))
 }
 
-/// Walk parents of `media_path` looking for an index (new `.dawnsight` first,
-/// then the pre-rename `.lumina` copy).
+/// Walk parents of `media_path` looking for a `.dawnsight` index.
 pub fn discover_library_root_for_media(media_path: &Path) -> Option<PathBuf> {
     let mut current = media_path.parent()?;
     loop {
-        if dawnsight_index_path(current).is_file() || legacy_index_path(current).is_file() {
+        if dawnsight_index_path(current).is_file() {
             return Some(current.to_path_buf());
         }
         current = current.parent()?;
@@ -106,7 +86,7 @@ pub fn discover_library_root_for_media(media_path: &Path) -> Option<PathBuf> {
 
 /// Best-effort library root for a media file.
 ///
-/// Prefer the nearest `.lumina/index.json` walking up from the file so metadata
+/// Prefer the nearest `.dawnsight/index.json` walking up from the file so metadata
 /// stored beside a show folder is found even when a broader configured root
 /// (for example `D:\movie`) also contains the file.
 pub fn library_root_for_media_path(
@@ -152,7 +132,7 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
-    fn lumina_paths_share_one_dir_name() {
+    fn dawnsight_paths_share_one_dir_name() {
         let root = PathBuf::from("movie").join("Show");
         assert_eq!(
             dawnsight_index_path(&root),
@@ -204,52 +184,6 @@ mod tests {
     }
 
     #[test]
-    fn legacy_lumina_index_is_discovered_when_new_dir_is_absent() {
-        use std::time::{SystemTime, UNIX_EPOCH};
-
-        let suffix = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map(|duration| duration.as_nanos())
-            .unwrap_or_default();
-        let show = std::env::temp_dir().join(format!("lumina-legacy-{suffix}"));
-        let legacy = show.join(LEGACY_DIR_NAME);
-        fs::create_dir_all(&legacy).expect("mkdir legacy");
-        fs::write(
-            legacy.join("index.json"),
-            r#"{"schemaVersion":1,"root":"","updatedAtMs":0,"files":[],"groups":[]}"#,
-        )
-        .expect("write legacy index");
-        let media = show.join("S01E01.mkv");
-        fs::write(&media, b"").expect("write media");
-
-        assert_eq!(discover_library_root_for_media(&media), Some(show.clone()));
-        assert_eq!(index_path_for_read(&show), legacy.join("index.json"));
-        let _ = fs::remove_dir_all(&show);
-    }
-
-    #[test]
-    fn new_index_wins_over_legacy_copy() {
-        use std::time::{SystemTime, UNIX_EPOCH};
-
-        let suffix = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map(|duration| duration.as_nanos())
-            .unwrap_or_default();
-        let show = std::env::temp_dir().join(format!("lumina-both-{suffix}"));
-        for dir in [DAWNSIGHT_DIR_NAME, LEGACY_DIR_NAME] {
-            let target = show.join(dir);
-            fs::create_dir_all(&target).expect("mkdir");
-            fs::write(
-                target.join("index.json"),
-                r#"{"schemaVersion":1,"root":"","updatedAtMs":0,"files":[],"groups":[]}"#,
-            )
-            .expect("write index");
-        }
-        assert_eq!(index_path_for_read(&show), dawnsight_index_path(&show));
-        let _ = fs::remove_dir_all(&show);
-    }
-
-    #[test]
     fn prefers_nearest_discovered_index_over_broader_configured_root() {
         use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -257,10 +191,10 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .map(|duration| duration.as_nanos())
             .unwrap_or_default();
-        let temp = std::env::temp_dir().join(format!("lumina-paths-{suffix}"));
+        let temp = std::env::temp_dir().join(format!("dawnsight-paths-{suffix}"));
         let show = temp.join("Show Folder");
-        let nested_lumina = dawnsight_dir(&show);
-        fs::create_dir_all(&nested_lumina).expect("mkdir nested lumina");
+        let nested_dawnsight = dawnsight_dir(&show);
+        fs::create_dir_all(&nested_dawnsight).expect("mkdir nested dawnsight");
         fs::write(
             dawnsight_index_path(&show),
             r#"{"schemaVersion":1,"root":"","updatedAtMs":0,"files":[],"groups":[]}"#,

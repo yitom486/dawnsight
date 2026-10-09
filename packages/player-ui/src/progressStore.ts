@@ -43,7 +43,7 @@ export const useProgressStore = create<ProgressState>()(
       getProgress: (path) => get().byPath[path] ?? null,
     }),
     {
-      name: "lumina-playback-progress",
+      name: "dawnsight-playback-progress",
       partialize: (state) => ({ byPath: state.byPath }),
     },
   ),

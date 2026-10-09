@@ -72,7 +72,7 @@ function migratePersisted(persisted: unknown): {
  * 做（scope_mismatch 直接建新，绝不跨 profile 续别人的线程）。
  *
  * 主备关系（B3）：SQLite `acp_session_hints` 表是 hint 主层（以它为准），
- * 本 persist（`lumina-acp-session`）只保留作纯离线备：DB 不可用时内存可聊，
+ * 本 persist（`dawnsight-acp-session`）只保留作纯离线备：DB 不可用时内存可聊，
  * 重启靠这里兜底一次，随后由 hydrate 回填 DB 收敛。迁移时只迁内容不删键。
  */
 export const useAcpSessionStore = create<AcpSessionStore>()(
@@ -105,7 +105,7 @@ export const useAcpSessionStore = create<AcpSessionStore>()(
       clearAllSavedSessions: () => set({ savedSessions: {} }),
     }),
     {
-      name: "lumina-acp-session",
+      name: "dawnsight-acp-session",
       version: 1,
       partialize: (state) => ({ savedSessions: state.savedSessions }),
       // v0→v1 必须走 migrate：光靠 merge 不够，version 不一致时 zustand

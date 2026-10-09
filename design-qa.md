@@ -4,9 +4,9 @@ Date: 2026-09-20
 
 ## Target
 
-- References: `ui/lumina-desktop-overview-reference.png`,
-  `ui/lumina-settings-workspace-reference.png`,
-  `ui/lumina-transcript-reading-reference.png`,
+- References: `ui/dawnsight-desktop-overview-reference.png`,
+  `ui/dawnsight-settings-workspace-reference.png`,
+  `ui/dawnsight-transcript-reading-reference.png`,
   `ui/dawnsight-ai-automation-settings-reference.png`.
 - Outcome: dark graphite desktop shell; a labeled workspaces rail; a full Settings
   workspace with a category column; no configuration forms in the reading rail;

@@ -1,6 +1,6 @@
 //! Subtitle / transcript domain (library crate).
 //!
-//! Agent-backed translation stays in the app (`translate` bridge) until M5 `lumina-ai`.
+//! Agent-backed translation stays in the app (`translate` bridge) until M5 `dawnsight-ai`.
 
 pub mod error;
 pub mod extract;

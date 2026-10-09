@@ -322,7 +322,8 @@ mod tests {
             "ffmpeg resolved but ffprobe is missing next to it"
         );
 
-        let dir = std::env::temp_dir().join(format!("lumina-codec-matrix-{}", std::process::id()));
+        let dir =
+            std::env::temp_dir().join(format!("dawnsight-codec-matrix-{}", std::process::id()));
         std::fs::create_dir_all(&dir).expect("matrix temp dir");
 
         // The matrix covers codecs, not encoders: first available candidate wins.
@@ -411,7 +412,8 @@ mod tests {
 
     #[test]
     fn missing_file_is_chinese_not_found() {
-        let err = probe_file(Path::new("Z:\\lumina-missing-media-xyz.mp4")).expect_err("missing");
+        let err =
+            probe_file(Path::new("Z:\\dawnsight-missing-media-xyz.mp4")).expect_err("missing");
         assert_eq!(err.code, crate::error::MediaErrorCode::FileNotFound);
         assert!(err
             .message

@@ -26,7 +26,7 @@ describe("useAcpSettingsStore", () => {
       thinkingLevel: "verbose",
     });
 
-    const raw = localStorage.getItem("lumina-acp-settings");
+    const raw = localStorage.getItem("dawnsight-acp-settings");
     expect(raw).toBeTruthy();
     const parsed = JSON.parse(raw!) as {
       state: {

@@ -232,12 +232,12 @@ fn preferred_model(models: &[AsrModelInfo]) -> Option<PathBuf> {
         .map(|m| PathBuf::from(&m.path))
 }
 
-/// Writable install root: `{APPDATA|…}/lumina/whisper`.
+/// Writable install root: `{APPDATA|…}/dawnsight/whisper`.
 pub fn install_root() -> PathBuf {
     if let Some(dir) = dirs_data() {
-        return dir.join("lumina").join("whisper");
+        return dir.join("dawnsight").join("whisper");
     }
-    std::env::temp_dir().join("lumina-whisper")
+    std::env::temp_dir().join("dawnsight-whisper")
 }
 
 pub fn models_install_dir() -> PathBuf {

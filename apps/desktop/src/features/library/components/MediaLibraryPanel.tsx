@@ -224,12 +224,12 @@ function LibrarySettingsContent() {
         : {
             kind: "directApi" as const,
             // Environment variables remain a development/CI fallback only.
-            model: { baseUrl: modelBaseUrl, modelId, apiKeyEnv: "LUMINA_METADATA_MODEL_API_KEY" },
+            model: { baseUrl: modelBaseUrl, modelId, apiKeyEnv: "DAWNSIGHT_METADATA_MODEL_API_KEY" },
           };
       return {
         privacyAcknowledged,
         provider,
-        tmdb: { accessTokenEnv: "LUMINA_TMDB_ACCESS_TOKEN", language: tmdbLanguage },
+        tmdb: { accessTokenEnv: "DAWNSIGHT_TMDB_ACCESS_TOKEN", language: tmdbLanguage },
       };
     },
     [activeAcpProfileId, acpProfiles, agentModelId, agentReasoningEffort, modelBaseUrl, modelId, privacyAcknowledged, resolverProvider, selectedAgentProfileId, tmdbLanguage],
@@ -316,7 +316,7 @@ function LibrarySettingsContent() {
       }
       return discoverLibraryModels({
         baseUrl: modelBaseUrl,
-        apiKeyEnv: "LUMINA_METADATA_MODEL_API_KEY",
+        apiKeyEnv: "DAWNSIGHT_METADATA_MODEL_API_KEY",
       });
     },
     onSuccess: setModelConnection,
@@ -500,7 +500,7 @@ function LibrarySettingsContent() {
                 独立模型服务（推荐）
               </NativeSelectOption>
               <NativeSelectOption value="acpAgent">
-                复用 Lumina Agent（高级）
+                复用 Dawnsight Agent（高级）
               </NativeSelectOption>
             </NativeSelect>
           </Field>
@@ -677,7 +677,7 @@ function LibrarySettingsContent() {
             />
           </Field>
           <div className="space-y-1 text-muted-foreground">
-            <p>密钥保存在当前 Windows 用户的系统安全凭据中，不会写入 `.lumina`、项目文件或浏览器设置。</p>
+            <p>密钥保存在当前 Windows 用户的系统安全凭据中，不会写入 `.dawnsight`、项目文件或浏览器设置。</p>
             <p>{tmdbAccessToken.trim() ? "已输入新 TMDb Token，点击“保存到此设备”后才会长期保存。" : tmdbTokenSaved ? "TMDb Token 已安全保存到此设备，可直接用于 TMDb 匹配与维基补充，无需重新输入。" : "尚未保存 TMDb Token。"}</p>
             <div className="flex flex-wrap gap-1">
               <Button size="sm" disabled={(!modelApiKey && !tmdbAccessToken) || saveCredentialsMutation.isPending} onClick={() => saveCredentialsMutation.mutate()}>保存到此设备</Button>

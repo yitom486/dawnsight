@@ -38,7 +38,7 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  /* Lumina product semantics */
+  /* Dawnsight product semantics */
   --color-surface: var(--surface);
   --color-surface-foreground: var(--surface-foreground);
   --color-surface-subtle: var(--surface-subtle);
@@ -103,7 +103,7 @@
   --sidebar-border: #2a2f38;
   --sidebar-ring: #7a8494;
 
-  /* Lumina product surfaces */
+  /* Dawnsight product surfaces */
   --surface: #121417;
   --surface-foreground: #e8eaed;
   --surface-subtle: #22262c;

@@ -1,7 +1,7 @@
 //! Tauri boundary for durable chat snapshots and ACP session hints.
 //!
 //! B1 covers the Rust side only: the commands below persist caller-pruned
-//! snapshots into the shared `lumina.sqlite3` (migration 4) through
+//! snapshots into the shared `dawnsight.sqlite3` (migration 4) through
 //! [`dawnsight_library::Database`]. No new database file, no frontend changes.
 
 use std::path::PathBuf;
@@ -243,13 +243,6 @@ fn database_path() -> Result<PathBuf, ChatStoreError> {
     let base = super::system::data_dir()
         .ok_or_else(|| ChatStoreError::internal("application data directory unavailable"))?;
     let new_path = base.join("dawnsight").join("dawnsight.sqlite3");
-    let legacy_path = base.join("lumina").join("lumina.sqlite3");
-    if !new_path.exists() && legacy_path.exists() {
-        if let Some(parent) = new_path.parent() {
-            let _ = std::fs::create_dir_all(parent);
-        }
-        let _ = std::fs::copy(&legacy_path, &new_path);
-    }
     Ok(new_path)
 }
 

@@ -9,7 +9,7 @@ const DEFAULT_PUBLIC_MP4: &str =
 
 #[test]
 fn public_online_source_resolves_and_reaches_mpv_demux() {
-    let page_url = std::env::var("LUMINA_ONLINE_E2E_URL")
+    let page_url = std::env::var("DAWNSIGHT_ONLINE_E2E_URL")
         .ok()
         .filter(|value| !value.trim().is_empty())
         .unwrap_or_else(|| DEFAULT_PUBLIC_MP4.to_string());

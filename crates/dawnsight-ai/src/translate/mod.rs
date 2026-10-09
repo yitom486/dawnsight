@@ -32,7 +32,7 @@ pub const TRANSLATE_BATCH_SIZE: usize = 40;
 pub const SIMPLIFIED_CHINESE_TOKEN: &str = "zh-CN";
 
 /// Normalize a translation target without changing the filename-safe token
-/// rules owned by `lumina-subtitle`. In particular, `zh` and `zh_CN` are
+/// rules owned by `dawnsight-subtitle`. In particular, `zh` and `zh_CN` are
 /// aliases for the product's Simplified Chinese locale.
 pub fn normalize_translation_language(target_lang: &str) -> Result<String, SubtitleError> {
     let token = normalize_lang_token(target_lang)?;

@@ -24,7 +24,7 @@ runs:
         }
         if (-not (Test-Path "$mpvDir/libmpv-2.dll") -or -not (Test-Path "$mpvDir/mpv.lib")) {
           $archive = Join-Path $env:RUNNER_TEMP $metadata['archive']
-          $extractDir = Join-Path $env:RUNNER_TEMP 'lumina-mpv-dev'
+          $extractDir = Join-Path $env:RUNNER_TEMP 'dawnsight-mpv-dev'
           curl.exe -L --fail --retry 3 -o $archive $metadata['url']
           New-Item -ItemType Directory -Force -Path $extractDir | Out-Null
           tar.exe -xf $archive -C $extractDir
@@ -61,7 +61,7 @@ runs:
         }
         if (-not (Test-Path "$ffmpegDir/ffprobe.exe") -or -not (Test-Path "$ffmpegDir/ffmpeg.exe")) {
           $archive = Join-Path $env:RUNNER_TEMP 'ffmpeg-essentials.zip'
-          $extractDir = Join-Path $env:RUNNER_TEMP 'lumina-ffmpeg-extract'
+          $extractDir = Join-Path $env:RUNNER_TEMP 'dawnsight-ffmpeg-extract'
           curl.exe -L --fail --retry 3 -o $archive $metadata['url']
           New-Item -ItemType Directory -Force -Path $extractDir | Out-Null
           tar.exe -xf $archive -C $extractDir
@@ -95,7 +95,7 @@ runs:
         esac
 
         platform='${{ inputs.platform }}'
-        tmp_dir="${RUNNER_TEMP:-/tmp}/lumina-ffmpeg-${platform}-${arch}"
+        tmp_dir="${RUNNER_TEMP:-/tmp}/dawnsight-ffmpeg-${platform}-${arch}"
         rm -rf "$tmp_dir"
         mkdir -p "$tmp_dir" "$ffmpeg_dir"
 

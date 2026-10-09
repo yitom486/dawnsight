@@ -45,7 +45,7 @@ Player Runtime（`AppState` → `Mutex<PlayerService>` + `VideoSurface`）由 Ta
 
 | 平台 | 父 handle | 子 surface | 点击/双击 | Wayland/特殊行为 |
 |------|-----------|------------|-----------|------------------|
-| Windows | WebView 父 `HWND` | `LuminaMpvSurface` 子 HWND | 有（→ `SurfaceClick/DoubleClick`） | 主力冒烟平台 |
+| Windows | WebView 父 `HWND` | `DawnsightMpvSurface` 子 HWND | 有（→ `SurfaceClick/DoubleClick`） | 主力冒烟平台 |
 | macOS | AppKit `NSView` | 子 `NSView` | 无（已知 gap，未实现） | Y 轴翻转对齐 WebView |
 | Linux | X11 父 window | `XCreateSimpleWindow` 子窗口 | 无（已知 gap，未实现） | Wayland 句柄 → `NativeWindowError` 明错并 fail-fast（`window/linux.rs`），绝不静默黑屏 |
 
@@ -72,10 +72,10 @@ headless `vo=null` 真解码基线，唯一用途：日后 `CompositedGpu` 与 `
 
 ```powershell
 cd apps/desktop/src-tauri
-# 默认现生成 1080p60/10s（含音频）；自带文件则设 LUMINA_BASELINE_MEDIA
+# 默认现生成 1080p60/10s（含音频）；自带文件则设 DAWNSIGHT_BASELINE_MEDIA
 cargo test --lib baseline_local_playback -- --ignored --nocapture
-$env:LUMINA_BASELINE_MEDIA = "D:\clips\movie4k60.mp4"
-$env:LUMINA_BASELINE_OUT = "$env:TEMP\lumina-baseline.json"
+$env:DAWNSIGHT_BASELINE_MEDIA = "D:\clips\movie4k60.mp4"
+$env:DAWNSIGHT_BASELINE_OUT = "$env:TEMP\dawnsight-baseline.json"
 cargo test --lib baseline_local_playback -- --ignored --nocapture
 ```
 
@@ -93,7 +93,7 @@ demux 368ms，首帧 884ms，稳态 5000/5000ms，三点 seek 6/53/1ms，丢帧 
 
 - [x] Windows（2026-09-06，0.3.0 debug MSI 解包运行）：安装布局含 `mpv/libmpv-2.dll` +
   `ffmpeg/{ffmpeg,ffprobe}.exe`；冷启动 25s 无 ERROR；会话恢复自动播真实 1080p H.264
- （start-file/file-loaded/playback-restart）；`%APPDATA%/lumina/logs` 落盘正常
+ （start-file/file-loaded/playback-restart）；`%APPDATA%/dawnsight/logs` 落盘正常
 - [ ] Windows：HEVC / AV1 各打开 1 个 → 首帧 + 10s 播放 + seek 2 次（需人眼）
 - [ ] Windows：SRT / ASS / VTT 文稿 + 点击 seek；位图轨上画面
 - [ ] Windows：视频面单击暂停/双击全屏

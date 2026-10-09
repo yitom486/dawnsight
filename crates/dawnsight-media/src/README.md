@@ -1,19 +1,19 @@
-# lumina-media
+# dawnsight-media
 
-`lumina-media` 是 Lumina 的本地多媒体探测与工具集成领域库。它通过系统级集成 `ffprobe` 与 `ffmpeg`，提供流媒体元数据分析、章节探测、视频帧抓取及相邻剧集发现等能力，**完全独立于 libmpv 播放引擎与桌面 UI**。
+`dawnsight-media` 是 Dawnsight 的本地多媒体探测与工具集成领域库。它通过系统级集成 `ffprobe` 与 `ffmpeg`，提供流媒体元数据分析、章节探测、视频帧抓取及相邻剧集发现等能力，**完全独立于 libmpv 播放引擎与桌面 UI**。
 
 ---
 
 ## 1. 模块定位与职责
 
-在 Lumina 整体架构中，`lumina-media` 是所有媒体相关业务的基础支撑组件：
+在 Dawnsight 整体架构中，`dawnsight-media` 是所有媒体相关业务的基础支撑组件：
 
 ```text
-[lumina-subtitle]   [lumina-asr]   [lumina-notes]   [lumina-library]
+[dawnsight-subtitle]   [dawnsight-asr]   [dawnsight-notes]   [dawnsight-library]
         \                |               /                 /
          \               |              /                 /
           ▼              ▼             ▼                 ▼
-                         [ lumina-media ]
+                         [ dawnsight-media ]
                                  │
                    (本地进程 spawn / CLI 封装)
                                  ▼
@@ -35,7 +35,7 @@
 ## 2. 构建思路与设计原则
 
 1. **分离播放与探测（Separate Probe from Playback）**：
-   - 传统桌面播放器常依赖播放器核心（如 mpv 属性）拉取视频元信息，容易在视频未初始化完毕时引发状态不同步。`lumina-media` 使用本地绑定的 `ffprobe` 作为单独的数据探测源，使得媒体库扫描、字幕分析可以在后台独立、无头（Headless）运行。
+   - 传统桌面播放器常依赖播放器核心（如 mpv 属性）拉取视频元信息，容易在视频未初始化完毕时引发状态不同步。`dawnsight-media` 使用本地绑定的 `ffprobe` 作为单独的数据探测源，使得媒体库扫描、字幕分析可以在后台独立、无头（Headless）运行。
 2. **多层缓存优化（Probe Cache）**：
    - 打开媒体时，播放控制面板、字幕提取、文稿初始化都会读取媒体信息。通过全局 `ProbeCache`（键为规范化路径，结合文件修改时间和尺寸），将探查开销降至最低。
 3. **静默进程控制（Cross-Platform Process Management）**：
@@ -49,7 +49,7 @@
 
 ```toml
 [dependencies]
-lumina-media.workspace = true
+dawnsight-media.workspace = true
 ```
 
 ### 代码使用示例
@@ -58,7 +58,7 @@ lumina-media.workspace = true
 
 ```rust
 use std::path::Path;
-use lumina_media::{MediaInspector, StreamKind};
+use dawnsight_media::{MediaInspector, StreamKind};
 
 let inspector = MediaInspector::new();
 let info = inspector.inspect(Path::new("D:/Movies/example.mkv"))?;
@@ -75,7 +75,7 @@ for stream in info.streams.iter().filter(|s| s.kind == StreamKind::Subtitle) {
 
 ```rust
 use std::path::Path;
-use lumina_media::list_sibling_videos;
+use dawnsight_media::list_sibling_videos;
 
 let current = Path::new("D:/Series/S01E02.mp4");
 let siblings = list_sibling_videos(current);
@@ -86,7 +86,7 @@ let siblings = list_sibling_videos(current);
 
 ## 4. 内部子模块全景
 
-`lumina-media/src/` 的主要实现模块如下；列表聚焦稳定的核心文件，内部辅助文件可随实现调整：
+`dawnsight-media/src/` 的主要实现模块如下；列表聚焦稳定的核心文件，内部辅助文件可随实现调整：
 
 | 源码文件 | 模块名称 | 核心职责与导出项 |
 | :--- | :--- | :--- |

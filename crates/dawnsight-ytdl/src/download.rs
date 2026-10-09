@@ -11,7 +11,7 @@ use crate::model::{YtdlInstallEvent, YtdlStatus};
 use crate::paths::{cli_version, find_cli_any, install_root, install_supported, status, CLI_NAME};
 use dawnsight_media::process::command;
 
-const USER_AGENT: &str = "Lumina/0.2 (optional yt-dlp installer)";
+const USER_AGENT: &str = "Dawnsight/0.2 (optional yt-dlp installer)";
 /// Stable channel rather than a pinned tag: extractors must keep pace with sites.
 const CLI_URL: &str = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe";
 const CHECKSUM_URL: &str = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-256SUMS";

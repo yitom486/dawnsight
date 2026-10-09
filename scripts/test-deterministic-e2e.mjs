@@ -63,28 +63,17 @@ const phases = [
     env: { DAWNSIGHT_CHAPTER_BLACKBOX_DELAY_MS: "1000" },
   },
   {
-    name: "acp-stdio-session-boundary",
-    command: "cargo",
-    args: [
-      "test",
-      "-p",
-      "lumina-acp",
-      "--features",
-      "test-support",
-      "--test",
-      "chapter_session_blackbox",
-      "--",
-      "--nocapture",
-    ],
-    cwd: repoRoot,
-  },
-  {
+    // NOTE (rename batch): the old ACP-crate `--test chapter_session_blackbox`
+    // phase was dropped, not renamed — no equivalent target exists anywhere in
+    // the repo (verified 2026-10-09). ACP stdio boundary coverage is tracked in
+    // .plan/L2-lumina-rename-dawnsight.md Wave A; re-add a phase when such a
+    // target lands instead of pointing at a missing package.
     name: "sqlite-crud-and-projection-boundary",
     command: "cargo",
     args: [
       "test",
       "-p",
-      "lumina-library",
+      "dawnsight-library",
       "--test",
       "database_integration",
       "--test",

@@ -301,7 +301,7 @@ mod tests {
 
     #[test]
     fn missing_file_lists_as_not_found() {
-        let err = list_sibling_videos(r"Z:\lumina-no-such-file.mp4").expect_err("missing");
+        let err = list_sibling_videos(r"Z:\dawnsight-no-such-file.mp4").expect_err("missing");
         assert_eq!(err.code, crate::error::MediaErrorCode::FileNotFound);
     }
 

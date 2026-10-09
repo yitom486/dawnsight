@@ -155,7 +155,7 @@ impl SubtitleProvider for SubdlProvider {
         let url = with_api_key(
             &format!(
                 "https://api.subdl.com/api/v1/subtitles?unpack=1&film_name={}",
-                url_encode("Lumina key probe")
+                url_encode("Dawnsight key probe")
             ),
             key,
         );

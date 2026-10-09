@@ -190,7 +190,8 @@ mod tests {
             eprintln!("SKIP probe cache: ffmpeg not vendored on this machine");
             return;
         }
-        let dir = std::env::temp_dir().join(format!("lumina-probe-cache-{}", std::process::id()));
+        let dir =
+            std::env::temp_dir().join(format!("dawnsight-probe-cache-{}", std::process::id()));
         std::fs::create_dir_all(&dir).expect("cache temp dir");
         let media = make_fixture(&dir);
 

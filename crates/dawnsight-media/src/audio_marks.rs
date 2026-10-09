@@ -310,7 +310,7 @@ garbage line without readings\n";
             eprintln!("SKIP silence e2e: ffmpeg not vendored on this machine");
             return;
         }
-        let dir = std::env::temp_dir().join(format!("lumina-audio-gap-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("dawnsight-audio-gap-{}", std::process::id()));
         std::fs::create_dir_all(&dir).expect("audio temp dir");
         let media = make_fixture(
             &dir,
@@ -341,7 +341,8 @@ garbage line without readings\n";
             eprintln!("SKIP burst e2e: ffmpeg not vendored on this machine");
             return;
         }
-        let dir = std::env::temp_dir().join(format!("lumina-audio-burst-{}", std::process::id()));
+        let dir =
+            std::env::temp_dir().join(format!("dawnsight-audio-burst-{}", std::process::id()));
         std::fs::create_dir_all(&dir).expect("audio temp dir");
         let media = make_fixture(
             &dir,

@@ -1,5 +1,5 @@
 /**
- * shadcn/ui Base UI implementation, retaining Lumina's existing visual API.
+ * shadcn/ui Base UI implementation, retaining Dawnsight's existing visual API.
  * Source/API reference: https://ui.shadcn.com/docs/components/base/alert-dialog
  * `AlertDialogAction` uses Base UI Close so it keeps Radix's close-on-action behavior.
  */

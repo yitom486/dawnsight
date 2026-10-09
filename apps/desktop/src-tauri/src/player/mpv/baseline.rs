@@ -3,10 +3,10 @@
 //! Manual only: `cargo test --lib baseline_local_playback -- --ignored --nocapture`
 //!
 //! Env:
-//! - `LUMINA_BASELINE_MEDIA`: media file to measure. When unset, a 1080p60/10s
+//! - `DAWNSIGHT_BASELINE_MEDIA`: media file to measure. When unset, a 1080p60/10s
 //!   fixture is generated with the vendored ffmpeg (SKIP when ffmpeg is missing).
-//! - `LUMINA_BASELINE_STEADY_MS`: steady pacing window, default 5000.
-//! - `LUMINA_BASELINE_OUT`: optional path to also write the JSON report.
+//! - `DAWNSIGHT_BASELINE_STEADY_MS`: steady pacing window, default 5000.
+//! - `DAWNSIGHT_BASELINE_OUT`: optional path to also write the JSON report.
 //!
 //! What it measures (all headless `vo=null`, real decode):
 //! demux-ready latency, first-frame latency (`time-pos > 0`), steady pacing
@@ -56,7 +56,7 @@ fn env_path(name: &str) -> Option<PathBuf> {
 
 fn generate_fixture() -> Option<PathBuf> {
     let ffmpeg = crate::media::tools::resolve_ffmpeg().ok()?;
-    let dir = std::env::temp_dir().join(format!("lumina-baseline-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("dawnsight-baseline-{}", std::process::id()));
     if std::fs::create_dir_all(&dir).is_err() {
         return None;
     }
@@ -105,12 +105,12 @@ fn poll_until(timeout: Duration, mut ready: impl FnMut() -> bool) -> bool {
 #[test]
 #[ignore = "manual baseline: needs seconds of headless decode"]
 fn baseline_local_playback() {
-    let media = match env_path("LUMINA_BASELINE_MEDIA") {
+    let media = match env_path("DAWNSIGHT_BASELINE_MEDIA") {
         Some(path) => path,
         None => match generate_fixture() {
             Some(path) => path,
             None => {
-                eprintln!("SKIP baseline: no LUMINA_BASELINE_MEDIA and ffmpeg unavailable");
+                eprintln!("SKIP baseline: no DAWNSIGHT_BASELINE_MEDIA and ffmpeg unavailable");
                 return;
             }
         },
@@ -121,7 +121,7 @@ fn baseline_local_playback() {
         media.display()
     );
 
-    let steady_window_ms: u64 = std::env::var("LUMINA_BASELINE_STEADY_MS")
+    let steady_window_ms: u64 = std::env::var("DAWNSIGHT_BASELINE_STEADY_MS")
         .ok()
         .and_then(|v| v.parse().ok())
         .unwrap_or(5000);
@@ -216,7 +216,7 @@ fn baseline_local_playback() {
     };
     let json = serde_json::to_string_pretty(&report).expect("baseline report should serialize");
     println!("{json}");
-    if let Some(out) = env_path("LUMINA_BASELINE_OUT") {
+    if let Some(out) = env_path("DAWNSIGHT_BASELINE_OUT") {
         if let Err(error) = std::fs::write(&out, &json) {
             eprintln!("baseline: failed to write {}: {error}", out.display());
         }

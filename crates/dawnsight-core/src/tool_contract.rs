@@ -1,13 +1,13 @@
 //! Canonical agent-tool contract, transport-free (Step 8).
 //!
-//! Identity, argument bounds, and stable result/error boundaries for Lumina's
+//! Identity, argument bounds, and stable result/error boundaries for Dawnsight's
 //! agent tools. Deliberately dependency-free (`std` only): no MCP transport,
 //! no JSON-RPC types, no snapshot IO, and no Cookie / signed-URL / absolute
 //! path / CLI / stderr material. User-facing wording stays owned by each
 //! domain (see [`crate::media_source`]); this module only fixes machine
 //! boundaries so a future non-MCP caller gets byte-identical behavior.
 //!
-//! MCP (`lumina-mcp`) consumes this module for dispatch, arg clamping, and
+//! MCP (`dawnsight-mcp`) consumes this module for dispatch, arg clamping, and
 //! `tools/list` parity. Transport envelopes, `ToolPolicy`, snapshot reads,
 //! and domain service calls stay in MCP.
 

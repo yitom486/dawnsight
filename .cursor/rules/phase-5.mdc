@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Phase 5
 
-Lumina 只做 **ACP Client**；Agent **可选、按需、可插拔**。
+Dawnsight 只做 **ACP Client**；Agent **可选、按需、可插拔**。
 
 ## 分层
 

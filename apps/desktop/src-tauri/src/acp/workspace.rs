@@ -58,7 +58,7 @@ pub fn resolve_session_cwd(hint: Option<&str>) -> Result<PathBuf, AcpError> {
 pub(crate) fn default_session_cwd() -> PathBuf {
     #[cfg(windows)]
     if let Some(base) = std::env::var_os("APPDATA") {
-        return PathBuf::from(base).join("lumina").join("acp-workspace");
+        return PathBuf::from(base).join("dawnsight").join("acp-workspace");
     }
 
     #[cfg(target_os = "macos")]
@@ -66,25 +66,25 @@ pub(crate) fn default_session_cwd() -> PathBuf {
         return PathBuf::from(home)
             .join("Library")
             .join("Application Support")
-            .join("lumina")
+            .join("dawnsight")
             .join("acp-workspace");
     }
 
     #[cfg(all(unix, not(target_os = "macos")))]
     {
         if let Some(base) = std::env::var_os("XDG_DATA_HOME") {
-            return PathBuf::from(base).join("lumina").join("acp-workspace");
+            return PathBuf::from(base).join("dawnsight").join("acp-workspace");
         }
         if let Some(home) = std::env::var_os("HOME") {
             return PathBuf::from(home)
                 .join(".local")
                 .join("share")
-                .join("lumina")
+                .join("dawnsight")
                 .join("acp-workspace");
         }
     }
 
-    std::env::temp_dir().join("lumina").join("acp-workspace")
+    std::env::temp_dir().join("dawnsight").join("acp-workspace")
 }
 
 fn normalize_abs(path: PathBuf) -> PathBuf {
@@ -206,7 +206,7 @@ mod tests {
 
     #[test]
     fn resolve_cwd_takes_parent_of_file_hint() {
-        let tmp = std::env::temp_dir().join("lumina-acp-cwd-file.mp4");
+        let tmp = std::env::temp_dir().join("dawnsight-acp-cwd-file.mp4");
         let _ = std::fs::write(&tmp, b"x");
         let cwd = resolve_session_cwd(Some(tmp.to_str().expect("utf8"))).expect("cwd");
         let parent = tmp.parent().expect("parent");
@@ -263,7 +263,7 @@ mod tests {
 
     #[test]
     fn agent_workspace_is_stable_ascii_and_per_directory() {
-        let base = std::env::temp_dir().join("lumina-acp-ws-test");
+        let base = std::env::temp_dir().join("dawnsight-acp-ws-test");
         let dir_a = base.join("剧集A");
         let dir_b = base.join("剧集B");
         std::fs::create_dir_all(&dir_a).expect("mkdir a");

@@ -58,7 +58,7 @@ export const useChatUiStore = create<ChatUiStore>()(
       },
     }),
     {
-      name: "lumina-chat-ui",
+      name: "dawnsight-chat-ui",
       partialize: (state) => ({
         showActivityWhileDone: state.showActivityWhileDone,
         dockWidth: state.dockWidth,

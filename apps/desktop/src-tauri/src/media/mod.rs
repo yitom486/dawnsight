@@ -1,4 +1,4 @@
-//! App compat: media implementation lives in `lumina-media` (M3).
+//! App compat: media implementation lives in `dawnsight-media` (M3).
 //!
 //! Existing `crate::media::…` paths keep working through this re-export.
 

@@ -1,6 +1,6 @@
 //! App-provided session environment for ACP spawn paths.
 //!
-//! `lumina-acp` never touches the Dawnsight MCP snapshot or file library
+//! App-side ACP assembly never touches the Dawnsight MCP snapshot or file library
 //! directly. The app installs one [`SessionEnvironment`] at startup; all
 //! `session/new|resume` wiring and snapshot capability IO go through it.
 //! Chat snapshot build/write/reset live in the app adapter instead.

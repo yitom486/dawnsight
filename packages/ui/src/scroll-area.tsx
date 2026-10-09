@@ -1,5 +1,5 @@
 /**
- * shadcn/ui Base UI implementation, retaining Lumina's existing visual API.
+ * shadcn/ui Base UI implementation, retaining Dawnsight's existing visual API.
  * Source/API reference: https://ui.shadcn.com/docs/components/base/scroll-area
  */
 import { ScrollArea as ScrollAreaPrimitive } from "@base-ui/react/scroll-area";

@@ -1,5 +1,5 @@
 /**
- * shadcn/ui Base UI implementation, retaining Lumina's existing variants.
+ * shadcn/ui Base UI implementation, retaining Dawnsight's existing variants.
  * Source/API reference: https://ui.shadcn.com/docs/components/base/button
  * Mechanical adaptations: `cn` is local; app code uses `render` for composition.
  */

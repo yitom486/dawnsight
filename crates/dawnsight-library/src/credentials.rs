@@ -1,6 +1,6 @@
 //! Secure persistence for optional media-metadata credentials.
 //!
-//! Secret values are kept out of `.lumina`, WebView storage, logs, and normal
+//! Secret values are kept out of `.dawnsight`, WebView storage, logs, and normal
 //! application settings. On Windows they live in the current user's Windows
 //! Credential Manager. Environment variables remain a non-persistent fallback
 //! for development and CI.
@@ -12,7 +12,7 @@ use crate::error::LibraryError;
 #[cfg(windows)]
 const SERVICE_NAME: &str = "com.dawnsight.desktop.media-metadata";
 #[cfg(windows)]
-const LEGACY_SERVICE_NAME: &str = "com.lumina.desktop.media-metadata";
+const LEGACY_SERVICE_NAME: &str = "com.dawnsight.desktop.media-metadata";
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]

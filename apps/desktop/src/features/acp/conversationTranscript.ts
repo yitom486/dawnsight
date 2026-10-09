@@ -9,7 +9,7 @@ const PLAYBACK_MARKER = "【当前播放】";
 const ASSEMBLED_TASK_PREFIX = "Dawnsight task:";
 const ASSEMBLED_TASK_FIRST_LINE_PATTERN = /^(?:Dawnsight|Lumina) task:\s*([A-Za-z0-9_-]+)/;
 const ASSEMBLED_TASK_FALLBACK_LABEL = "快捷 AI 操作";
-const TOOL_ID_PATTERN = /(?:dawnsight|lumina)_[a-z_]+/;
+const TOOL_ID_PATTERN = /(?:dawnsight|dawnsight)_[a-z_]+/;
 const MARKDOWN_FILE_LINK_PATTERN = /\[[^\]]*\]\(file:\/\/[^)]*\)/g;
 
 /**

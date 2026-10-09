@@ -1012,7 +1012,7 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .map(|duration| duration.as_nanos())
             .unwrap_or_default();
-        let root = std::env::temp_dir().join(format!("lumina-episode-index-{suffix}"));
+        let root = std::env::temp_dir().join(format!("dawnsight-episode-index-{suffix}"));
         let group_key = "We.Are.All.Trying.Here";
         let dir = store::group_dir(&root, group_key);
         fs::create_dir_all(&dir).expect("mkdir group dir");
@@ -1062,7 +1062,7 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .map(|duration| duration.as_nanos())
             .unwrap_or_default();
-        let root = std::env::temp_dir().join(format!("lumina-assemble-{suffix}"));
+        let root = std::env::temp_dir().join(format!("dawnsight-assemble-{suffix}"));
         let group_key = "Show";
         let dir = store::group_dir(&root, group_key);
         std::fs::create_dir_all(&dir).expect("mkdir group dir");

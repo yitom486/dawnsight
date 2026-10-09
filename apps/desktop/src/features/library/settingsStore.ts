@@ -39,7 +39,7 @@ export const useLibrarySettingsStore = create<LibrarySettingsState>()(
       patchSettings: (patch) => set((state) => ({ ...state, ...patch })),
     }),
     {
-      name: "lumina-library-settings",
+      name: "dawnsight-library-settings",
       partialize: (state) => ({
         roots: state.roots,
         rootsFollowPlayback: state.rootsFollowPlayback,

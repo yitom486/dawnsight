@@ -70,7 +70,7 @@ export const useAcpSettingsStore = create<AcpSettingsStore>()(
         })),
     }),
     {
-      name: "lumina-acp-settings",
+      name: "dawnsight-acp-settings",
       partialize: (state) => ({
         permissionMode: state.permissionMode,
         thinkingLevel: state.thinkingLevel,

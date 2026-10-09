@@ -13,7 +13,7 @@ use crate::paths::{
     status,
 };
 
-const USER_AGENT: &str = "Lumina/0.2 (optional ASR installer)";
+const USER_AGENT: &str = "Dawnsight/0.2 (optional ASR installer)";
 /// Pinned whisper.cpp nightly with Windows CPU binaries.
 const CLI_RELEASE_TAG: &str = "b4938";
 const CLI_ZIP_URL: &str =

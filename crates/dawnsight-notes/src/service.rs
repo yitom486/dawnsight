@@ -472,7 +472,7 @@ mod tests {
             eprintln!("SKIP note frame: ffmpeg not vendored on this machine");
             return;
         }
-        let dir = std::env::temp_dir().join(format!("lumina-note-frame-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("dawnsight-note-frame-{}", std::process::id()));
         std::fs::create_dir_all(&dir).expect("frame test dir");
         let ffmpeg = dawnsight_media::tools::resolve_ffmpeg().expect("ffmpeg");
         let media = dir.join("clip.mp4");
@@ -526,7 +526,8 @@ mod tests {
 
     #[test]
     fn create_degrades_to_frameless_when_capture_fails() {
-        let dir = std::env::temp_dir().join(format!("lumina-note-noframe-{}", std::process::id()));
+        let dir =
+            std::env::temp_dir().join(format!("dawnsight-note-noframe-{}", std::process::id()));
         std::fs::create_dir_all(&dir).expect("frame test dir");
         // Not a real video: capture must fail, the note must still save.
         let media = dir.join("empty.mp4");

@@ -13,9 +13,9 @@ struct NotesFile {
 
 pub fn default_store_path() -> PathBuf {
     if let Some(dir) = dirs_next_data() {
-        return dir.join("lumina").join("notes.json");
+        return dir.join("dawnsight").join("notes.json");
     }
-    std::env::temp_dir().join("lumina-notes.json")
+    std::env::temp_dir().join("dawnsight-notes.json")
 }
 
 fn dirs_next_data() -> Option<PathBuf> {

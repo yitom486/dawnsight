@@ -1,12 +1,12 @@
 # Optional ACP agents (not bundled)
 
-Lumina is an **ACP Client**. It does **not** ship Node/bun/pnpm or Codex.
+Dawnsight is an **ACP Client**. It does **not** ship Node/bun/pnpm or Codex.
 
 ## Layers
 
-1. **ACP** — open stdio JSON-RPC (what Lumina speaks)
+1. **ACP** — open stdio JSON-RPC (what Dawnsight speaks)
 2. **codex-acp** — default: `bunx @agentclientprotocol/codex-acp@latest`; fallback: a single-file bundle placed here as `codex-acp.exe`
-3. **Codex App Server** — Codex harness engine started *by* the adapter (not Lumina’s main protocol)
+3. **Codex App Server** — Codex harness engine started *by* the adapter (not Dawnsight’s main protocol)
 4. **Models** — Codex providers use the **Responses API** (not legacy Chat Completions)
 
 ## Local discovery

@@ -29,7 +29,7 @@ pub const MCP_SUBCOMMAND: &str = "--dawnsight-mcp";
 /// Optional append-only diagnostic log path supplied by the desktop host.
 ///
 /// MCP runs as a child of the Agent harness, so its stderr is not guaranteed
-/// to reach Lumina's tracing subscriber. The server keeps stderr diagnostics
+/// to reach Dawnsight's tracing subscriber. The server keeps stderr diagnostics
 /// for direct probes and mirrors them to this file when the host provides it.
 pub const DIAGNOSTIC_LOG_ENV: &str = "DAWNSIGHT_MCP_DIAGNOSTIC_LOG";
 
@@ -42,7 +42,7 @@ pub const DIAGNOSTIC_ID_ENV: &str = "DAWNSIGHT_MCP_DIAGNOSTIC_ID";
 pub fn run_if_invoked() -> bool {
     if std::env::args().any(|arg| arg == MCP_SUBCOMMAND) {
         if let Err(error) = server::run_stdio_server() {
-            eprintln!("lumina mcp server failed: {error}");
+            eprintln!("dawnsight mcp server failed: {error}");
             std::process::exit(1);
         }
         std::process::exit(0);
@@ -53,7 +53,7 @@ pub fn run_if_invoked() -> bool {
 pub fn dawnsight_mcp_server_entry(snapshot_path: &Path) -> Value {
     let executable = std::env::current_exe()
         .map(|path| path.to_string_lossy().to_string())
-        .unwrap_or_else(|_| "lumina".into());
+        .unwrap_or_else(|_| "dawnsight".into());
     let mut env = vec![json!({
         "name": CONTEXT_FILE_ENV,
         "value": snapshot_path.to_string_lossy(),
@@ -65,7 +65,7 @@ pub fn dawnsight_mcp_server_entry(snapshot_path: &Path) -> Value {
         }));
     }
     json!({
-        "name": "lumina",
+        "name": "dawnsight",
         "command": executable,
         "args": [MCP_SUBCOMMAND],
         "env": env

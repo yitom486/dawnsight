@@ -2,7 +2,7 @@
 //!
 //! Depends only on [`dawnsight_core`] (plus serde/tracing/libmpv2). Online
 //! playback targets, Cookie files, and yt-dlp runtime paths are assembled by
-//! `lumina-app` and passed in via [`mpv::NetworkPlaybackOpts`]; Tauri windows,
+//! `dawnsight-app` and passed in via [`mpv::NetworkPlaybackOpts`]; Tauri windows,
 //! native surfaces, resource lookup, and commands stay in the app.
 
 pub mod error;

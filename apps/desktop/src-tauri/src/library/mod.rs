@@ -1,4 +1,4 @@
-//! App compat: library implementation lives in `lumina-library` (M7).
+//! App compat: library implementation lives in `dawnsight-library` (M7).
 //!
 //! Agent-backed resolver/discovery orchestration that needs ACP session
 //! access lives in `adapter`; the crate only sees the core invoker port.

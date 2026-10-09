@@ -153,5 +153,5 @@ function mediaTitleOf(mediaPath: string): string {
   const normalized = mediaPath.replace(/\\/g, "/");
   const baseName = normalized.slice(normalized.lastIndexOf("/") + 1);
   const stem = baseName.replace(/\.[a-z0-9]{2,5}$/i, "");
-  return stem || "Lumina";
+  return stem || "Dawnsight";
 }

@@ -1,4 +1,4 @@
-//! App-side mpv glue: portable core is re-exported from `lumina-player`;
+//! App-side mpv glue: portable core is re-exported from `dawnsight-player`;
 //! Tauri-bound `native_library` / `window` and the manual `baseline` stay here
 //! (L2 player-crate audit §5).
 

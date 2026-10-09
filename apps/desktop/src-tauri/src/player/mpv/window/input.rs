@@ -15,7 +15,7 @@ pub(crate) const OSC_SEEK_H_PX: i32 = 10;
 pub(crate) const OSC_SEEK_HIT_PAD_PX: i32 = 12;
 
 /// Demo OSC topbar placeholder estimate (px). Keep this in sync with the
-/// metrics at the top of `native/osc/lumina-osc.lua`.
+/// metrics at the top of `native/osc/dawnsight-osc.lua`.
 pub(crate) const TOP_ZONE_PX: i32 = 64;
 pub(crate) const DRAG_THRESHOLD_PX: i32 = 4;
 

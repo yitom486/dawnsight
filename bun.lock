@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "lumina",
+      "name": "dawnsight-workspace",
       "devDependencies": {
         "@yitom/acp-client": "0.1.2",
         "oxlint": "^1.81.0",

@@ -1,4 +1,4 @@
-//! Minimal MCP stdio server exposing Lumina context tools.
+//! Minimal MCP stdio server exposing Dawnsight context tools.
 
 use std::fs::OpenOptions;
 use std::io::{self, BufRead, BufWriter, Write};
@@ -177,7 +177,7 @@ pub fn run_stdio_server() -> Result<(), String> {
                         &response_limiter,
                     );
                     if let Err(message) = write_response(&response_output, response) {
-                        tracing::error!(reason = %message, "lumina MCP failed to write tool response");
+                        tracing::error!(reason = %message, "dawnsight MCP failed to write tool response");
                     }
                 });
                 if let Err(message) = submit {
@@ -206,7 +206,7 @@ fn initialize_result_for_profile(profile: McpToolProfile) -> Value {
     let mut result = json!({
         "protocolVersion": PROTOCOL_VERSION,
         "capabilities": { "tools": {} },
-        "serverInfo": { "name": "lumina", "version": env!("CARGO_PKG_VERSION") }
+        "serverInfo": { "name": "dawnsight", "version": env!("CARGO_PKG_VERSION") }
     });
     if profile != McpToolProfile::NoTools {
         result["instructions"] = json!(format!(
@@ -318,7 +318,7 @@ fn chapter_tool_json(name: &str) -> Option<Value> {
     Some(tool)
 }
 
-/// Tool JSON schemas keyed by the canonical directory in `lumina-core`.
+/// Tool JSON schemas keyed by the canonical directory in `dawnsight-core`.
 /// Returns `None` for unknown names (safe direction: omit, never invent).
 /// Schemas are byte-identical to the pre-contract payloads; only the keying
 /// moved from string literals to the shared contract. `annotations` are
@@ -534,7 +534,7 @@ fn legacy_tool_json(name: &str) -> Option<Value> {
     } else if name == contract::TOOL_PROPOSE_ANNOTATION {
         json!({
             "name": contract::TOOL_PROPOSE_ANNOTATION,
-            "description": "Propose a timestamped video annotation with optional quoted subtitle lines. Does NOT write to the notes store — the user must confirm in Lumina UI before it is saved. Call after you have enough context (transcript window, playback anchor). Provide body (required); optional positionMs, anchorCueIndex, quoteCueIndices, quoteHint, includeQuotes, subtitleChoiceId.",
+            "description": "Propose a timestamped video annotation with optional quoted subtitle lines. Does NOT write to the notes store — the user must confirm in Dawnsight UI before it is saved. Call after you have enough context (transcript window, playback anchor). Provide body (required); optional positionMs, anchorCueIndex, quoteCueIndices, quoteHint, includeQuotes, subtitleChoiceId.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -644,7 +644,7 @@ fn dispatch_tool_call(profile: McpToolProfile, params: &Value) -> Result<Value, 
     }
 
     let (snapshot, chapter_task) = load_snapshot_bundle().map_err(|message| {
-        tracing::warn!(reason = %message, "lumina MCP snapshot unavailable");
+        tracing::warn!(reason = %message, "dawnsight MCP snapshot unavailable");
         message
     })?;
     match handle_tool_call_request(profile, &snapshot, chapter_task.as_ref(), params) {
@@ -656,7 +656,7 @@ fn dispatch_tool_call(profile: McpToolProfile, params: &Value) -> Result<Value, 
                     .and_then(|value| value.as_str())
                     .unwrap_or(""),
                 reason = %message,
-                "lumina MCP tools/call returned business error"
+                "dawnsight MCP tools/call returned business error"
             );
             Ok(tool_error_result(&message))
         }
@@ -811,7 +811,7 @@ mod tests {
                 "readOnlyHint wrong for {name}"
             );
         }
-        assert!(tool_json("lumina_do_anything").is_none());
+        assert!(tool_json("dawnsight_do_anything").is_none());
         for name in [
             contract::TOOL_CREATE_CHAPTER_OUTLINE,
             contract::TOOL_CAPTURE_CHAPTER_EVIDENCE,
@@ -956,7 +956,7 @@ mod tests {
 
         assert!(!is_read_only_tool(contract::TOOL_WRITE_SUBTITLE_TRACK));
         assert!(!is_read_only_tool(contract::TOOL_PROPOSE_ANNOTATION));
-        assert!(!is_read_only_tool("lumina_unknown_tool"));
+        assert!(!is_read_only_tool("dawnsight_unknown_tool"));
     }
 
     #[test]
@@ -1013,7 +1013,7 @@ mod tests {
             task_id: 41,
             attempt_id: 42,
             episode_id: 43,
-            database_path: r"C:\data\lumina.sqlite3".into(),
+            database_path: r"C:\data\dawnsight.sqlite3".into(),
             media_path: r"C:\videos\episode.mkv".into(),
             duration_ms: 90_000,
             spoiler_boundary: "episode".into(),
@@ -1179,7 +1179,7 @@ mod tests {
             McpToolProfile::Chat,
             &snapshot,
             None,
-            &json!({"name": "lumina_do_anything"}),
+            &json!({"name": "dawnsight_do_anything"}),
         )
         .expect_err("unknown tool");
         assert!(unknown.contains("Unknown tool"));

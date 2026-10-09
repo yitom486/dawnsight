@@ -33,7 +33,7 @@ pub fn extract_text_subtitle(
     }
 
     let ffmpeg = resolve_ffmpeg().map_err(SubtitleError::from)?;
-    let temp_dir = std::env::temp_dir().join("lumina-subs");
+    let temp_dir = std::env::temp_dir().join("dawnsight-subs");
     fs::create_dir_all(&temp_dir).map_err(|error| {
         tracing::warn!(%error, "subtitle temp dir create failed");
         SubtitleError::internal(Some(&format!("create subtitle temp dir: {error}")))

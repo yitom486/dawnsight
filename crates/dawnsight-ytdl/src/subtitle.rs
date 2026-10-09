@@ -354,9 +354,9 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "requires network, configured yt-dlp cookies, and LUMINA_YTDL_E2E_URL"]
+    #[ignore = "requires network, configured yt-dlp cookies, and DAWNSIGHT_YTDL_E2E_URL"]
     fn downloads_and_parses_online_subtitle() {
-        let url = std::env::var("LUMINA_YTDL_E2E_URL").expect("set E2E URL");
+        let url = std::env::var("DAWNSIGHT_YTDL_E2E_URL").expect("set E2E URL");
         let resolved = crate::resolve::resolve_url(&url).expect("resolve online metadata");
         let choice = list_choices(&resolved)
             .into_iter()

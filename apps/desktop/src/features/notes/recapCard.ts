@@ -79,7 +79,7 @@ export function renderRecapCard(
   // 顶部：媒体标题。
   ctx.fillStyle = "#38bdf8";
   ctx.font = "600 20px system-ui, sans-serif";
-  ctx.fillText(ellipsize(measure, data.mediaTitle || "Lumina", textWidth), pad, pad + 24);
+  ctx.fillText(ellipsize(measure, data.mediaTitle || "Dawnsight", textWidth), pad, pad + 24);
 
   let cursorY = pad + 48;
   if (data.frameImage) {

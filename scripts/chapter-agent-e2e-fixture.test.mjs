@@ -79,8 +79,8 @@ test("fixture CLI gives an actionable ffprobe-unavailable diagnostic", () => {
     "ffprobe",
     [],
     childEnv({
-      LUMINA_FFPROBE: path.join(os.tmpdir(), "lumina-test-missing-ffprobe.exe"),
-      LUMINA_FFMPEG: path.join(os.tmpdir(), "lumina-test-missing-ffmpeg.exe"),
+      DAWNSIGHT_FFPROBE: path.join(os.tmpdir(), "dawnsight-test-missing-ffprobe.exe"),
+      DAWNSIGHT_FFMPEG: path.join(os.tmpdir(), "dawnsight-test-missing-ffmpeg.exe"),
     }),
   );
 
@@ -90,12 +90,12 @@ test("fixture CLI gives an actionable ffprobe-unavailable diagnostic", () => {
 });
 
 test("fixture CLI gives an actionable ffmpeg-unavailable diagnostic", () => {
-  const output = fs.mkdtempSync(path.join(os.tmpdir(), "lumina-chapter-cli-test-"));
+  const output = fs.mkdtempSync(path.join(os.tmpdir(), "dawnsight-chapter-cli-test-"));
   try {
     const result = runWithMissingTool(
       "ffmpeg",
       ["--out", output, "--ffprobe", process.execPath],
-      childEnv({ LUMINA_FFMPEG: path.join(output, "missing-ffmpeg.exe") }),
+      childEnv({ DAWNSIGHT_FFMPEG: path.join(output, "missing-ffmpeg.exe") }),
     );
 
     assert.equal(result.status, 1);

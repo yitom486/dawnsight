@@ -40,7 +40,7 @@ Optional environment:
   DAWNSIGHT_MCP_E2E_TIMEOUT_MS  Per-RPC timeout in milliseconds (default: 90000)
   CODEX_PATH                Codex executable path
   CODEX_ACP_ENTRY           codex-acp dist/index.js path override
-  DAWNSIGHT_MCP_COMMAND        Lumina executable with --dawnsight-mcp (default: target/debug/dawnsight-app.exe)
+  DAWNSIGHT_MCP_COMMAND        Dawnsight executable with --dawnsight-mcp (default: target/debug/dawnsight-app.exe)
 
 The test uses a temporary, redacted fixture snapshot and never prints snapshot
 contents, media paths, or Agent stderr. It is intentionally excluded from the
@@ -239,7 +239,7 @@ function sessionEnv(snapshotPath) {
 
 function mcpServer(snapshotPath) {
   return {
-    name: "lumina",
+    name: "dawnsight",
     command: mcpCommand,
     args: ["--dawnsight-mcp"],
     env: [
@@ -269,7 +269,7 @@ function snapshotFixture() {
       season: 1,
       episode: 2,
       title: "MCP priority fixture",
-      overview: "用于验证 Agent 会先读取 Lumina 上下文，而不是搜索网络。",
+      overview: "用于验证 Agent 会先读取 Dawnsight 上下文，而不是搜索网络。",
     },
     library: null,
     session: { turn: 1, mediaPath: "fixture", libraryWarmedTurn: 1, libraryWarmEvery: 5 },
@@ -451,7 +451,7 @@ function stringsIn(value, output = []) {
 function namesFromToolUpdate(message) {
   const update = message?.params?.update;
   if (!update || !["tool_call", "tool_call_update"].includes(update.sessionUpdate)) return [];
-  return stringsIn(update).filter((value) => /^lumina_[a-z_]+$/.test(value) || /web[_-]?search/i.test(value));
+  return stringsIn(update).filter((value) => /^dawnsight_[a-z_]+$/.test(value) || /web[_-]?search/i.test(value));
 }
 
 async function verifyAgentPriority(snapshotPath, workspace) {
@@ -522,7 +522,7 @@ async function verifyAgentPriority(snapshotPath, workspace) {
 
     const answered = await request(rpc, child, 4, "session/prompt", {
         sessionId: created.result.sessionId,
-        prompt: [{ type: "text", text: "这一集主要讲了怎样的剧情？请仅依据 Lumina 当前媒体上下文回答。" }],
+        prompt: [{ type: "text", text: "这一集主要讲了怎样的剧情？请仅依据 Dawnsight 当前媒体上下文回答。" }],
       }, "ACP plot prompt");
     if (answered.error) {
       failForAcpError(answered, {
@@ -537,25 +537,25 @@ async function verifyAgentPriority(snapshotPath, workspace) {
       fail("Agent used web search for the episode-plot prompt", {
         code: "web_search",
         phase: "ACP plot prompt",
-        action: "inspect the recorded tool sequence and restore Lumina context-first instructions",
+        action: "inspect the recorded tool sequence and restore Dawnsight context-first instructions",
       });
     }
-    const firstLumina = calls.find((name) => name.startsWith("lumina_"));
-    if (!firstLumina) {
-      fail("Agent did not call a Lumina context tool", {
-        code: "no_lumina_tool",
+    const firstDawnsight = calls.find((name) => name.startsWith("dawnsight_"));
+    if (!firstDawnsight) {
+      fail("Agent did not call a Dawnsight context tool", {
+        code: "no_dawnsight_tool",
         phase: "ACP plot prompt",
         action: "confirm the MCP server was attached to session/new and the model can use tools",
       });
     }
-    if (!PLOT_TOOLS.has(firstLumina)) {
-      fail(`first Lumina tool for plot was ${firstLumina}, not a plot-context tool`, {
+    if (!PLOT_TOOLS.has(firstDawnsight)) {
+      fail(`first Dawnsight tool for plot was ${firstDawnsight}, not a plot-context tool`, {
         code: "tool_priority",
         phase: "ACP plot prompt",
         action: "inspect instructions/tool visibility and keep transcript/library first for plot questions",
       });
     }
-    console.error(`[ok] plot prompt first Lumina tool: ${firstLumina}; web search: none`);
+    console.error(`[ok] plot prompt first Dawnsight tool: ${firstDawnsight}; web search: none`);
   } finally {
     unsubscribe();
     rpc.closed = true;

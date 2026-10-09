@@ -1,17 +1,17 @@
-# lumina-ai
+# dawnsight-ai
 
-`lumina-ai` 是 Lumina 的短周期、数据隔离式 AI 任务领域库。它专门处理无需长会话上下文的无状态批量 AI 任务（当前核心为**智能字幕翻译与润色**），通过依赖倒置端口 `AgentInvoker` 完成模型交互，确保不污染用户的正常聊天（Chat）历史记录。
+`dawnsight-ai` 是 Dawnsight 的短周期、数据隔离式 AI 任务领域库。它专门处理无需长会话上下文的无状态批量 AI 任务（当前核心为**智能字幕翻译与润色**），通过依赖倒置端口 `AgentInvoker` 完成模型交互，确保不污染用户的正常聊天（Chat）历史记录。
 
 ---
 
 ## 1. 模块定位与职责
 
-在 Lumina 架构中，`lumina-ai` 与 `lumina-acp` 形成清晰的职责区隔：
+在 Dawnsight 架构中，`dawnsight-ai` 与应用内 ACP 装配（`src-tauri/src/acp/` + `@yitom/acp-client` 引擎）形成清晰的职责区隔：
 
 ```text
 [用户发起字幕翻译] ──────────────┐
                                  ▼
-                         [ lumina-ai ]
+                         [ dawnsight-ai ]
                                  │
                          (使用 AgentInvoker 端口)
                                  ▼
@@ -21,26 +21,26 @@
                           [ 大语言模型 ]
                                  │
                                  ▼
-                        [ lumina-subtitle ]
+                        [ dawnsight-subtitle ]
                      (导出为新语言外挂字幕)
 ```
 
 - **职责对比**：
-  - `lumina-acp`：负责**长生命周期、有交互历史、带工具权限**的 Chat 侧边栏对话。
-  - `lumina-ai`：负责**数据级隔离、批处理吞吐**的专项任务。每个字幕作业独立于 Chat 历史；宿主可以用作业级 session pool 复用隔离 Agent，作业结束后统一销毁，绝不向 Chat 注入几十页的字幕原文。
+  - `src-tauri/src/acp/` 应用装配：负责**长生命周期、有交互历史、带工具权限**的 Chat 侧边栏对话。
+  - `dawnsight-ai`：负责**数据级隔离、批处理吞吐**的专项任务。每个字幕作业独立于 Chat 历史；宿主可以用作业级 session pool 复用隔离 Agent，作业结束后统一销毁，绝不向 Chat 注入几十页的字幕原文。
 - **核心功能**：
   - 分块批处理（Chunked Batching）：将成百上千条字幕拆分为 40 条左右的批次（`TRANSLATE_BATCH_SIZE = 40`），避免单次 Prompt 击穿上下文或产生幻觉。
   - 严格结构化约束：利用 JSON Schema 约束模型按序输出带序号的翻译文本，确保时间戳轴精准对齐。
-  - 自动落盘与回显：翻译完成后自动通过 `lumina-subtitle` 写入对应语言后缀的 `.srt` 外挂文件。
+  - 自动落盘与回显：翻译完成后自动通过 `dawnsight-subtitle` 写入对应语言后缀的 `.srt` 外挂文件。
 
 ---
 
 ## 2. 构建思路与设计原则
 
 1. **聊天会话零污染（Zero Chat History Pollution）**：
-   - 如果直接在主聊天窗口让 Agent 翻译一部电影的 1500 句台词，会导致后续对话的 Token 消耗激增、上下文被噪音淹没。`lumina-ai` 为每个批次通过 `AgentInvoker::open_conversation` 获取隔离会话；默认实现会回退到 `invoke_isolated`，宿主也可以通过 `WorkshopPool` 复用作业级隔离 session，但不会复用 Chat session。
+   - 如果直接在主聊天窗口让 Agent 翻译一部电影的 1500 句台词，会导致后续对话的 Token 消耗激增、上下文被噪音淹没。`dawnsight-ai` 为每个批次通过 `AgentInvoker::open_conversation` 获取隔离会话；默认实现会回退到 `invoke_isolated`，宿主也可以通过 `WorkshopPool` 复用作业级隔离 session，但不会复用 Chat session。
 2. **纯依赖注入与面向端口编程（Port-Driven）**：
-   - 本 crate 仅依赖 `lumina-core` 和 `lumina-subtitle`，完全不直接依赖 `lumina-acp`、子进程或网络库。具体的 AI 模型调用由宿主通过动态分发 `&dyn AgentInvoker` 传入。
+   - 本 crate 仅依赖 `dawnsight-core` 和 `dawnsight-subtitle`，完全不直接依赖应用内 ACP 装配、子进程或网络库。具体的 AI 模型调用由宿主通过动态分发 `&dyn AgentInvoker` 传入。
 
 ---
 
@@ -50,13 +50,13 @@
 
 ```toml
 [dependencies]
-lumina-ai.workspace = true
+dawnsight-ai.workspace = true
 ```
 
 ### 代码使用示例
 
 ```rust
-use lumina_ai::{translate_and_export_track, AgentInvoker, IsolatedAgentTask, AgentTaskError};
+use dawnsight_ai::{translate_and_export_track, AgentInvoker, IsolatedAgentTask, AgentTaskError};
 
 // 1. 宿主提供实现了 AgentInvoker 的调用器
 struct MyInvoker;
@@ -91,7 +91,7 @@ let result = translate_and_export_track(
 
 ## 4. 内部子模块全景
 
-`lumina-ai/src/` 包含以下核心源码模块。翻译功能现在采用目录模块布局：`translate/mod.rs` 是 `translate` 的模块入口，原来的 `translate.rs` 已移除；因此 `lumina_ai::translate::*` 与 crate 根部重新导出的公开 API 均保持不变。
+`dawnsight-ai/src/` 包含以下核心源码模块。翻译功能现在采用目录模块布局：`translate/mod.rs` 是 `translate` 的模块入口，原来的 `translate.rs` 已移除；因此 `dawnsight_ai::translate::*` 与 crate 根部重新导出的公开 API 均保持不变。
 
 | 源码文件 | 模块名称 | 核心职责与导出项 |
 | :--- | :--- | :--- |
@@ -111,9 +111,9 @@ let result = translate_and_export_track(
 sequenceDiagram
     autonumber
     participant UI as 客户端 UI
-    participant AI as lumina_ai::translate
+    participant AI as dawnsight_ai::translate
     participant Port as &dyn AgentInvoker
-    participant Sub as lumina_subtitle
+    participant Sub as dawnsight_subtitle
 
     UI->>AI: translate_and_export_track(...)
     AI->>Sub: 加载源字幕 Transcript
@@ -135,7 +135,7 @@ sequenceDiagram
 
 ## 6. 版本化提示词仓库
 
-`lumina_ai::prompts` 是章节 Agent 和富内容任务的唯一专有 prompt 归属。它提供六个类型化
+`dawnsight_ai::prompts` 是章节 Agent 和富内容任务的唯一专有 prompt 归属。它提供六个类型化
 任务 ID：`chapter_segment`、`chapter_recap`、`chapter_outlook`、`plot_summary`、
 `question_candidates` 和 `rewrite_content`。调用方通过 `PromptSlots` 传入媒体、章节、字幕
 窗口、截图引用、观看位置、源内容和用户指令等结构化动态上下文；React 不需要保存或拼接

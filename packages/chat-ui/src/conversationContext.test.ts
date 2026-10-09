@@ -100,7 +100,7 @@ describe("historyThreadRows", () => {
         {
           sessionId: "sess-header",
           cwd: "D:/movie",
-          title: "【工具优先】本轮优先使用 Lumina 本地工具……",
+          title: "【工具优先】本轮优先使用 Dawnsight 本地工具……",
           updatedAt: "2026-09-17T16:20:00Z",
           kind: null,
         },
@@ -129,7 +129,7 @@ describe("historyThreadRows", () => {
       {},
     );
     expect(rows.map((row) => row.title)).toEqual([
-      "Lumina 对话",
+      "Dawnsight 对话",
       "Our Beloved Summer 2021 EP02 HD1080P X264",
       "对话 sess-ext",
       "这集讲了什么",

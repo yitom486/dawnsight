@@ -4,13 +4,13 @@
 
 ## 视觉参考
 
-- `lumina-desktop-overview-reference.png`：主播放工作区与 AI 上下文面板。
-- `lumina-transcript-reading-reference.png`：文稿跟随播放、引用和询问 AI。
+- `dawnsight-desktop-overview-reference.png`：主播放工作区与 AI 上下文面板。
+- `dawnsight-transcript-reading-reference.png`：文稿跟随播放、引用和询问 AI。
 - `dawnsight-notes-workspace-reference.png`：时间戳笔记、字幕引用和复习卡片入口。
-- `lumina-settings-workspace-reference.png`：AI Agent 设置与字幕任务设置。
-- `lumina-general-chat-rich-output-reference.png`：通用聊天和富组件回答。
+- `dawnsight-settings-workspace-reference.png`：AI Agent 设置与字幕任务设置。
+- `dawnsight-general-chat-rich-output-reference.png`：通用聊天和富组件回答。
 - `dawnsight-ai-watch-feed-reference.png`：AI 观剧流与自由聊天 Tab、章节独立任务卡和信息流。
-- `lumina-chapter-generation-reference.png`：无容器章节时的 AI 分段工作区。
+- `dawnsight-chapter-generation-reference.png`：无容器章节时的 AI 分段工作区。
 - `dawnsight-ai-automation-settings-reference.png`：快捷提问、富输出和章节策略设置。
 
 ## 通用聊天
@@ -19,7 +19,7 @@
 - AI Dock 与选集、文稿、笔记、章节等普通页面共享同一个右侧 `WorkspacePanelFrame` 外壳和工作区槽位；统一的是宽度、边界、标题栏与切换规则，不是数据或会话。
 - AI 面板通过 `AI观剧流` / `自由聊天` Tab 切换；两者共享视觉容器，但只有「自由聊天」承载主聊天历史。AI 打开时普通 sidebar 暂时让出同一工作区槽位，关闭后恢复原来的 tab，禁止做成覆盖 HWND 的浮层。
 - 章节分析显示为观剧流中的独立任务卡，使用独立 Agent session；它可以共享 profile、工作目录和
-  Lumina 工具，但不得写入自由聊天的 turns、历史或上下文。
+  Dawnsight 工具，但不得写入自由聊天的 turns、历史或上下文。
 - 文稿、章节或笔记中的「询问 AI」属于上下文快捷入口：打开通用聊天、带入当前时间点和引用内容，并预填可编辑的提示词。
 - 默认不自动发送。用户确认或修改后，再点击发送；这样可以避免误触发长任务、模型调用或敏感上下文发送。
 - 「一键发送」可以作为设置项提供，但默认关闭；启用后仍应在输入框附近显示当前视频、章节和字幕上下文。
@@ -51,7 +51,7 @@
 2. 用户主动触发的 AI 语义分段：结合台词/字幕和按需截图逐步分析。
 
 - 无真实章节时，章节面板显示提醒和「开始 AI 分段」按钮；打开视频不静默启动 Agent。
-- AI 分段使用独立 Agent 会话，但共享当前 Agent profile、工作目录和 Lumina 工具集。
+- AI 分段使用独立 Agent 会话，但共享当前 Agent profile、工作目录和 Dawnsight 工具集。
 - 输出必须经过结构校验；校验失败时向同一会话增量追加错误报告，最多重试三次。
 - 专有提示词按任务版本管理，快捷按钮只引用任务 ID，不在组件内散落 prompt 文本。
 

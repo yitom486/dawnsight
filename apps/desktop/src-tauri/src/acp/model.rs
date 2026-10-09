@@ -81,7 +81,7 @@ pub enum SessionStoragePreset {
     CodexRollouts,
 }
 
-/// Explicit Lumina-owned session purpose stored in ACP session metadata.
+/// Explicit Dawnsight-owned session purpose stored in ACP session metadata.
 /// This must be passed by each creation path; it is never inferred from
 /// tool access or other mutable service state.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

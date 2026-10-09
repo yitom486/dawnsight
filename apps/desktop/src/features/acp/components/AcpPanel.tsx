@@ -338,11 +338,11 @@ export function AcpPanel() {
     setTitleOverrides: connection.setTitleOverrides,
   });
 
-  // B3：lumina-acp-session（acpSessionStore persist）保留作纯离线备，
+  // B3：dawnsight-acp-session（acpSessionStore persist）保留作纯离线备，
   // 以 SQLite 为准，挂载时只清已下线的旧历史键，绝不动会话 hint 备层。
   useEffect(() => {
     try {
-      window.localStorage.removeItem("lumina-acp-chat-history");
+      window.localStorage.removeItem("dawnsight-acp-chat-history");
     } catch {
       // 私有模式等极端环境：清不掉也不影响，内存态本来就是空的。
     }
@@ -472,16 +472,16 @@ export function AcpPanel() {
     return first?.userText.trim().slice(0, 72) ?? null;
   }, [turns]);
 
-  // 本框内实际发起过的 Lumina 工具调用（按 toolCallId 去重）。
+  // 本框内实际发起过的 Dawnsight 工具调用（按 toolCallId 去重）。
   // 从 turns 派生：换框/新建/载入会自动清零，无需手动维护。
-  const luminaToolCalls = useMemo(() => {
+  const dawnsightToolCalls = useMemo(() => {
     const ids = new Set<string>();
     for (const turn of turns) {
       for (const activity of turn.activities ?? []) {
         if (
           activity.kind === "tool" &&
           typeof activity.toolCallId === "string" &&
-          /lumina/i.test(activity.title ?? "")
+          /dawnsight/i.test(activity.title ?? "")
         ) {
           ids.add(activity.toolCallId);
         }
@@ -987,7 +987,7 @@ export function AcpPanel() {
       : promptQueue.length > 0
         ? `排队 ${promptQueue.length} 条，即将发送…`
         : connection.connectionState === "connected" && sessionCwd
-        ? `工作目录：${sessionCwd}${sessionResolutionText ? ` · ${sessionResolutionText}` : ""}${luminaToolCalls > 0 ? ` · Lumina 工具已调用 ${luminaToolCalls} 次` : ""}`
+        ? `工作目录：${sessionCwd}${sessionResolutionText ? ` · ${sessionResolutionText}` : ""}${dawnsightToolCalls > 0 ? ` · Dawnsight 工具已调用 ${dawnsightToolCalls} 次` : ""}`
         : connection.connectionState === "connecting"
           ? null
           : hasSavedSession

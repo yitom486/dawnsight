@@ -15,7 +15,7 @@ impl TemporaryDatabasePath {
     fn new(test_name: &str) -> Self {
         let sequence = NEXT_DATABASE_ID.fetch_add(1, Ordering::Relaxed);
         let file_name = format!(
-            "lumina-{test_name}-{}-{sequence}.sqlite3",
+            "dawnsight-{test_name}-{}-{sequence}.sqlite3",
             std::process::id()
         );
         Self(std::env::temp_dir().join(file_name))

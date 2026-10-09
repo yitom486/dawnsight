@@ -1,22 +1,22 @@
-# lumina-subtitle
+# dawnsight-subtitle
 
-`lumina-subtitle` 是 Lumina 的字幕与交互文稿（Transcript）领域库。它负责视频内嵌字幕轨识别、外挂同名字幕扫描、基于 ffmpeg 的流提取、双向格式解析（SRT / WebVTT / ASS）以及结构化文稿的生成与导出。
+`dawnsight-subtitle` 是 Dawnsight 的字幕与交互文稿（Transcript）领域库。它负责视频内嵌字幕轨识别、外挂同名字幕扫描、基于 ffmpeg 的流提取、双向格式解析（SRT / WebVTT / ASS）以及结构化文稿的生成与导出。
 
 ---
 
 ## 1. 模块定位与职责
 
-在 Lumina 架构中，`lumina-subtitle` 是构建“视频阅读器（Video Reader）”体验的核心支撑：
+在 Dawnsight 架构中，`dawnsight-subtitle` 是构建“视频阅读器（Video Reader）”体验的核心支撑：
 
 ```text
-[lumina-media] (探测底层流)
+[dawnsight-media] (探测底层流)
       │
       ▼
-[lumina-subtitle] ◄─── [lumina-asr] (将 ASR 结果转为 Cues)
+[dawnsight-subtitle] ◄─── [dawnsight-asr] (将 ASR 结果转为 Cues)
       │
       ├───────────────────────┬────────────────────────┐
       ▼                       ▼                        ▼
-[lumina-notes]          [lumina-ai]              [lumina-mcp]
+[dawnsight-notes]          [dawnsight-ai]              [dawnsight-mcp]
 (按时间戳引用字幕金句)   (短任务翻译/润色 Cues)    (向 Agent 提供当前窗口文稿)
 ```
 
@@ -39,7 +39,7 @@
 2. **渐进降级与鲁棒解析（Robust Fallback Parsing）**：
    - 字幕来源繁杂，常见时间戳格式不规范、编码混乱（UTF-8 / GBK / UTF-16 BOM）或包含样式富文本。`parse` 模块实现了高度容错的断句和时间解析逻辑，最大程度挽救残损字幕。
 3. **依赖下沉（Clean Dependency Hierarchy）**：
-   - 依赖 `lumina-media` 进行流信息探测，但自身完全不感知播放器 `libmpv`，也不依赖上层 AI 或笔记模块。
+   - 依赖 `dawnsight-media` 进行流信息探测，但自身完全不感知播放器 `libmpv`，也不依赖上层 AI 或笔记模块。
 
 ---
 
@@ -49,7 +49,7 @@
 
 ```toml
 [dependencies]
-lumina-subtitle.workspace = true
+dawnsight-subtitle.workspace = true
 ```
 
 ### 代码使用示例
@@ -58,7 +58,7 @@ lumina-subtitle.workspace = true
 
 ```rust
 use std::path::Path;
-use lumina_subtitle::{SubtitleService, SubtitleChoice};
+use dawnsight_subtitle::{SubtitleService, SubtitleChoice};
 
 let video_path = Path::new("D:/Movies/interstellar.mkv");
 
@@ -82,7 +82,7 @@ if let Some(target) = choices.into_iter().find(|c| c.supported) {
 
 ```rust
 use std::path::Path;
-use lumina_subtitle::{write, Cue};
+use dawnsight_subtitle::{write, Cue};
 
 let cues = vec![
     Cue { start_ms: 1000, end_ms: 3500, text: "这是第一句对话".into() },
@@ -96,7 +96,7 @@ write::write_srt_file(Path::new("D:/Movies/export.srt"), &cues)?;
 
 ## 4. 内部子模块全景
 
-`lumina-subtitle/src/` 的主要实现模块如下；列表聚焦稳定的核心文件，内部辅助文件可随实现调整：
+`dawnsight-subtitle/src/` 的主要实现模块如下；列表聚焦稳定的核心文件，内部辅助文件可随实现调整：
 
 | 源码文件 | 模块名称 | 核心职责与导出项 |
 | :--- | :--- | :--- |

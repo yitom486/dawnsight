@@ -79,7 +79,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Updater signing (0.3): create these repo secrets BEFORE tagging —
-          # TAURI_SIGNING_PRIVATE_KEY (content of lumina-updater.key, keep secret!)
+          # TAURI_SIGNING_PRIVATE_KEY (content of dawnsight-updater.key, keep secret!)
           # TAURI_SIGNING_PRIVATE_KEY_PASSWORD (empty for the 0.3 internal key).
           # Without them this step fails at signing with a clear error.
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -90,7 +90,7 @@ jobs:
           # emits .sig + latest.json next to the installers for the updater endpoints.
           args: --config {"bundle":{"createUpdaterArtifacts":true}}
           tagName: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
-          releaseName: Lumina ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+          releaseName: Dawnsight ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
           releaseBody: "internal"
           releaseDraft: true
           prerelease: false
@@ -102,7 +102,7 @@ jobs:
         run: |
           TAG="${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}"
           REPO="yitom486/lumina-app"
-          BODY="Lumina ${TAG} 发布。
+          BODY="Dawnsight ${TAG} 发布。
 
           **安装包**
           - Windows x64：MSI / NSIS
@@ -121,7 +121,7 @@ jobs:
           # 确保 release 存在（首个平台创建，后续平台跳过）
           gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1 || \
             gh release create "$TAG" --repo "$REPO" \
-              --title "Lumina ${TAG}" \
+              --title "Dawnsight ${TAG}" \
               --notes "$BODY"
 
           # 收集 tauri-action 构建的安装包（含 updater 签名；latest.json 由
@@ -175,7 +175,7 @@ jobs:
 
           gh release download "$TAG" --repo "$REPO" --pattern "*.sig"
 
-          BODY="Lumina ${TAG} 发布。
+          BODY="Dawnsight ${TAG} 发布。
 
           **安装包**
           - Windows x64：MSI / NSIS

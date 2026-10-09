@@ -22,7 +22,7 @@ import type { ChatTurn, SavedSessionHint } from "./types";
  * - zustand 内存镜像（`useChatSnapshotStore` 按 `(profile, session)` 分键，
  *   hints 复用 `useAcpSessionStore.savedSessions[profile]`）是热路径唯一真相：
  *   首渲染同步读，不等 DB；hydrate hook 在 effect 里异步回填。
- * - 读顺序：内存镜像 → SQLite → 空。`lumina-acp-chat-restore:*` 备层只在
+ * - 读顺序：内存镜像 → SQLite → 空。`dawnsight-acp-chat-restore:*` 备层只在
  *   `migrateLegacyChatStoreOnce` 里一次性读取迁移；标记置位后备层不再被
  *   读取也不再被写入（见 `isChatStoreMigrated` 门控）。
  * - 写穿：schedule* 同步写内存镜像 + 按 profile 分槽排队，1500ms trailing
@@ -40,7 +40,7 @@ import type { ChatTurn, SavedSessionHint } from "./types";
  * 旧版本单键（v0）与分键备层。B3 起只做一次性迁移读取
  *（`migrateLegacyChatStoreOnce`），标记置位后不再读写。
  */
-export const CHAT_RESTORE_KEY = "lumina-acp-chat-restore";
+export const CHAT_RESTORE_KEY = "dawnsight-acp-chat-restore";
 
 /** 一次性迁移标记：成功落库后写 `1`，脏数据跳过、失败下次重试。用户数据，绝不删除。 */
 export const CHAT_STORE_MIGRATED_MARK = "chat_store_migrated";
@@ -65,7 +65,7 @@ function normalizeProfileKey(profileId: string): string | null {
 
 /**
  * 旧备层分键（仅一次性迁移扫描用）：codex 的旧 turns/草稿只活在
- * `lumina-acp-chat-restore:codex` 下。B3 起新写入不再落到这些键上，
+ * `dawnsight-acp-chat-restore:codex` 下。B3 起新写入不再落到这些键上，
  * profileId 为空直接拒读，绝不落到裸键上。
  */
 export function chatRestoreKeyFor(profileId: string): string {
@@ -671,7 +671,7 @@ function readPersistedSessionMap(): Record<string, SavedSessionHint> {
   const next: Record<string, SavedSessionHint> = {};
   let raw: string | null = null;
   try {
-    raw = window.localStorage.getItem("lumina-acp-session");
+    raw = window.localStorage.getItem("dawnsight-acp-session");
   } catch {
     return next;
   }
@@ -727,7 +727,7 @@ function readPersistedSessionMap(): Record<string, SavedSessionHint> {
  * 逐个 upsert 进 DB。成功删已迁恢复键 + 写标记；脏数据跳过；
  * 任何 DB 失败直接 `deferred`（不删键、不写标记，下次重试），绝不阻塞启动。
  *
- * `lumina-acp-session` 本体按硬约束保留作离线备（只迁内容不删键）。
+ * `dawnsight-acp-session` 本体按硬约束保留作离线备（只迁内容不删键）。
  */
 export async function migrateLegacyChatStoreOnce(): Promise<
   "migrated" | "already" | "deferred"

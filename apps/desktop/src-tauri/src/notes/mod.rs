@@ -1,3 +1,3 @@
-//! App compat: notes implementation lives in `lumina-notes` (M7).
+//! App compat: notes implementation lives in `dawnsight-notes` (M7).
 
 pub use dawnsight_notes::*;

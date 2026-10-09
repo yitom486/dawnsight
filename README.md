@@ -48,7 +48,7 @@ Dawnsight 的基础体验以本地为主：播放、字幕和笔记不依赖 AI�
 
 ## 适合怎样的使用方式
 
-Lumina 特别适合以下场景：
+Dawnsight 特别适合以下场景：
 
 - 看课程、访谈、纪录片时，需要边看边查台词和章节；
 - 学习外语时，对照字幕、定位句子并保存例句；
@@ -59,13 +59,13 @@ Lumina 特别适合以下场景：
 
 1. 打开 [dawnsight-app Releases](https://github.com/yitom486/dawnsight-app/releases)。
 2. 下载对应系统的安装包：Windows 使用 MSI / NSIS，macOS 使用 DMG，Linux 使用 AppImage / deb。
-3. 安装后打开 Lumina，选择本地视频即可开始播放和阅读。
+3. 安装后打开 Dawnsight，选择本地视频即可开始播放和阅读。
 
 终端用户不需要安装 Bun、Node、pnpm、Rust 或 Whisper，就可以播放视频、阅读字幕和记录笔记。可选的 AI、在线视频和语音转写能力会在使用时单独检查相应配置。
 
 ## 项目状态
 
-Lumina 仍在持续开发中。播放、媒体探测、字幕文稿、按需 ASR、笔记和基础 ACP 对话已经形成主链路；媒体库、在线媒体和更完整的 AI Video Reader 体验仍在迭代。
+Dawnsight 仍在持续开发中。播放、媒体探测、字幕文稿、按需 ASR、笔记和基础 ACP 对话已经形成主链路；媒体库、在线媒体和更完整的 AI Video Reader 体验仍在迭代。
 
 请以 [ROADMAP.md](ROADMAP.md) 了解阶段目标，以发布页和 [CHANGELOG.md](CHANGELOG.md) 了解具体版本变化。
 
@@ -99,7 +99,7 @@ bun run check:rust
 
 - 本地播放、字幕阅读和笔记可以离线使用。
 - 凭证不会写入项目文件、媒体库索引或 AI prompt。
-- 原始视频文件不会被 Lumina 重命名或改写。
+- 原始视频文件不会被 Dawnsight 重命名或改写。
 - 请勿提交个人视频、笔记、Cookie、模型密钥、`.env` 或本地 native 二进制。
 
 ## 参与项目

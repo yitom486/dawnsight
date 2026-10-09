@@ -36,7 +36,7 @@
 
 ## Phase 5 — ACP Client（可插拔 Agent）
 
-- Lumina **只做 ACP Client**；不直连 Codex App Server 协议
+- Dawnsight **只做 ACP Client**；不直连 Codex App Server 协议
 - **默认 profile：`codex`**：spawn `bunx @agentclientprotocol/codex-acp`（可回退单文件）→ 内部 Codex App Server → **Responses API**
 - **其它 harness**（Claude 等）：另配 AgentProfile（command/args/env），换进程而非锁死 App Server
 - Codex 内换模型：`config.toml` provider，须 Responses 兼容（Chat Completions 已弃用）
@@ -73,7 +73,7 @@
 
 | 场景 | 工具 |
 |------|------|
-| 开发 Lumina 前端 | **bun**（仓库约定） |
+| 开发 Dawnsight 前端 | **bun**（仓库约定） |
 | 终端用户运行安装包 | 无需 bun / pnpm |
 | 可选 ACP | 本机 Agent（默认 codex-acp；bunx 路径自带 Codex，或单文件/PATH） |
 | 另一款产品 | 可同用 bun；对齐领域模型，不必强行同一仓库 |

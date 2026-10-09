@@ -276,7 +276,7 @@ pub async fn subtitle_export_sidecar(
 /// Assemble translation context from the library (best-effort: translation
 /// never fails for missing metadata). Series and episode plots ground tone;
 /// persisted glossary entries are loaded before the wiki-derived verified
-/// pairs. The app owns library composition, while `lumina-ai` owns prompt
+/// pairs. The app owns library composition, while `dawnsight-ai` owns prompt
 /// shaping and spelling-variant canonicalization.
 fn translation_context_for_media(
     state: &AppState,

@@ -17,7 +17,7 @@ use crate::model::{
 };
 use crate::{resolver, store, wikitext};
 
-const USER_AGENT: &str = "Lumina/0.1 (local media reader; Tauri app)";
+const USER_AGENT: &str = "Dawnsight/0.1 (local media reader; Tauri app)";
 const PREFERRED_WIKI_LANG: &str = "en";
 const ZHWIKI_LANG: &str = "zh";
 const SEARCH_LIMIT: usize = 3;

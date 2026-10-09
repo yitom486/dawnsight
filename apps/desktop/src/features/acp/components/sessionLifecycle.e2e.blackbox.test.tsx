@@ -577,7 +577,7 @@ describe("session lifecycle e2e blackbox (connect resume + history reload)", () 
       Array.from({ length: localStorage.length }, (_, index) =>
         localStorage.key(index),
       ).filter(
-        (key) => typeof key === "string" && key.startsWith("lumina-acp-chat-restore"),
+        (key) => typeof key === "string" && key.startsWith("dawnsight-acp-chat-restore"),
       ),
     ).toEqual([]);
 
@@ -592,7 +592,7 @@ describe("session lifecycle e2e blackbox (connect resume + history reload)", () 
       { length: localStorage.length },
       (_, index) => localStorage.key(index),
     ).filter(
-      (key) => typeof key === "string" && key.startsWith("lumina-acp-chat-restore"),
+      (key) => typeof key === "string" && key.startsWith("dawnsight-acp-chat-restore"),
     );
     expect(restoreKeys).toEqual([]);
   });

@@ -66,7 +66,7 @@ try {
         fs: { readTextFile: true, writeTextFile: true },
         terminal: true,
       },
-      clientInfo: { name: "lumina-test", title: "Dawnsight", version: "0.1.0" },
+      clientInfo: { name: "dawnsight-test", title: "Dawnsight", version: "0.1.0" },
     },
   });
   const initResp = await waitLine(rl, 1);

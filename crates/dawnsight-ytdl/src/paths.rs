@@ -17,7 +17,7 @@ pub fn install_supported() -> bool {
 
 pub fn install_root() -> PathBuf {
     if let Some(base) = dirs_data_dir() {
-        return base.join("lumina").join("yt-dlp");
+        return base.join("dawnsight").join("yt-dlp");
     }
     PathBuf::from("yt-dlp")
 }
@@ -70,7 +70,7 @@ pub fn cli_version(path: &std::path::Path) -> Option<String> {
 pub fn require_cli() -> Result<PathBuf, YtdlError> {
     find_cli_any().ok_or_else(|| {
         YtdlError::not_configured(Some(
-            "missing yt-dlp under APPDATA/lumina/yt-dlp or native/ytdl",
+            "missing yt-dlp under APPDATA/dawnsight/yt-dlp or native/ytdl",
         ))
     })
 }

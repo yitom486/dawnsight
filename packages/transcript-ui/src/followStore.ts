@@ -36,7 +36,7 @@ export const useFollowStore = create<FollowStore>()(
       resetForMedia: () => set({ browsing: false }),
     }),
     {
-      name: "lumina-transcript-follow",
+      name: "dawnsight-transcript-follow",
       partialize: (state) => ({ followEnabled: state.followEnabled }),
     },
   ),

@@ -50,7 +50,7 @@ Options:
   --force           Replace generated files in --out
   --help            Show this help
 
-Environment fallbacks: LUMINA_FFMPEG and LUMINA_FFPROBE, then the project
+Environment fallbacks: DAWNSIGHT_FFMPEG and DAWNSIGHT_FFPROBE, then the project
 native/ffmpeg locations and finally PATH.`);
 }
 function parseArgs(argv) {
@@ -179,8 +179,8 @@ function verifyMedia(ffprobe, mediaPath) {
 
 function main() {
   const options = parseArgs(process.argv.slice(2));
-  const ffmpeg = resolveTool(options.ffmpeg, "LUMINA_FFMPEG", "ffmpeg", "ffmpeg.exe");
-  const ffprobe = resolveTool(options.ffprobe, "LUMINA_FFPROBE", "ffprobe", "ffprobe.exe");
+  const ffmpeg = resolveTool(options.ffmpeg, "DAWNSIGHT_FFMPEG", "ffmpeg", "ffmpeg.exe");
+  const ffprobe = resolveTool(options.ffprobe, "DAWNSIGHT_FFPROBE", "ffprobe", "ffprobe.exe");
   if (!ffprobe) fail("ffprobe is unavailable; place it under apps/desktop/src-tauri/native/ffmpeg or pass --ffprobe");
 
   if (options.verify) {
@@ -243,7 +243,7 @@ function main() {
 
   const report = verifyMedia(ffprobe, mediaPath);
   const manifest = {
-    schema: "lumina.chapter-agent-e2e-fixture/v1",
+    schema: "dawnsight.chapter-agent-e2e-fixture/v1",
     purpose: "local subtitle-backed media without container chapters",
     subtitleCues: 4,
     ...report,

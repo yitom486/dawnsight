@@ -1,12 +1,12 @@
-# lumina-player
+# dawnsight-player
 
-`lumina-player` 是 Lumina 的原生多媒体播放核心领域库。它通过 `libmpv`（基于 `libmpv2` 绑定）直接驱动操作系统的原生窗口句柄（Native Surface）进行硬件加速视频渲染，同时维护着高内聚的播放状态机与快照流。
+`dawnsight-player` 是 Dawnsight 的原生多媒体播放核心领域库。它通过 `libmpv`（基于 `libmpv2` 绑定）直接驱动操作系统的原生窗口句柄（Native Surface）进行硬件加速视频渲染，同时维护着高内聚的播放状态机与快照流。
 
 ---
 
 ## 1. 模块定位与职责
 
-在 Lumina 架构中，`lumina-player` 承担真正的视音频播放引擎职责：
+在 Dawnsight 架构中，`dawnsight-player` 承担真正的视音频播放引擎职责：
 
 ```text
 [React 前端 / Webview]
@@ -15,7 +15,7 @@
 [apps/desktop] (提供 Native Window HWND/NSView 句柄)
         │
         ▼
- [lumina-player] ──(PlayerService 状态机)
+ [dawnsight-player] ──(PlayerService 状态机)
         │
         ▼
  [mpv::LibMpvPlayer] ──(C-FFI / libmpv2)──► libmpv.dll / libmpv.dylib (Native 硬件加速渲染)
@@ -24,7 +24,7 @@
 - **职责**：
   - 承载 Native Surface 挂载：通过接收系统级原生窗口标识符（`wid`），使 libmpv 直接将像素渲染到窗口背景，**坚决杜绝 HTML `<video>` 或 Canvas 逐帧拷贝伪装播放**。
   - 维护单一真实数据源状态机（`PlayerSnapshot`）：精确聚合播放状态（`Idle` / `Loading` / `Playing` / `Paused` / `Error`）、当前时间戳、总时长、音量、倍速、视频宽高比及音视频字幕轨道信息。
-  - 消费 `lumina-core::MediaSource`，统一处理本地文件播放与在线流媒体解析目标。
+  - 消费 `dawnsight-core::MediaSource`，统一处理本地文件播放与在线流媒体解析目标。
   - 异步事件轮询与转换：将 libmpv 的底层属性变动（Property Observe）和核心事件转化为上层易于处理的 `PlayerEvent`。
 - **硬约束**：
   - 严防 FFI 内存与句柄泄漏：确保应用退出时执行优雅的 `shutdown()`。
@@ -49,7 +49,7 @@
 
 ```toml
 [dependencies]
-lumina-player.workspace = true
+dawnsight-player.workspace = true
 ```
 
 ### 代码使用示例
@@ -57,8 +57,8 @@ lumina-player.workspace = true
 #### 1. 初始化服务并绑定窗口句柄
 
 ```rust
-use lumina_player::PlayerService;
-use lumina_core::MediaSource;
+use dawnsight_player::PlayerService;
+use dawnsight_core::MediaSource;
 
 let mut player = PlayerService::new();
 
@@ -89,7 +89,7 @@ println!("音量: {}%", snapshot.volume);
 
 ## 4. 内部子模块全景
 
-`lumina-player/src/` 的主要实现模块如下；列表聚焦稳定的核心文件，内部辅助文件可随实现调整：
+`dawnsight-player/src/` 的主要实现模块如下；列表聚焦稳定的核心文件，内部辅助文件可随实现调整：
 
 | 源码文件 | 模块名称 | 核心职责与导出项 |
 | :--- | :--- | :--- |
@@ -97,7 +97,7 @@ println!("音量: {}%", snapshot.volume);
 | [`service.rs`](./service.rs) | `service` | • `PlayerService`: 核心服务聚合，提供所有播放控制命令与快照管理。 |
 | [`mpv/mod.rs`](./mpv/mod.rs) | `mpv` | • `LibMpvPlayer`: 底层 `libmpv2::Mpv` 实例的拥有者。<br>• 配置 mpv 参数（vo, hwdec, wid, ytdl-format, 网络优化参数等）。<br>• 属性观察与底层 FFI 事件轮询泵。 |
 | [`model.rs`](./model.rs) | `model` | • `PlayerSnapshot`: 聚合播放器全部状态的纯数据结构。<br>• `PlayerState`: `Idle` / `Loading` / `Playing` / `Paused` / `Error`。<br>• `PlayerEvent`: 向上层派发的状态变动事件。 |
-| [`source.rs`](./source.rs) | `source` | 重新导出 `lumina_core::MediaSource` 与 `MediaSourceKind`，保持 API 语义整洁。 |
+| [`source.rs`](./source.rs) | `source` | 重新导出 `dawnsight_core::MediaSource` 与 `MediaSourceKind`，保持 API 语义整洁。 |
 | [`error.rs`](./error.rs) | `error` | • `PlayerError` 与 `PlayerErrorCode`（`NotInitialized`, `LoadError`, `CommandFailed`, `PropertyFailed`, `UnsupportedMedia`）。 |
 
 ---
@@ -111,7 +111,7 @@ flowchart TD
         Poll[轮询状态: snapshot()]
     end
 
-    subgraph lumina-player 内部
+    subgraph dawnsight-player 内部
         Svc[PlayerService]
         Snap[(PlayerSnapshot)]
         Backend[mpv::LibMpvPlayer]

@@ -2,7 +2,7 @@
 //!
 //! AI crates never implement ACP or model APIs. The app provides the
 //! ACP-backed implementation; tasks stay short-lived and data-isolated.
-//! Home is `lumina-core` so every domain shares one port (M5 follow-up).
+//! Home is `dawnsight-core` so every domain shares one port (M5 follow-up).
 
 /// One isolated, data-only Agent call. No chat history, no MCP tools.
 #[derive(Debug, Clone)]

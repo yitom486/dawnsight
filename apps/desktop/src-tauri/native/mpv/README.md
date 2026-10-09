@@ -1,6 +1,6 @@
 # libmpv（项目本地，不入库）
 
-Windows x64 **dev** 包，给 Lumina 链接和运行时加载。不要装到系统 PATH。
+Windows x64 **dev** 包，给 Dawnsight 链接和运行时加载。不要装到系统 PATH。
 
 ## 当前版本
 
@@ -22,7 +22,7 @@ Windows x64 **dev** 包，给 Lumina 链接和运行时加载。不要装到系�
 二进制已 gitignore。重新安装：
 
 ```powershell
-$dir = "$env:TEMP\lumina-mpv"
+$dir = "$env:TEMP\dawnsight-mpv"
 New-Item -ItemType Directory -Force -Path $dir | Out-Null
 curl.exe -L --fail -o "$dir\mpv-dev.7z" `
   https://github.com/shinchiro/mpv-winbuild-cmake/releases/download/20260830/mpv-dev-x86_64-20260830-git-e8673660ab.7z

@@ -1,6 +1,6 @@
 # MCP 工具的真正并行执行
 
-“MCP 支持并行”不是一个单点开关。一次工具调用能否真正重叠执行，要同时通过模型发射、Codex 调度、ACP 传输和 Lumina 服务端四层：
+“MCP 支持并行”不是一个单点开关。一次工具调用能否真正重叠执行，要同时通过模型发射、Codex 调度、ACP 传输和 Dawnsight 服务端四层：
 
 ~~~text
 模型是否一次提交多个调用
@@ -9,7 +9,7 @@ Codex App Server 是否允许这些工具共享执行门
         ↓
 ACP/codex-acp 是否只是转发事件而没有额外排队
         ↓
-Lumina MCP 是否有足够 worker，并且内部读写锁允许重叠
+Dawnsight MCP 是否有足够 worker，并且内部读写锁允许重叠
 ~~~
 
 只有最后能观察到多个工具的实际执行区间重叠，才叫真正并行。
@@ -21,15 +21,15 @@ Lumina MCP 是否有足够 worker，并且内部读写锁允许重叠
 | 模型发射层 | 模型一次产生多个调用，或 code mode 中使用 Promise.all | 调用本身就一个接一个产生 |
 | Codex App Server | supports_parallel_tool_calls 或工具的 readOnlyHint | 多个调用进入后，在执行门排队 |
 | ACP/codex-acp | stdio JSON-RPC 和事件转发 | 事件可能按顺序显示，但不应决定 MCP 执行锁 |
-| Lumina MCP | worker 池、读写锁、重工具限流 | 服务端收到调用后仍然排队或互斥 |
+| Dawnsight MCP | worker 池、读写锁、重工具限流 | 服务端收到调用后仍然排队或互斥 |
 
-## 2. Lumina 服务端本身支持并行
+## 2. Dawnsight 服务端本身支持并行
 
 ### 2.1 stdio 不是“一次只能执行一个请求”
 
 MCP 使用 stdio 传输，但 JSON-RPC 是带 request id 的消息协议。客户端可以连续写入多条 tools/call，不必等待前一条响应。
 
-Lumina 的 crates/lumina-mcp/src/executor.rs 使用有界 worker 池：
+Dawnsight 的 crates/dawnsight-mcp/src/executor.rs 使用有界 worker 池：
 
 ~~~rust
 pub(crate) struct TaskExecutor {
@@ -52,16 +52,16 @@ where
 
 当前实现使用固定数量的 worker，而不是为每个请求无限创建线程。只要客户端确实同时提交多个请求，独立工具就可以被多个 worker 同时执行。
 
-### 2.2 Lumina 内部仍然要保护共享状态
+### 2.2 Dawnsight 内部仍然要保护共享状态
 
-并行 worker 不等于所有工具都可以互相覆盖。Lumina 的工具执行层应保持以下语义：
+并行 worker 不等于所有工具都可以互相覆盖。Dawnsight 的工具执行层应保持以下语义：
 
 - 读取快照的工具可以并行；
 - 修改字幕或持久化笔记的工具要独占；
 - 截帧、音频分析等重工具使用单独的有界 limiter；
 - 所有工具仍然经过 ToolPolicy 的二次授权。
 
-这意味着 Lumina 自己的并行模型是“读共享、写独占、重任务限流”，而不是无条件放开全部工具。
+这意味着 Dawnsight 自己的并行模型是“读共享、写独占、重任务限流”，而不是无条件放开全部工具。
 
 ## 3. 真正卡住本次调用的 Codex 执行门
 
@@ -104,7 +104,7 @@ router.dispatch_tool_call(...).await;
 
 ## 4. 为什么当前应优先使用 readOnlyHint
 
-Lumina 最初可以在 MCP Server 配置中表达：
+Dawnsight 最初可以在 MCP Server 配置中表达：
 
 ~~~json
 {
@@ -116,9 +116,9 @@ Lumina 最初可以在 MCP Server 配置中表达：
 
 <https://github.com/agentclientprotocol/codex-acp/blob/v1.7.0/src/CodexAcpClient.ts>
 
-所以只在 lumina_mcp_server_entry 中添加 server flag 并不足够。
+所以只在 dawnsight_mcp_server_entry 中添加 server flag 并不足够。
 
-更稳妥的路径是让 Lumina 在 tools/list 的每个工具定义中返回 MCP annotations：
+更稳妥的路径是让 Dawnsight 在 tools/list 的每个工具定义中返回 MCP annotations：
 
 ~~~rust
 fn tool_annotations(name: &str) -> Value {
@@ -154,7 +154,7 @@ json!({
 - 截帧和批注提议：只有在临时产物不会产生共享持久写入、路径不会冲突时，才标记为只读；
 - 写字幕轨、保存批注等写工具：保持 readOnlyHint: false 或省略该字段。
 
-readOnlyHint 是 MCP 的提示字段，但在当前 Codex 版本中会直接参与并行调度，所以对 Lumina/Codex 组合具有实际执行效果。
+readOnlyHint 是 MCP 的提示字段，但在当前 Codex 版本中会直接参与并行调度，所以对 Dawnsight/Codex 组合具有实际执行效果。
 
 ## 5. 模型并行与执行并行是两回事
 
@@ -170,9 +170,9 @@ readOnlyHint 是 MCP 的提示字段，但在当前 Codex 版本中会直接参�
 
 ~~~javascript
 const results = await Promise.all([
-  lumina_get_transcript_window({ radiusSec: 5, offsetSec: 5 }),
-  lumina_get_transcript_window({ radiusSec: 5, offsetSec: 10 }),
-  lumina_get_transcript_window({ radiusSec: 5, offsetSec: 15 }),
+  dawnsight_get_transcript_window({ radiusSec: 5, offsetSec: 5 }),
+  dawnsight_get_transcript_window({ radiusSec: 5, offsetSec: 10 }),
+  dawnsight_get_transcript_window({ radiusSec: 5, offsetSec: 15 }),
 ]);
 ~~~
 
@@ -187,7 +187,7 @@ Codex 层：由于 readOnlyHint 缺失，进入独占执行门后排队
 
 ## 6. ACP 的单读循环不等于工具只能串行
 
-lumina-acp 通常有一个 stdout reader 和一个 prompt 读取循环，这是为了保证 ACP 消息解析和 UI 事件顺序稳定：
+应用内 ACP 装配通常有一个 stdout reader 和一个 prompt 读取循环，这是为了保证 ACP 消息解析和 UI 事件顺序稳定：
 
 ~~~text
 Agent stdout
@@ -197,9 +197,9 @@ Agent stdout
 session/update 事件转发
 ~~~
 
-这个循环可能让 UI 按顺序显示事件，但它不应该决定 Codex App Server 内部多个 MCP handler 是否能够同时执行。执行是否重叠，应以 Codex 的并行执行门和 Lumina MCP 的 worker 时间区间为准。
+这个循环可能让 UI 按顺序显示事件，但它不应该决定 Codex App Server 内部多个 MCP handler 是否能够同时执行。执行是否重叠，应以 Codex 的并行执行门和 Dawnsight MCP 的 worker 时间区间为准。
 
-同样，Lumina 的“一个 session 一次只处理一个 prompt”只限制会话轮次，不等于一轮内部的多个工具调用必须串行。
+同样，Dawnsight 的“一个 session 一次只处理一个 prompt”只限制会话轮次，不等于一轮内部的多个工具调用必须串行。
 
 ## 7. 日志应该怎样证明并行已经生效
 
@@ -247,7 +247,7 @@ session/update 事件转发
 
 - 三个独立只读调用在第一个完成前都出现实际 started；
 - 总耗时接近最慢调用耗时，而不是三个耗时相加；
-- Lumina worker 数量足以承接测试并发；
+- Dawnsight worker 数量足以承接测试并发；
 - 写工具仍然能够阻塞冲突的读写操作。
 
 ### 失败场景
@@ -259,16 +259,16 @@ session/update 事件转发
 
 ## 9. 结论
 
-Lumina 的并行能力不是简单地把 MCP stdio 改成异步即可。完整方案是：
+Dawnsight 的并行能力不是简单地把 MCP stdio 改成异步即可。完整方案是：
 
 ~~~text
 tools/list 提供正确的 readOnlyHint
         ↓
 Codex MCP handler 允许只读调用共享执行门
         ↓
-Lumina TaskExecutor 使用多个 worker
+Dawnsight TaskExecutor 使用多个 worker
         ↓
-Lumina 读操作共享、写操作独占
+Dawnsight 读操作共享、写操作独占
         ↓
 通过服务端 started/completed 日志验证实际重叠
 ~~~

@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[cfg(feature = "test-support")]
-const TEST_CAPTURE_FIXTURE_DIR_ENV: &str = "LUMINA_MCP_TEST_CAPTURE_FIXTURE_DIR";
+const TEST_CAPTURE_FIXTURE_DIR_ENV: &str = "DAWNSIGHT_MCP_TEST_CAPTURE_FIXTURE_DIR";
 
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use serde::Serialize;
@@ -123,7 +123,7 @@ pub fn handle_tool_call_with_context(
         Err(format!("Unknown tool: {name}"))
     };
     if let Err(message) = result.as_ref() {
-        warn!(tool = name, reason = %message, "lumina MCP tool failed");
+        warn!(tool = name, reason = %message, "dawnsight MCP tool failed");
     }
     result
 }
@@ -302,7 +302,7 @@ fn episode_transcript(snapshot: &DawnsightMcpSnapshot, args: &Value) -> Result<V
 fn subtitle_cues(snapshot: &DawnsightMcpSnapshot, args: &Value) -> Result<Value, String> {
     let anchor = require_anchor(snapshot)?;
     let choice_id = resolve_subtitle_choice_id(args, anchor)?;
-    // Canonical paging bounds live in `lumina-core`.
+    // Canonical paging bounds live in `dawnsight-core`.
     let offset = dawnsight_core::tool_contract::clamp_cues_offset(
         args.get("offset").and_then(Value::as_u64),
     );
@@ -454,7 +454,7 @@ fn parse_write_cues(args: &Value) -> Result<Vec<Cue>, String> {
         .get("cues")
         .and_then(Value::as_array)
         .ok_or_else(|| "缺少 cues".to_string())?;
-    // Canonical batch bounds live in `lumina-core`; wording stays here.
+    // Canonical batch bounds live in `dawnsight-core`; wording stays here.
     match dawnsight_core::tool_contract::validate_write_cues_len(raw.len()) {
         Ok(()) => {}
         Err(dawnsight_core::tool_contract::WriteCuesError::Empty) => {
@@ -567,7 +567,7 @@ fn resolve_subtitle_choice_id(args: &Value, anchor: &PromptAnchor) -> Result<Str
 }
 
 fn parse_required_season_episode(args: &Value) -> Result<(u32, u32), String> {
-    // Canonical bounds live in `lumina-core`; wording stays here.
+    // Canonical bounds live in `dawnsight-core`; wording stays here.
     match dawnsight_core::tool_contract::validate_season_episode(
         args.get("season").and_then(Value::as_u64),
         args.get("episode").and_then(Value::as_u64),
@@ -771,7 +771,7 @@ fn episode_transcript_default_center(anchor: &PromptAnchor, season: u32, episode
 }
 
 fn parse_window_args(args: &Value, default_before: u32, default_after: u32) -> (u32, u32) {
-    // Canonical bounds live in `lumina-core`; this adapter only extracts
+    // Canonical bounds live in `dawnsight-core`; this adapter only extracts
     // transport args so `tools/call` stays byte-identical.
     dawnsight_core::tool_contract::resolve_window(
         args.get("beforeSec").and_then(Value::as_u64),
@@ -1072,7 +1072,7 @@ const NOTE_BODY_SNIPPET_MAX: usize = 600;
 /// 每个人物最多回带的确认笔记条数。
 const ENTITY_TIMELINE_MAX_NOTES: usize = 10;
 
-/// `--lumina-mcp` 子进程不持有播放器：seek 请求写入会话目录的控制文件，
+/// `--dawnsight-mcp` 子进程不持有播放器：seek 请求写入会话目录的控制文件，
 /// 由主 GUI 进程的 watcher 消费并写回执（nonce 匹配 + 限时轮询）。
 const SEEK_CONTROL_FILE: &str = "mcp-control.json";
 const SEEK_RESULT_FILE: &str = "mcp-control-result.json";
@@ -1928,7 +1928,7 @@ mod tests {
     #[test]
     fn seek_tool_round_trips_through_control_file() {
         let _context_guard = context_env_lock();
-        let dir = std::env::temp_dir().join(format!("lumina-seek-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("dawnsight-seek-{}", std::process::id()));
         std::fs::create_dir_all(&dir).expect("seek temp dir");
         let previous = std::env::var(CONTEXT_FILE_ENV).ok();
         std::env::set_var(
@@ -2003,7 +2003,8 @@ mod tests {
     #[test]
     fn capture_tool_returns_labeled_image_blocks() {
         let _context_guard = context_env_lock();
-        let dir = std::env::temp_dir().join(format!("lumina-capture-chain-{}", std::process::id()));
+        let dir =
+            std::env::temp_dir().join(format!("dawnsight-capture-chain-{}", std::process::id()));
         std::fs::create_dir_all(&dir).expect("chain temp dir");
         let media = dir.join("chain-20s.mp4");
         if !create_synthetic_video(&media, 20) {
@@ -2123,7 +2124,8 @@ mod tests {
                 return;
             }
         };
-        let dir = std::env::temp_dir().join(format!("lumina-scene-chain-{}", std::process::id()));
+        let dir =
+            std::env::temp_dir().join(format!("dawnsight-scene-chain-{}", std::process::id()));
         std::fs::create_dir_all(&dir).expect("chain temp dir");
         let media = dir.join("cut.mp4");
         let status = dawnsight_media::process::command(&ffmpeg)
@@ -2709,7 +2711,7 @@ mod tests {
                 return;
             }
         };
-        let dir = std::env::temp_dir().join(format!("lumina-audio-tool-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("dawnsight-audio-tool-{}", std::process::id()));
         std::fs::create_dir_all(&dir).expect("tool temp dir");
         let media = dir.join("gap.m4a");
         let status = dawnsight_media::process::command(&ffmpeg)
@@ -2839,7 +2841,7 @@ mod tests {
             std::process::id()
         ));
         fs::create_dir_all(&dir).expect("fixture directory");
-        let database_path = dir.join("lumina.sqlite3");
+        let database_path = dir.join("dawnsight.sqlite3");
         let media_path = dir.join("episode.mkv");
         fs::write(&media_path, b"dummy media").expect("dummy media");
 

@@ -62,7 +62,7 @@ export const useSessionStore = create<SessionState>()(
       clearSession: () => set({ ...EMPTY }),
     }),
     {
-      name: "lumina-session",
+      name: "dawnsight-session",
       partialize: (state) => ({
         lastPath: state.lastPath,
         lastDirectory: state.lastDirectory,

@@ -12,7 +12,7 @@ describe("mapLoadedTranscript", () => {
       {
         role: "user",
         text: [
-          "【工具优先】本轮优先使用 Lumina 本地工具：dawnsight_get_playback_context。",
+          "【工具优先】本轮优先使用 Dawnsight 本地工具：dawnsight_get_playback_context。",
           "resource_link file:///D:/movie/demo.mp4 demo.mp4",
           "file:///D:/movie/demo.mp4",
           "【当前播放】",
@@ -101,7 +101,7 @@ describe("mapLoadedTranscript", () => {
     expect(
       stripTranscriptScaffolding(
         [
-          "【工具优先】本轮优先使用 Lumina 本地工具",
+          "【工具优先】本轮优先使用 Dawnsight 本地工具",
           "dawnsight_get_playback_context（播放锚点）、dawnsight_get_library_context（剧集简介）",
           "这段讲了什么？",
         ].join("\n"),
@@ -230,7 +230,7 @@ describe("mapLoadedTranscript", () => {
   it("keeps stripping legacy scaffold markers", () => {
     expect(
       stripTranscriptScaffolding(
-        "【工具优先】本轮优先使用 Lumina 本地工具\n这段讲了什么？",
+        "【工具优先】本轮优先使用 Dawnsight 本地工具\n这段讲了什么？",
       ),
     ).toBe("这段讲了什么？");
     expect(

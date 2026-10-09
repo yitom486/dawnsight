@@ -1,6 +1,6 @@
 //! Standalone Windows runtime gate.
 //!
-//! This test intentionally does not link the `lumina-app` library. The normal
+//! This test intentionally does not link the `dawnsight-app` library. The normal
 //! `--lib` harness links libmpv into the test executable, so a native loader
 //! failure can prevent all Rust assertions from starting. This gate loads the
 //! staged DLL directly and reports a useful Win32 error instead.

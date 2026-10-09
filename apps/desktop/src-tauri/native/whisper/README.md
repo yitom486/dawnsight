@@ -6,7 +6,7 @@
 
 在文稿面板选择 Tiny / Base / Small，点「一键下载」：
 
-- 引擎与模型写入本机应用数据目录（Windows：`%APPDATA%\lumina\whisper\`）
+- 引擎与模型写入本机应用数据目录（Windows：`%APPDATA%\dawnsight\whisper\`）
 - 启动时**不会**预加载；仅在下载或转写时访问网络/磁盘
 - 当前一键下载优先支持 Windows
 
@@ -28,7 +28,7 @@ apps/desktop/src-tauri/native/whisper/
   VERSION
 ```
 
-也可把 model 直接放在本目录根下。运行时还会扫描 `%APPDATA%\lumina\whisper\` 与可执行文件旁的 `whisper/`。
+也可把 model 直接放在本目录根下。运行时还会扫描 `%APPDATA%\dawnsight\whisper\` 与可执行文件旁的 `whisper/`。
 
 ## 行为
 

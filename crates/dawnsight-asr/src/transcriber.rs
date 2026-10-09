@@ -1,7 +1,7 @@
 //! Stable transcription boundary for the ASR pipeline.
 //!
 //! `AsrService` always runs the bundled whisper-cli through this trait.
-//! Future engines (or an AI-polished pipeline in `lumina-ai`) implement the
+//! Future engines (or an AI-polished pipeline in `dawnsight-ai`) implement the
 //! same interface; install / status / window / sidecar / error behavior is
 //! owned by `AsrService` and never changes with the engine.
 

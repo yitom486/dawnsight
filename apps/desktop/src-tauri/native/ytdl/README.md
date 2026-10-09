@@ -2,7 +2,7 @@
 
 在线视频解析组件。**不进默认安装包**；用户需要打开链接时再下载到：
 
-- Windows：`%APPDATA%\lumina\yt-dlp\yt-dlp.exe`
+- Windows：`%APPDATA%\dawnsight\yt-dlp\yt-dlp.exe`
 
 开发期也可手动放到本目录（`yt-dlp.exe`），优先于应用数据目录。
 

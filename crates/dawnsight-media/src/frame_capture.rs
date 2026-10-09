@@ -4,7 +4,7 @@
 //! - Anchor = playback position when the user starts typing the prompt (10s idle resets)
 //! - Default: one frame at anchor; optional windows sample ~1 frame/sec (max 15)
 //! - Scale to 640px width, JPEG `-q:v 5` for moderate size
-//! - Write under `.lumina/tmp/capture-*`; deleted after MCP returns (next prompt also clears tmp)
+//! - Write under `.dawnsight/tmp/capture-*`; deleted after MCP returns (next prompt also clears tmp)
 
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
@@ -335,7 +335,7 @@ mod tests {
                 return;
             }
         };
-        let dir = std::env::temp_dir().join(format!("lumina-scene-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("dawnsight-scene-{}", std::process::id()));
         std::fs::create_dir_all(&dir).expect("scene temp dir");
         let media = dir.join("cut.mp4");
         let status = command(&ffmpeg)
@@ -382,7 +382,8 @@ mod tests {
                 return;
             }
         };
-        let dir = std::env::temp_dir().join(format!("lumina-frame-spike-{}", std::process::id()));
+        let dir =
+            std::env::temp_dir().join(format!("dawnsight-frame-spike-{}", std::process::id()));
         std::fs::create_dir_all(&dir).expect("spike temp dir");
         let media = dir.join("spike-20s.mp4");
         let status = command(&ffmpeg)

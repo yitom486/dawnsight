@@ -16,7 +16,7 @@ vi.mock("@tauri-apps/api/core", () => ({
 
 import { invoke } from "@tauri-apps/api/core";
 
-const SESSION_KEY = "lumina-acp-session";
+const SESSION_KEY = "dawnsight-acp-session";
 
 // B3 hint 主层 mock DB：SQLite 的单 profile hint 行。
 type MockHintRow = { profileId: string; sessionId: string; cwd: string };

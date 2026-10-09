@@ -776,7 +776,7 @@ describe("migrateLegacyChatStoreOnce", () => {
       }),
     );
     localStorage.setItem(
-      "lumina-acp-session",
+      "dawnsight-acp-session",
       JSON.stringify({
         state: {
           savedSessions: {
@@ -803,7 +803,7 @@ describe("migrateLegacyChatStoreOnce", () => {
     expect(localStorage.getItem(chatRestoreKeyFor("codex"))).toBeNull();
     expect(localStorage.getItem(CHAT_RESTORE_KEY)).toBeNull();
     expect(localStorage.getItem(CHAT_STORE_MIGRATED_MARK)).toBe("1");
-    expect(localStorage.getItem("lumina-acp-session")).not.toBeNull();
+    expect(localStorage.getItem("dawnsight-acp-session")).not.toBeNull();
   });
 
   it("skips dirty snapshots but still marks", async () => {

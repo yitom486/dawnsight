@@ -93,7 +93,7 @@ function mediaLabelFromFileEcho(title: string): string | null {
  * 原生会话条目 → 历史列表行。标题优先级：
  * 本轮见过的用户首句 ＞ 像人话的原生标题 ＞ 按自家 prompt 结构提炼。
  *
- * 脚手架回声不直接展示短 id：`【工具优先】`是 Lumina prompt 头的独家
+ * 脚手架回声不直接展示短 id：`【工具优先】`是 Dawnsight prompt 头的独家
  * 指纹（外部客户端写不出，比 kind 元数据更硬——老线程根本没有 kind），
  * `[@文件名]`/`媒体：`是我们的内容块形状。文件名回声提炼成媒体标签
  * （各集可区分），触发头回声标出来源；点开一次后一律由真实首句覆盖。
@@ -121,13 +121,13 @@ export function historyThreadRows(
           title = nativeTitle;
         } else if (nativeTitle) {
           title =
-            mediaLabelFromFileEcho(nativeTitle) ?? "Lumina 对话";
+            mediaLabelFromFileEcho(nativeTitle) ?? "Dawnsight 对话";
         } else {
           // 真无标题才回退：新线程带 kind，老外部线程给短 id。
           // 脚手架回声走上面分支，永不掉到这里。
           title =
             session.kind === "chat"
-              ? "Lumina 对话"
+              ? "Dawnsight 对话"
               : `对话 ${session.sessionId.slice(0, 8)}`;
         }
       }

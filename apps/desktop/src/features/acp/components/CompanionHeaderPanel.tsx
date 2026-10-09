@@ -13,7 +13,7 @@ import { cn } from "@dawnsight/ui/utils";
 import type { CompanionTaskId } from "./CompanionQuickActions";
 import { WatchFeedView } from "./WatchFeedView";
 
-const STORAGE_KEY = "lumina-companion-header-expanded-v2";
+const STORAGE_KEY = "dawnsight-companion-header-expanded-v2";
 
 function readInitialExpanded(): boolean {
   try {

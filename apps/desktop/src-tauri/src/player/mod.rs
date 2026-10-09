@@ -1,4 +1,4 @@
-//! App compat: player implementation lives in `lumina-player`
+//! App compat: player implementation lives in `dawnsight-player`
 //! (player-crate migration).
 //!
 //! Existing `crate::player::…` paths keep working through this re-export.

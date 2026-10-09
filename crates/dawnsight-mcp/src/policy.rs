@@ -13,7 +13,7 @@
 use super::snapshot::DawnsightMcpSnapshot;
 use super::tools::{subtitle_workshop_enabled, video_annotations_enabled, vision_capable};
 
-// Canonical tool identities live in `lumina-core` (transport-free); this
+// Canonical tool identities live in `dawnsight-core` (transport-free); this
 // module keeps the MCP-side re-export so existing `policy::TOOL_*` paths and
 // `tools/list` order stay byte-identical.
 pub use dawnsight_core::tool_contract::{
@@ -68,7 +68,7 @@ pub fn tool_profile_from_env() -> McpToolProfile {
     McpToolProfile::from_env_value(&std::env::var(TOOL_PROFILE_ENV).unwrap_or_default())
 }
 
-// Central tool directory (canonical names in `lumina-core`; `tool_json` in
+// Central tool directory (canonical names in `dawnsight-core`; `tool_json` in
 // `server.rs` and the `handle_tool_call` dispatch in `tools.rs` consume them).
 /// Tools visible under `profile`, in `tools/list` order.
 pub fn allowed_tool_names(
@@ -281,7 +281,7 @@ mod tests {
         assert!(none.check(&snapshot, TOOL_PLAYBACK_CONTEXT).is_err());
         // Unknown names keep the historical error.
         let err = none
-            .check(&snapshot, "lumina_do_anything")
+            .check(&snapshot, "dawnsight_do_anything")
             .expect_err("unknown");
         assert!(err.contains("Unknown tool"));
     }

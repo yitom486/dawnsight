@@ -4,7 +4,7 @@
 //! Jobs keep batch outputs in memory for speed; a checkpoint store persists
 //! each finished batch so a later run resumes instead of restarting from
 //! zero (a single failed batch used to nuke 30+ completed ones). Home is
-//! `lumina-core` so AI crates and cache owners share one port without
+//! `dawnsight-core` so AI crates and cache owners share one port without
 //! dependency cycles.
 
 use std::collections::BTreeMap;

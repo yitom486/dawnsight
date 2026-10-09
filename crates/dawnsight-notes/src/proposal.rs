@@ -244,7 +244,8 @@ mod tests {
 
     #[test]
     fn roundtrip_latest_proposal_file() {
-        let dir = std::env::temp_dir().join(format!("lumina-proposal-test-{}", std::process::id()));
+        let dir =
+            std::env::temp_dir().join(format!("dawnsight-proposal-test-{}", std::process::id()));
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).expect("dir");
         let proposal = VideoAnnotationProposal {

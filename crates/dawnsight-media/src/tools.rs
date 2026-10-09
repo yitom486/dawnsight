@@ -7,7 +7,7 @@ use crate::model::MediaToolStatus;
 
 /// Resource directory exported by the Tauri host for domain calls that do not
 /// receive an AppHandle (subtitle, ASR, and MCP child-process paths).
-pub const RESOURCE_DIR_ENV: &str = "LUMINA_RESOURCE_DIR";
+pub const RESOURCE_DIR_ENV: &str = "DAWNSIGHT_RESOURCE_DIR";
 
 /// Lightweight ffprobe presence check (no media file needed) for startup/settings UI.
 /// Missing tool is data (`available: false`), never an error.
@@ -105,7 +105,7 @@ fn tool_candidates(
     }
 
     // 1. Packaged builds: the Tauri host exports its resolved resource dir so
-    // domain crates and the --lumina-mcp child use the same bundled tools.
+    // domain crates and the --dawnsight-mcp child use the same bundled tools.
     if let Some(resource) = std::env::var_os(RESOURCE_DIR_ENV).map(PathBuf::from) {
         paths.push(resource.join("ffmpeg").join(windows_name));
         paths.push(resource.join("ffmpeg").join(unix_name));
@@ -153,7 +153,7 @@ mod tests {
     #[test]
     fn resource_dir_is_checked_first() {
         let dir = std::env::temp_dir().join(format!(
-            "lumina-tool-status-{}-resource-first",
+            "dawnsight-tool-status-{}-resource-first",
             std::process::id()
         ));
         let ffmpeg_dir = dir.join("ffmpeg");
@@ -169,7 +169,7 @@ mod tests {
     #[test]
     fn unix_resource_dir_fallback_is_supported() {
         let dir = std::env::temp_dir().join(format!(
-            "lumina-tool-status-{}-unix-resource",
+            "dawnsight-tool-status-{}-unix-resource",
             std::process::id()
         ));
         let ffmpeg_dir = dir.join("ffmpeg");
@@ -184,7 +184,7 @@ mod tests {
 
     #[test]
     fn tool_candidates_prefer_resource_dir() {
-        let res = PathBuf::from("/tmp/lumina-res-test");
+        let res = PathBuf::from("/tmp/dawnsight-res-test");
         let list = tool_candidates("ffprobe", "ffprobe.exe", Some(&res));
         assert_eq!(list[0], res.join("ffmpeg").join("ffprobe.exe"));
         assert_eq!(list[1], res.join("ffmpeg").join("ffprobe"));

@@ -27,10 +27,10 @@ Tauri bundle 再将它们复制到安装包的 `resources/ffmpeg/`。
 见历史脚本或：
 
 ```powershell
-# 假设 zip 已在 %TEMP%\lumina-ffmpeg\ffmpeg-essentials.zip
-$extract = "$env:TEMP\lumina-ffmpeg\extract"
+# 假设 zip 已在 %TEMP%\dawnsight-ffmpeg\ffmpeg-essentials.zip
+$extract = "$env:TEMP\dawnsight-ffmpeg\extract"
 $dest = "$PSScriptRoot"
-tar.exe -xf "$env:TEMP\lumina-ffmpeg\ffmpeg-essentials.zip" -C $extract
+tar.exe -xf "$env:TEMP\dawnsight-ffmpeg\ffmpeg-essentials.zip" -C $extract
 Copy-Item -Force (Get-ChildItem $extract -Recurse -Filter ffprobe.exe | Select -First 1).FullName "$dest\ffprobe.exe"
 Copy-Item -Force (Get-ChildItem $extract -Recurse -Filter ffmpeg.exe | Select -First 1).FullName "$dest\ffmpeg.exe"
 ```

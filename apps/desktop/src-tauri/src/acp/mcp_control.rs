@@ -1,7 +1,7 @@
 //! MCP 反向播放控制桥（`dawnsight_seek_playback` 的宿主侧）。
 //!
-//! `lumina-app.exe --lumina-mcp` 子进程不持有播放器：seek 请求经
-//! `<workspace>/.lumina/mcp-control.json` 下发，本 watcher 消费（nonce
+//! `dawnsight-app.exe --dawnsight-mcp` 子进程不持有播放器：seek 请求经
+//! `<workspace>/.dawnsight/mcp-control.json` 下发，本 watcher 消费（nonce
 //! 去重 + 陈旧请求丢弃 + 时长钳制），执行后写回执供 MCP 工具限时轮询。
 
 use std::collections::{HashMap, HashSet};

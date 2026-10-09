@@ -1,4 +1,4 @@
-//! `.lumina` store with replace-on-success writes. The media files themselves
+//! `.dawnsight` store with replace-on-success writes. The media files themselves
 //! are never modified and the index directory is excluded from scans.
 
 use std::fs;
@@ -264,7 +264,7 @@ fn clear_readonly_flag(path: &Path) {
 }
 
 /// Remove leftover atomic-write temp files (`.index-*.tmp`, `.*.tmp`) under
-/// `<root>/.lumina`. Best-effort: any failure is ignored so a dirty cache dir
+/// `<root>/.dawnsight`. Best-effort: any failure is ignored so a dirty cache dir
 /// can never break a scan. Returns the removed count (logs/tests only).
 pub fn cleanup_stale_tmps(root: &Path) -> usize {
     fn visit(dir: &Path, removed: &mut usize) {
@@ -296,21 +296,9 @@ pub fn group_dir(root: &Path, group_key: &str) -> PathBuf {
     dawnsight_groups_dir(root).join(group_dir_name(group_key))
 }
 
-/// Read-side group dir: new location wins when present, otherwise the
-/// pre-rename `.lumina` copy. Writes always go through [`group_dir`].
+/// Read-side group dir. Single location since the rename (no users to migrate).
 pub fn group_dir_for_read(root: &Path, group_key: &str) -> PathBuf {
-    let modern = group_dir(root, group_key);
-    if modern.is_dir() {
-        return modern;
-    }
-    let legacy = root
-        .join(crate::paths::LEGACY_DIR_NAME)
-        .join("groups")
-        .join(group_dir_name(group_key));
-    if legacy.is_dir() {
-        return legacy;
-    }
-    modern
+    group_dir(root, group_key)
 }
 
 fn group_dir_name(group_key: &str) -> String {
@@ -406,7 +394,7 @@ mod tests {
 
     #[test]
     fn load_normalizes_known_legacy_index_keys_without_rewriting_source() {
-        let root = test_root("lumina-store-legacy-index");
+        let root = test_root("dawnsight-store-legacy-index");
         let path = index_path(&root);
         let parent = match path.parent() {
             Some(parent) => parent,
@@ -462,46 +450,8 @@ mod tests {
     }
 
     #[test]
-    fn load_reads_prerename_lumina_index_without_rewriting_it() {
-        use crate::paths::LEGACY_DIR_NAME;
-
-        let root = test_root("lumina-store-prerename");
-        let legacy = root.join(LEGACY_DIR_NAME);
-        fs::create_dir_all(&legacy).expect("mkdir legacy");
-        let source = r#"{
-            "schemaVersion": 1,
-            "root": "D:/media",
-            "updatedAtMs": 1,
-            "files": [{
-                "relativePath": "Example.Show/S01E02.mkv",
-                "fileName": "S01E02.mkv",
-                "sizeBytes": 1,
-                "modifiedAtMs": 1,
-                "groupKey": "Example.Show",
-                "season": 1,
-                "episode": 2
-            }],
-            "groups": []
-        }"#;
-        fs::write(legacy.join("index.json"), source).expect("seed legacy index");
-
-        let index = load(&root)
-            .expect("pre-rename index should be readable")
-            .expect("pre-rename index should exist");
-        assert_eq!(index.files[0].relative_path, "Example.Show/S01E02.mkv");
-        // Read-only fallback: the legacy file is adopted, never rewritten,
-        // and no new-location file is created as a side effect.
-        assert_eq!(
-            fs::read_to_string(legacy.join("index.json")).expect("read source"),
-            source
-        );
-        assert!(!index_path(&root).exists());
-        let _ = fs::remove_dir_all(&root);
-    }
-
-    #[test]
     fn future_index_schema_is_rejected_without_overwriting_the_file() {
-        let root = test_root("lumina-store-future-index");
+        let root = test_root("dawnsight-store-future-index");
         let path = index_path(&root);
         let parent = match path.parent() {
             Some(parent) => parent,
@@ -527,7 +477,7 @@ mod tests {
     #[test]
     fn cleanup_removes_only_stale_tmps() {
         let dir = std::env::temp_dir().join(format!(
-            "lumina-store-tmp-{}",
+            "dawnsight-store-tmp-{}",
             SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .map(|d| d.as_nanos())
@@ -543,7 +493,7 @@ mod tests {
         assert!(base.join("index.json").is_file());
         assert!(!base.join(".index-1.tmp").exists());
         assert!(!dir.join(".dawnsight").join(".top-3.tmp").exists());
-        // Missing .lumina dir is not an error.
+        // Missing .dawnsight dir is not an error.
         assert_eq!(cleanup_stale_tmps(&dir.join("absent")), 0);
         let _ = fs::remove_dir_all(&dir);
     }
@@ -608,7 +558,7 @@ mod tests {
     #[test]
     fn failed_group_save_leaves_no_stale_tmp() {
         let dir = std::env::temp_dir().join(format!(
-            "lumina-store-fail-{}",
+            "dawnsight-store-fail-{}",
             SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .map(|d| d.as_nanos())

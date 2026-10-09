@@ -1,22 +1,22 @@
-# lumina-ytdl
+# dawnsight-ytdl
 
-`lumina-ytdl` 是 Lumina 的在线流媒体解析与工具集成领域库。它封装了对 `yt-dlp` 的全生命周期管理，提供在线视频元数据解析、多分辨率清晰度优选、多浏览器 Cookie 安全注入、在线字幕自动抽取与可执行程序自动更新等能力。
+`dawnsight-ytdl` 是 Dawnsight 的在线流媒体解析与工具集成领域库。它封装了对 `yt-dlp` 的全生命周期管理，提供在线视频元数据解析、多分辨率清晰度优选、多浏览器 Cookie 安全注入、在线字幕自动抽取与可执行程序自动更新等能力。
 
 ---
 
 ## 1. 模块定位与职责
 
-在 Lumina 架构中，`lumina-ytdl` 负责打通从公网流媒体 URL 到播放器可播放目标的转换链路：
+在 Dawnsight 架构中，`dawnsight-ytdl` 负责打通从公网流媒体 URL 到播放器可播放目标的转换链路：
 
 ```text
 [用户输入在线 URL] (如 YouTube / Bilibili)
         │
         ▼
-  [lumina-ytdl] ──(调度解析与 Cookie)──► yt-dlp CLI
+  [dawnsight-ytdl] ──(调度解析与 Cookie)──► yt-dlp CLI
         │
         ├───────────────────────┬────────────────────────┐
         ▼                       ▼                        ▼
-[lumina-core::MediaSource] [lumina-player]         [lumina-subtitle]
+[dawnsight-core::MediaSource] [dawnsight-player]         [dawnsight-subtitle]
 (生成稳定的 Remote 标识)    (提供直链与格式参数给 mpv) (拉取并缓存在线字幕)
 ```
 
@@ -24,7 +24,7 @@
   - 在线流媒体解析（`resolve`）：无需下载整视频，高速提取视频标题、作者、时长、章节列表、所有可用画质流及内嵌/自动字幕。
   - 清晰度决策（`playback`）：组合最佳视频轨与音频轨（如 1080p + 优质音频），构造供 `libmpv` 直接播放的 `YtdlPlayTarget`。
   - 浏览器 Cookie 鉴权（`cookies`）：支持从 Chrome、Edge、Firefox、Brave 等本地浏览器或 `cookies.txt` 安全提取凭证，以观看高画质、会员或年龄限制视频。
-  - 在线字幕转储（`subtitle`）：将远程字幕（WebVTT / JSON3）拉取并缓存转换为 `lumina-subtitle` 兼容的统一文稿。
+  - 在线字幕转储（`subtitle`）：将远程字幕（WebVTT / JSON3）拉取并缓存转换为 `dawnsight-subtitle` 兼容的统一文稿。
   - 自动更新维护（`download`）：内置官方版本检查、二进制流式下载与 SHA-256 完整性验证。
 - **硬约束**：
   - 脱敏安全原则：绝不将完整的 Cookie 凭据、私有签名 URL 记录到日志或暴露给前端 UI。
@@ -35,7 +35,7 @@
 ## 2. 构建思路与设计原则
 
 1. **分离“解析元数据”与“下载视频”（Metadata Resolution vs. Video Fetching）**：
-   - Lumina 是实时视频阅读器而非离线下载器。`lumina-ytdl` 仅利用 `yt-dlp -J` 进行流地址与元信息解析，将真实的媒体流拉取和解封装全权移交给底层的 `libmpv` 网络管线。
+   - Dawnsight 是实时视频阅读器而非离线下载器。`dawnsight-ytdl` 仅利用 `yt-dlp -J` 进行流地址与元信息解析，将真实的媒体流拉取和解封装全权移交给底层的 `libmpv` 网络管线。
 2. **解析结果带锁缓存（Resolve Cache）**：
    - 外部流解析需要 1~3 秒网络握手。解析后，视频标题、可选画质、分段章节和已解析字幕全部缓存在 `YtdlService` 内存中，后续用户在前端切换分辨率或打开字幕面板时能获得零延迟响应。
 3. **JS 运行时环境感知（JS Runtime Detection）**：
@@ -49,7 +49,7 @@
 
 ```toml
 [dependencies]
-lumina-ytdl.workspace = true
+dawnsight-ytdl.workspace = true
 ```
 
 ### 代码使用示例
@@ -57,7 +57,7 @@ lumina-ytdl.workspace = true
 #### 1. 解析在线视频并选择最高画质播放
 
 ```rust
-use lumina_ytdl::YtdlService;
+use dawnsight_ytdl::YtdlService;
 
 let ytdl = YtdlService::new();
 let url = "https://www.youtube.com/watch?v=ba024k169s";
@@ -92,7 +92,7 @@ if let Some(track) = tracks.first() {
 
 ## 4. 内部子模块全景
 
-`lumina-ytdl/src/` 的主要实现模块如下；列表聚焦稳定的核心文件，内部辅助文件可随实现调整：
+`dawnsight-ytdl/src/` 的主要实现模块如下；列表聚焦稳定的核心文件，内部辅助文件可随实现调整：
 
 | 源码文件 | 模块名称 | 核心职责与导出项 |
 | :--- | :--- | :--- |
@@ -101,7 +101,7 @@ if let Some(track) = tracks.first() {
 | [`resolve.rs`](./resolve.rs) | `resolve` | 拼接命令行参数调用 `yt-dlp --dump-single-json`，反序列化原始视频与音轨数据。 |
 | [`playback.rs`](./playback.rs) | `playback` | 决策与合并音视频流（`bestvideo+bestaudio`），生成供 mpv 使用的 `YtdlPlayTarget`。 |
 | [`cookies.rs`](./cookies.rs) | `cookies` | 读取各浏览器 Profile、测试 Cookie 有效性、隔离生成供 yt-dlp 读取的临时脱敏凭证。 |
-| [`subtitle.rs`](./subtitle.rs) | `subtitle` | 下载远程字幕源（VTT / JSON3），转换为统一的 `lumina_subtitle::Transcript` 结构。 |
+| [`subtitle.rs`](./subtitle.rs) | `subtitle` | 下载远程字幕源（VTT / JSON3），转换为统一的 `dawnsight_subtitle::Transcript` 结构。 |
 | [`download.rs`](./download.rs) | `download` | 从 GitHub Releases 拉取最新稳定版 `yt-dlp.exe`，执行 SHA-256 校验和原子覆写。 |
 | [`runtime.rs`](./runtime.rs) | `runtime` | 检测系统安装的 JS 引擎（Node.js / Bun / Deno / QuickJS），提升 YouTube 解密稳定性。 |
 | [`provider.rs`](./provider.rs) | `provider` | `SubtitleProvider` 抽象策略接口，实现字幕语言代号标准化（如 `zh-Hans` -> `zh`）。 |

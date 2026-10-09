@@ -114,7 +114,7 @@ jobs:
       - name: Upload Windows installers
         uses: actions/upload-artifact@v4
         with:
-          name: Lumina-windows-x64-debug
+          name: Dawnsight-windows-x64-debug
           path: |
             target/debug/bundle/msi/*.msi
             target/debug/bundle/nsis/*.exe
@@ -158,4 +158,4 @@ jobs:
         working-directory: apps/desktop/src-tauri
         run: cargo test --test online_source_e2e -- --nocapture
         env:
-          LUMINA_ONLINE_E2E_URL: ${{ inputs.e2e_url }}
+          DAWNSIGHT_ONLINE_E2E_URL: ${{ inputs.e2e_url }}

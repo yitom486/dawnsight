@@ -61,7 +61,7 @@ describe("CompanionHeaderPanel", () => {
     ).not.toBeInTheDocument();
     expect(screen.queryByRole("group", { name: "快捷 AI 操作" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "展开观剧助手" })).toBeInTheDocument();
-    expect(localStorage.getItem("lumina-companion-header-expanded-v2")).toBe("0");
+    expect(localStorage.getItem("dawnsight-companion-header-expanded-v2")).toBe("0");
 
     fireEvent.click(screen.getByRole("button", { name: "展开观剧助手" }));
     expect(
@@ -70,7 +70,7 @@ describe("CompanionHeaderPanel", () => {
     expect(
       screen.getByRole("group", { name: "快捷 AI 操作" }),
     ).toBeInTheDocument();
-    expect(localStorage.getItem("lumina-companion-header-expanded-v2")).toBe("1");
+    expect(localStorage.getItem("dawnsight-companion-header-expanded-v2")).toBe("1");
   });
 
   it("整行可点击：点标题/副标题文字同样展开/收起", () => {

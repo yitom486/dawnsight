@@ -48,7 +48,7 @@ impl LibMpvPlayer {
 
     /// Embed into a native HWND via `wid` (Windows Phase 1 surface).
     /// Custom skin: stock OSC is off (`osc=no`, avoids a double layer) and
-    /// `native/osc/lumina-osc.lua` is loaded via `scripts=<absolute path>`.
+    /// `native/osc/dawnsight-osc.lua` is loaded via `scripts=<absolute path>`.
     /// `script_path` is resolved by the app (exe-dir/resource candidates);
     /// when `None`, fall back to the executable's own directory (dev runs).
     /// A missing skin only warns — playback still works without the skin.
@@ -365,10 +365,10 @@ impl LibMpvPlayer {
                     let text = sanitize_mpv_log(text);
                     match level {
                         "fatal" | "error" | "warn" => {
-                            tracing::warn!(target: "lumina::mpv", prefix, level, message = %text);
+                            tracing::warn!(target: "dawnsight::mpv", prefix, level, message = %text);
                         }
                         _ => {
-                            tracing::info!(target: "lumina::mpv", prefix, level, message = %text);
+                            tracing::info!(target: "dawnsight::mpv", prefix, level, message = %text);
                         }
                     }
                 }
@@ -506,7 +506,7 @@ impl Drop for LibMpvPlayer {
 }
 
 /// File name of the custom OSC Lua skin. The app build script stages the
-/// tracked source (`native/osc/lumina-osc.lua`) next to the executable, so
+/// tracked source (`native/osc/dawnsight-osc.lua`) next to the executable, so
 /// only this name is needed to reassemble the absolute path at runtime.
 const DAWNSIGHT_OSC_SCRIPT_NAME: &str = "dawnsight-osc.lua";
 const DAWNSIGHT_OSC_SCRIPT_MESSAGE: &str = "dawnsight-surface-mouse";
@@ -813,8 +813,8 @@ mod tests {
     fn mpv_path_string_strips_verbatim_prefix() {
         use std::path::PathBuf;
         assert_eq!(
-            super::mpv_path_string(&PathBuf::from(r"\\?\D:\project\lumina-osc.lua")),
-            r"D:\project\lumina-osc.lua"
+            super::mpv_path_string(&PathBuf::from(r"\\?\D:\project\dawnsight-osc.lua")),
+            r"D:\project\dawnsight-osc.lua"
         );
         assert_eq!(
             super::mpv_path_string(&PathBuf::from(r"D:\project\dawnsight-osc.lua")),
