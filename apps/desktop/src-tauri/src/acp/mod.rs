@@ -10,6 +10,7 @@ pub mod context;
 pub mod engine;
 pub mod environment;
 pub mod error;
+pub mod isolated;
 pub mod mcp_control;
 pub mod model;
 pub mod service;

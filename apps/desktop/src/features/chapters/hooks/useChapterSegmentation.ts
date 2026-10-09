@@ -13,6 +13,7 @@ import {
 } from "@dawnsight/chat-ui";
 
 import {
+  cancelChapterSegmentation,
   getChapterSegmentationStatus,
   chapterEpisodeIdentityFromLibraryContext,
   startChapterSegmentation,
@@ -20,7 +21,7 @@ import {
   type ChapterSegmentationRequest,
   type ChapterSegmentationSnapshot,
 } from "../api";
-import { chapterSegmentationKey } from "../queries";
+import { chapterResegmentationKey, chapterSegmentationKey } from "../queries";
 import { useChapterProgressStore } from "../progressStore";
 
 export type ChapterSegmentationUiStatus =
@@ -50,7 +51,9 @@ function isPendingTask(status: string | undefined): boolean {
   return status === "pending" || status === "queued" || status === "running";
 }
 
-export function useChapterSegmentation() {
+export function useChapterSegmentation(options?: { resegment?: boolean; enabled?: boolean }) {
+  const resegment = options?.resegment === true;
+  const enabled = options?.enabled ?? true;
   const mediaPath = usePlayerStore((state) => state.currentFile);
   const positionMs = usePlayerStore((state) => state.currentTimeMs);
   const subtitleChoiceId = useTrackStore((state) => state.subtitleChoiceId);
@@ -107,17 +110,23 @@ export function useChapterSegmentation() {
         subtitleChoiceId,
         positionMs,
         spoilerBoundary: "full_media",
+        ...(resegment ? { resegment: true } : null),
       }
     : null;
-  const queryKey = chapterSegmentationKey(
-    episodeIdentity?.kind === "authoritative" ? null : mediaPath,
-    episodeKey,
-  );
+  const queryKey = resegment
+    ? chapterResegmentationKey(
+        episodeIdentity?.kind === "authoritative" ? null : mediaPath,
+        episodeKey,
+      )
+    : chapterSegmentationKey(
+        episodeIdentity?.kind === "authoritative" ? null : mediaPath,
+        episodeKey,
+      );
 
   const statusQuery = useQuery({
     queryKey,
     queryFn: () => getChapterSegmentationStatus(request as ChapterSegmentationRequest),
-    enabled: Boolean(request),
+    enabled: Boolean(request) && enabled,
     retry: false,
     staleTime: 1_000,
     refetchInterval: (query) =>
@@ -130,6 +139,19 @@ export function useChapterSegmentation() {
         return Promise.reject(new Error("当前没有可分段的媒体"));
       }
       return startChapterSegmentation(request);
+    },
+    onSuccess: (snapshot) => {
+      queryClient.setQueryData(queryKey, snapshot);
+      void queryClient.invalidateQueries({ queryKey });
+    },
+  });
+
+  const cancelMutation = useMutation({
+    mutationFn: () => {
+      if (!request) {
+        return Promise.reject(new Error("当前没有可取消的任务"));
+      }
+      return cancelChapterSegmentation(request);
     },
     onSuccess: (snapshot) => {
       queryClient.setQueryData(queryKey, snapshot);
@@ -164,7 +186,14 @@ export function useChapterSegmentation() {
   const error =
     statusQuery.isError && !isMissingTaskError(statusQuery.error)
       ? statusQuery.error
-      : startMutation.error;
+      : (startMutation.error ?? cancelMutation.error);
+
+  // Cancel only pre-claim states; a running claim already owns the atomic
+  // task row and the worker's terminal write would win the race.
+  const canCancel =
+    Boolean(request) &&
+    (snapshot?.status === "pending" || snapshot?.status === "validation_failure") &&
+    !cancelMutation.isPending;
 
   return {
     request,
@@ -187,6 +216,10 @@ export function useChapterSegmentation() {
     start: () => startMutation.mutate(),
     startAsync: () => startMutation.mutateAsync(),
     isStarting: startMutation.isPending,
+    canCancel,
+    cancel: () => cancelMutation.mutate(),
+    cancelAsync: () => cancelMutation.mutateAsync(),
+    isCancelling: cancelMutation.isPending,
   };
 }
 

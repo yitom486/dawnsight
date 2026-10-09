@@ -1,9 +1,13 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { usePlayerStore } from "@/features/player";
 import { ytdlResolveKey } from "@dawnsight/query-keys";
+import { useAcpProfilesStore } from "@dawnsight/chat-ui/acpProfilesStore";
+import { useAcpSettingsStore } from "@dawnsight/chat-ui/acpSettingsStore";
+import { useChatUiStore } from "@dawnsight/chat-ui/chatUiStore";
+import { useModelCatalogStore } from "@dawnsight/chat-ui/modelCatalogStore";
 
 import { ChaptersPanel, type ChaptersPanelProps } from "./ChaptersPanel";
 
@@ -42,12 +46,14 @@ const segmentationSnapshot = {
   updatedAtMs: 1,
 };
 
-function renderPanel(props: ChaptersPanelProps = {}) {
-  const client = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
-  });
+function renderPanel(props: ChaptersPanelProps = {}, client?: QueryClient) {
+  const queryClient =
+    client ??
+    new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
   return render(
-    <QueryClientProvider client={client}>
+    <QueryClientProvider client={queryClient}>
       <ChaptersPanel {...props} />
     </QueryClientProvider>,
   );
@@ -57,6 +63,12 @@ beforeEach(() => {
   chapters = [];
   onlineResolve = null;
   libraryContext = null;
+  // Cross-test isolation: the defaults-merge effect in the shared hook writes
+  // global settings (e.g. advertised options backfill a blank modelId), so
+  // reset all three stores or later tests inherit earlier tests' world.
+  useAcpProfilesStore.getState().setActiveProfileId("codex");
+  useAcpSettingsStore.getState().patchSettings({ modelId: "", reasoningEffort: "" });
+  useModelCatalogStore.getState().resetModelCatalog();
   vi.mocked(invoke).mockImplementation((cmd: string) => {
     if (cmd === "media_inspect")
       return Promise.resolve({ path: "C:\\v\\a.mp4", streams: [], chapters });
@@ -302,6 +314,48 @@ describe("ChaptersPanel container chapters and AI entry", () => {
     await waitFor(() => {
       expect(invokeCmds("player_seek")).toHaveLength(1);
     });
+  });
+
+  it("toggles between real chapters and resegment drafts without losing the real list", async () => {
+    chapters = [{ id: 1, startMs: 0, endMs: 10_000, title: "正片" }];
+    const draftChapters = [
+      {
+        id: 12,
+        stableId: "ai-01",
+        startMs: 0,
+        endMs: 30_000,
+        title: "AI开场",
+        mainline: null,
+        status: "generated",
+        updatedAtMs: 2,
+      },
+    ];
+    vi.mocked(invoke).mockImplementation((cmd: string, args?: unknown) => {
+      if (cmd === "media_inspect")
+        return Promise.resolve({ path: "C:\\v\\a.mp4", streams: [], chapters });
+      if (cmd === "library_context_for_media") return Promise.resolve(null);
+      if (cmd === "chapter_segmentation_status") {
+        const resegment = Boolean(
+          (args as { request?: { resegment?: boolean } } | undefined)?.request?.resegment,
+        );
+        if (resegment)
+          return Promise.resolve({ ...segmentationSnapshot, status: "succeeded", draftChapters });
+        return Promise.reject({ code: "NotFound", message: "尚未开始该媒体的 AI 分段" });
+      }
+      if (cmd === "player_seek")
+        return Promise.resolve({ status: "Paused", currentTimeMs: 0 });
+      return Promise.resolve(null);
+    });
+    renderPanel();
+
+    await waitFor(() => expect(screen.getByText("正片")).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByRole("tablist", { name: "章节来源切换" })).toBeInTheDocument(),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "AI重分段草稿" }));
+    expect(await screen.findByText("AI开场")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "真实章节" }));
+    expect(screen.getByText("正片")).toBeInTheDocument();
   });
 
   it("starts AI segmentation when the ready entry is clicked", async () => {
@@ -618,12 +672,274 @@ describe("ChaptersPanel boundaries", () => {
     expect(invokeCmds("chapter_segmentation_start")).toHaveLength(0);
   });
 
-  it("does not show the AI segmentation entry when real chapters exist", async () => {
+  it("shows the resegment entry alongside real chapters without auto-start", async () => {
     chapters = [{ id: 1, startMs: 0, endMs: null, title: "正片" }];
     renderPanel();
 
     await waitFor(() => expect(screen.getByText("正片")).toBeInTheDocument());
-    expect(screen.queryByRole("button", { name: "开始 AI 分段" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "已排队，等待执行…" })).not.toBeInTheDocument();
+    expect(
+      screen.getByText("容器章节较粗糙，可用 AI 完全重分段（不删除真实章节）。"),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "开始 AI 分段" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "重分段进度" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "重分段运行时" })).toBeInTheDocument();
+    expect(screen.getByLabelText("重分段模型")).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "重分段思考档" })).toBeInTheDocument();
+    expect(invokeCmds("chapter_segmentation_start")).toHaveLength(0);
+  });
+
+  it("renders model dropdowns from the Agent-advertised list", async () => {
+    chapters = [{ id: 1, startMs: 0, endMs: null, title: "正片" }];
+    vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "media_inspect")
+        return Promise.resolve({ path: "C:\\v\\a.mp4", streams: [], chapters });
+      if (cmd === "library_context_for_media") return Promise.resolve(null);
+      if (cmd === "acp_status")
+        return Promise.resolve({
+          available: true,
+          activeProfileId: "codex",
+          profiles: [],
+          sessionModelOptions: {
+            models: [{ value: "gpt-6.1-sol", name: "GPT 6.1 Sol" }],
+            reasoningEfforts: [{ value: "high", name: "High" }],
+          },
+        });
+      if (cmd === "chapter_segmentation_status")
+        return Promise.reject({ code: "NotFound", message: "尚未开始该媒体的 AI 分段" });
+      if (cmd === "player_seek")
+        return Promise.resolve({ status: "Paused", currentTimeMs: 0 });
+      return Promise.resolve(null);
+    });
+    renderPanel();
+
+    expect(await screen.findByRole("option", { name: "GPT 6.1 Sol" })).toBeInTheDocument();
+    const modelSelect = screen.getByRole("combobox", { name: "重分段模型" });
+    expect(modelSelect.tagName).toBe("SELECT");
+    expect(screen.getByRole("combobox", { name: "重分段运行时" })).toBeInTheDocument();
+  });
+
+  it("resets to real chapters when the media changes", async () => {
+    chapters = [{ id: 1, startMs: 0, endMs: 10_000, title: "正片" }];
+    const draftChapters = [
+      {
+        id: 12,
+        stableId: "ai-01",
+        startMs: 0,
+        endMs: 30_000,
+        title: "AI开场",
+        mainline: null,
+        status: "generated",
+        updatedAtMs: 2,
+      },
+    ];
+    vi.mocked(invoke).mockImplementation((cmd: string, args?: unknown) => {
+      if (cmd === "media_inspect")
+        return Promise.resolve({ path: "C:\\v\\a.mp4", streams: [], chapters });
+      if (cmd === "library_context_for_media") return Promise.resolve(null);
+      if (cmd === "chapter_segmentation_status") {
+        const resegment = Boolean(
+          (args as { request?: { resegment?: boolean } } | undefined)?.request?.resegment,
+        );
+        const mediaPath = (args as { request?: { mediaPath?: string } } | undefined)?.request
+          ?.mediaPath;
+        if (resegment && mediaPath === "C:\\v\\a.mp4")
+          return Promise.resolve({ ...segmentationSnapshot, status: "succeeded", draftChapters });
+        return Promise.reject({ code: "NotFound", message: "尚未开始该媒体的 AI 分段" });
+      }
+      if (cmd === "player_seek")
+        return Promise.resolve({ status: "Paused", currentTimeMs: 0 });
+      return Promise.resolve(null);
+    });
+    renderPanel();
+
+    await waitFor(() =>
+      expect(screen.getByRole("tablist", { name: "章节来源切换" })).toBeInTheDocument(),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "AI重分段草稿" }));
+    expect(await screen.findByText("AI开场")).toBeInTheDocument();
+
+    act(() => {
+      usePlayerStore.setState({ currentFile: "C:\\v\\b.mp4", sourceKind: null });
+    });
+    await waitFor(() => expect(screen.getByText("正片")).toBeInTheDocument());
+    expect(screen.queryByRole("tablist", { name: "章节来源切换" })).not.toBeInTheDocument();
+
+    act(() => {
+      usePlayerStore.setState({ currentFile: "C:\\v\\a.mp4", sourceKind: null });
+    });
+  });
+
+  it("marks the verify step failed when validation fails", async () => {
+    chapters = [{ id: 1, startMs: 0, endMs: null, title: "正片" }];
+    vi.mocked(invoke).mockImplementation((cmd: string, args?: unknown) => {
+      if (cmd === "media_inspect")
+        return Promise.resolve({ path: "C:\\v\\a.mp4", streams: [], chapters });
+      if (cmd === "library_context_for_media") return Promise.resolve(null);
+      if (cmd === "chapter_segmentation_status") {
+        const resegment = Boolean(
+          (args as { request?: { resegment?: boolean } } | undefined)?.request?.resegment,
+        );
+        if (resegment)
+          return Promise.resolve({
+            ...segmentationSnapshot,
+            status: "validation_failure",
+            attemptCount: 1,
+            failureMessage: "章节分段结果未通过校验。",
+            canRetry: true,
+            retryAction: "retry",
+          });
+        return Promise.reject({ code: "NotFound", message: "尚未开始该媒体的 AI 分段" });
+      }
+      if (cmd === "player_seek")
+        return Promise.resolve({ status: "Paused", currentTimeMs: 0 });
+      return Promise.resolve(null);
+    });
+    renderPanel();
+
+    await waitFor(() => expect(screen.getByText("校验未过")).toBeInTheDocument());
+  });
+
+  it("resets model selection when the runtime is switched", async () => {
+    chapters = [{ id: 1, startMs: 0, endMs: null, title: "正片" }];
+    act(() => {
+      useAcpSettingsStore.getState().patchSettings({ modelId: "gpt-6.1-sol", reasoningEffort: "high" });
+    });
+    renderPanel();
+
+    await waitFor(() => expect(screen.getByText("正片")).toBeInTheDocument());
+    expect(screen.getByLabelText("重分段模型")).toHaveValue("gpt-6.1-sol");
+
+    act(() => {
+      useAcpProfilesStore.getState().switchActiveProfileId("opencode-v2");
+    });
+    await waitFor(() => expect(screen.getByLabelText("重分段模型")).toHaveValue(""));
+    // Effort is chapter-relevant again (isolated sessions honor set_config),
+    // so it resets with the model on runtime switch.
+    expect(useAcpSettingsStore.getState().reasoningEffort).toBe("");
+    // Per-profile memory: choosing a model under the new runtime, then
+    // switching back, restores the original choice instead of blanking it.
+    act(() => {
+      useAcpSettingsStore.getState().patchSettings({ modelId: "opencode-model-1" });
+    });
+    act(() => {
+      useAcpProfilesStore.getState().switchActiveProfileId("codex");
+    });
+    await waitFor(() => expect(screen.getByLabelText("重分段模型")).toHaveValue("gpt-6.1-sol"));
+    // The dead discovery endpoint must never be called (backend stub always
+    // answers connected:false); lists come only from a live session.
+    expect(invokeCmds("library_agent_models_discover")).toHaveLength(0);
+
+    act(() => {
+      useAcpProfilesStore.getState().switchActiveProfileId("codex");
+      useAcpSettingsStore.getState().patchSettings({ modelId: "", reasoningEffort: "" });
+    });
+  });
+
+  it("shares the chat status cache instead of fetching its own", async () => {
+    chapters = [{ id: 1, startMs: 0, endMs: null, title: "正片" }];
+    act(() => {
+      useAcpProfilesStore.getState().switchActiveProfileId("codex");
+    });
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    // Seed exactly the chat panel's key: same profile, same (empty) lineup
+    // signature, fresh data. The panel must render the dropdown without any
+    // acp_status call of its own.
+    client.setQueryData(["acp-status", "codex", ""], {
+      available: true,
+      activeProfileId: "codex",
+      profiles: [],
+      sessionModelOptions: {
+        models: [{ value: "6.1 Sol", name: "6.1 Sol" }],
+        reasoningEfforts: [],
+      },
+    });
+    renderPanel({}, client);
+
+    await waitFor(() => expect(screen.getByText("正片")).toBeInTheDocument());
+    expect(await screen.findByRole("option", { name: "6.1 Sol" })).toBeInTheDocument();
+    expect(invokeCmds("acp_status")).toHaveLength(0);
+  });
+
+  it("names both sides when the live session is on another runtime", async () => {
+    chapters = [{ id: 1, startMs: 0, endMs: null, title: "正片" }];
+    act(() => {
+      useAcpProfilesStore.getState().switchActiveProfileId("opencode-v2");
+    });
+    vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "media_inspect")
+        return Promise.resolve({ path: "C:\\v\\a.mp4", streams: [], chapters });
+      if (cmd === "library_context_for_media") return Promise.resolve(null);
+      if (cmd === "acp_status")
+        return Promise.resolve({
+          available: true,
+          activeProfileId: "codex",
+          profiles: [],
+          sessionModelOptions: {
+            models: [
+              { value: "6.1 Sol", name: "6.1 Sol" },
+              { value: "6 Astra", name: "6 Astra" },
+            ],
+            reasoningEfforts: [],
+          },
+        });
+      if (cmd === "chapter_segmentation_status")
+        return Promise.reject({ code: "NotFound", message: "尚未开始该媒体的 AI 分段" });
+      if (cmd === "player_seek")
+        return Promise.resolve({ status: "Paused", currentTimeMs: 0 });
+      return Promise.resolve(null);
+    });
+    renderPanel();
+
+    await waitFor(() => expect(screen.getByText("正片")).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText(/AI 对话已连接codex（2 个模型）/)).toBeInTheDocument(),
+    );
+    expect(screen.getByText(/章节当前选的是opencode-v2暂无列表/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "去 AI 对话连接" }));
+    expect(useChatUiStore.getState().chatOpen).toBe(true);
+
+    act(() => {
+      useChatUiStore.getState().closeChat();
+      useAcpProfilesStore.getState().switchActiveProfileId("codex");
+      useAcpSettingsStore.getState().patchSettings({ modelId: "", reasoningEffort: "" });
+    });
+  });
+
+  it("cancels a queued resegment task from the inline progress region", async () => {
+    chapters = [{ id: 1, startMs: 0, endMs: null, title: "正片" }];
+    const queued = {
+      ...segmentationSnapshot,
+      taskKey: "chapter-resegmentation:C:\\v\\a.mp4:C:\\v\\a.mp4",
+      taskType: "chapter_resegmentation",
+      status: "pending",
+      attemptCount: 0,
+      draftChapters: [],
+    };
+    vi.mocked(invoke).mockImplementation((cmd: string, args?: unknown) => {
+      if (cmd === "media_inspect")
+        return Promise.resolve({ path: "C:\\v\\a.mp4", streams: [], chapters });
+      if (cmd === "library_context_for_media") return Promise.resolve(null);
+      if (cmd === "chapter_segmentation_status") {
+        const resegment = Boolean(
+          (args as { request?: { resegment?: boolean } } | undefined)?.request?.resegment,
+        );
+        if (resegment) return Promise.resolve(queued);
+        return Promise.reject({ code: "NotFound", message: "尚未开始该媒体的 AI 分段" });
+      }
+      if (cmd === "chapter_segmentation_cancel") return Promise.resolve({ ...queued, status: "failed" });
+      if (cmd === "player_seek")
+        return Promise.resolve({ status: "Paused", currentTimeMs: 0 });
+      return Promise.resolve(null);
+    });
+    renderPanel();
+
+    const cancelButton = await screen.findByRole("button", { name: "取消任务" });
+    await waitFor(() => expect(cancelButton).not.toBeDisabled());
+    fireEvent.click(cancelButton);
+    await waitFor(() => {
+      expect(invokeCmds("chapter_segmentation_cancel").length).toBeGreaterThan(0);
+    });
   });
 });

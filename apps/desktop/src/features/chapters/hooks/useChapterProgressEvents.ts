@@ -15,6 +15,7 @@ const CHAPTER_PROGRESS_EVENT = "chapter-segmentation-progress";
  */
 const COMMITTED_QUERY_KEYS = [
   ["chapter-segmentation"],
+  ["chapter-resegmentation"],
   acpWatchFeedQueryKey,
 ] as const;
 

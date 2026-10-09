@@ -39,6 +39,7 @@ export type ChapterSegmentationRequest = {
   subtitleChoiceId?: string | null;
   positionMs?: number;
   spoilerBoundary?: ChapterSpoilerBoundary;
+  resegment?: boolean;
 };
 
 export type ChapterRetryAction = "retry" | "configure_agent";
@@ -261,6 +262,14 @@ export function getChapterSegmentationStatus(
   request: ChapterSegmentationRequest,
 ): Promise<ChapterSegmentationSnapshot> {
   return invoke<ChapterSegmentationSnapshot>("chapter_segmentation_status", {
+    request,
+  });
+}
+
+export function cancelChapterSegmentation(
+  request: ChapterSegmentationRequest,
+): Promise<ChapterSegmentationSnapshot> {
+  return invoke<ChapterSegmentationSnapshot>("chapter_segmentation_cancel", {
     request,
   });
 }

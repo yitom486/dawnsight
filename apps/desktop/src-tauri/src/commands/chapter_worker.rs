@@ -1,6 +1,6 @@
 //! Background execution for user-triggered chapter segmentation.
 //!
-//! Prompt rules and output validation remain in `lumina-ai`; ACP remains a
+//! Prompt rules and output validation remain in `dawnsight-ai`; ACP remains a
 //! generic isolated client. This module only orchestrates the desktop inputs.
 
 use std::path::{Path, PathBuf};
@@ -11,7 +11,6 @@ use dawnsight_ai::prompts::{
     TranscriptWindow, ValidationReport, ViewingContext,
 };
 use dawnsight_ai::{build_screenshot_reference, build_transcript_windows, ScreenshotMetadata};
-use dawnsight_core::{AgentInvoker, AgentTaskError, IsolatedAgentTask};
 use dawnsight_library::{
     AgentTaskRecord, Database, DatabaseError, DatabaseErrorCode, DatabaseResult,
     LegacyEpisodeMigration, NewAgentAttempt, NewEpisode, NewSeries, Repository,
@@ -186,7 +185,7 @@ pub(super) fn run(
         .insert_agent_attempt(&NewAgentAttempt::new(
             task.id,
             task.attempt_count,
-            "chapter_segmentation",
+            task.task_type.clone(),
             "running",
             task.prompt_version.clone(),
             now_ms_for_command(),
@@ -539,9 +538,9 @@ fn execute_attempt(
         .ok_or_else(|| WorkerFailure::agent_not_configured("missing profile id"))?;
 
     // Task-scoped MCP tools: snapshot first (authority for task ownership),
-    // then hand its server specs to the pool session. Workspace registration
-    // keeps MCP reverse control (seek) routed to this media directory.
-    let session_label = format!("chapter-{}", task.id);
+    // then hand its server specs to the dedicated isolated session. Workspace
+    // registration keeps MCP reverse control (seek) routed to this media
+    // directory.
     let mcp_servers = {
         use crate::acp::environment::SessionEnvironment;
         let env = crate::acp::adapter::AppSessionEnvironment;
@@ -552,34 +551,71 @@ fn execute_attempt(
         let servers = env.mcp_servers(&path, crate::acp::SessionKind::Chapter);
         servers.as_array().cloned().unwrap_or_default()
     };
-    let invoker = crate::agent_pool::build_pool(&crate::agent_pool::PoolSpec {
-        profiles: &profiles,
-        profile_id,
-        model_id: chapter_model_id(request),
-        cwd: Some(&cwd),
-        mcp_servers,
-    })
-    .map_err(WorkerFailure::agent_unavailable)?;
+    // One dedicated ACP session for this attempt: session/new straight through
+    // the engine sidecar, no pool/workers/queue. The workflow stays strictly
+    // ordered inside this single session (outline → evidence → draft →
+    // finalize); effort is honored here via session/set_config, unlike the
+    // pool path which silently dropped it.
+    let session = {
+        let mut forward = |event| forward_engine_progress(&mut *progress, event);
+        crate::acp::isolated::IsolatedSession::open(
+            &crate::acp::isolated::IsolatedSessionSpec {
+                profile_id,
+                profiles: &profiles,
+                workspace: &cwd,
+                mcp_servers: serde_json::Value::Array(mcp_servers),
+                model_id: chapter_model_id(request),
+                reasoning_effort: chapter_reasoning_effort(request),
+            },
+            &mut forward,
+        )
+        .map_err(isolated_task_failure)?
+    };
 
     progress.emit("agent_running", "正在执行章节 Agent", false);
-    let mut conversation = invoker
-        .open_conversation(Some(session_label.clone()))
-        .map_err(agent_task_failure)?;
-    let response = conversation
-        .prompt(IsolatedAgentTask {
-            prompt: composed.initial_prompt().to_string(),
-            bootstrap_prompt: None,
-            profile_id: profile_id.to_string(),
-            model_id: request.model_id.clone(),
-            reasoning_effort: request.reasoning_effort.clone(),
-            task_label: Some(session_label),
-            retry_task_label: None,
-        })
-        .map_err(agent_task_failure)?;
+    let mut forward = |event| forward_engine_progress(&mut *progress, event);
+    let result = session.prompt(composed.initial_prompt().to_string(), &mut forward);
+    // The transient session is always torn down, success or not: no leases,
+    // no pool slots, nothing for a later attempt to inherit.
+    session.close();
+    let response = result.map_err(isolated_task_failure)?;
     progress.emit("checking_result", "正在确认章节结果", false);
     Ok(AttemptResult {
         assistant_response: response,
     })
+}
+
+/// Forward live engine progress into the coarse chapter progress projection.
+/// Everything else stays in tracing; the durable task row remains the source
+/// of truth and assistant text is never treated as a completion signal here.
+fn forward_engine_progress(progress: &mut ProgressEmitter, event: crate::acp::AcpEvent) {
+    if let crate::acp::AcpEvent::Progress { message } = event {
+        progress.emit("agent_running", &message, false);
+    }
+}
+
+/// Map an isolated engine failure onto the durable worker failure, mirroring
+/// the pool-era `agent_task_failure` arms so UI copy stays stable.
+fn isolated_task_failure(error: crate::acp::AcpError) -> WorkerFailure {
+    use crate::acp::AcpErrorCode;
+    match error.code {
+        AcpErrorCode::NotConfigured => WorkerFailure::agent_not_configured(
+            error
+                .details
+                .unwrap_or_else(|| "agent is not configured".to_string()),
+        ),
+        AcpErrorCode::NoOutput => WorkerFailure::business(
+            "章节 Agent 未返回可用内容，请再次尝试。",
+            error
+                .details
+                .unwrap_or_else(|| "agent returned no text".to_string()),
+        ),
+        _ => WorkerFailure::agent_unavailable(
+            error
+                .details
+                .unwrap_or_else(|| "agent task failed".to_string()),
+        ),
+    }
 }
 
 fn local_media_path(request: &ChapterSegmentationRequest) -> Result<PathBuf, WorkerFailure> {
@@ -707,7 +743,7 @@ fn collect_screenshots(
         .join(".dawnsight")
         // Chapter evidence is referenced by the prompt and persisted as a
         // chapter asset. Keep it outside MCP's ephemeral tmp directory:
-        // ACP snapshot synchronization clears `.lumina/tmp` before the
+        // ACP snapshot synchronization clears `.dawnsight/tmp` before the
         // chapter session starts.
         .join("chapter-evidence")
         .join(format!("chapter-capture-{}", task.id));
@@ -813,7 +849,61 @@ fn build_prompt_slots(
     for screenshot in &evidence.screenshots {
         slots = slots.with_screenshot(screenshot.clone());
     }
+    if request.resegment {
+        if let Some(reference) = real_chapter_reference(media_path) {
+            slots = slots.with_user_instruction(reference);
+        }
+    }
     slots
+}
+
+fn real_chapter_reference(media_path: &Path) -> Option<String> {
+    let info = MediaInspector::inspect(media_path).ok()?;
+    if info.chapters.is_empty() {
+        return None;
+    }
+    Some(format_real_chapters(&info.chapters))
+}
+
+fn format_real_chapters(chapters: &[dawnsight_media::MediaChapter]) -> String {
+    const MAX_REF: usize = 20;
+    let mut parts = Vec::new();
+    for chapter in chapters.iter().take(MAX_REF) {
+        let title = chapter
+            .title
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .unwrap_or("未命名章节");
+        parts.push(format!(
+            "{}-{} {}",
+            format_ms(chapter.start_ms),
+            chapter
+                .end_ms
+                .map(format_ms)
+                .unwrap_or_else(|| "?".to_string()),
+            title
+        ));
+    }
+    let suffix = if chapters.len() > MAX_REF {
+        format!("（另有 {} 个未列出）", chapters.len() - MAX_REF)
+    } else {
+        String::new()
+    };
+    format!(
+        "Existing container chapters are rough and for reference only; you may replace boundaries. {} {}",
+        parts.join("；"),
+        suffix
+    )
+    .trim()
+    .to_string()
+}
+
+fn format_ms(ms: u64) -> String {
+    let total_sec = ms / 1000;
+    let minutes = total_sec / 60;
+    let seconds = total_sec % 60;
+    format!("{minutes:02}:{seconds:02}")
 }
 
 fn chapter_model_id(request: &ChapterSegmentationRequest) -> Option<&str> {
@@ -824,20 +914,16 @@ fn chapter_model_id(request: &ChapterSegmentationRequest) -> Option<&str> {
         .filter(|value| !value.is_empty())
 }
 
-/// Map an isolated pool call failure onto the durable worker failure.
-fn agent_task_failure(error: AgentTaskError) -> WorkerFailure {
-    match error {
-        AgentTaskError::NotConfigured { details } => WorkerFailure::agent_not_configured(
-            details.unwrap_or_else(|| "agent is not configured".to_string()),
-        ),
-        AgentTaskError::NoOutput { details } => WorkerFailure::business(
-            "章节 Agent 未返回可用内容，请再次尝试。",
-            details.unwrap_or_else(|| "agent returned no text".to_string()),
-        ),
-        AgentTaskError::Failed { details } => WorkerFailure::agent_unavailable(
-            details.unwrap_or_else(|| "agent task failed".to_string()),
-        ),
-    }
+/// Trimmed reasoning effort for the isolated session. Unlike the retired pool
+/// path (which had no effort knob and silently dropped this value), the
+/// engine honors it via `session/set_config`, so the chapters-panel effort
+/// control takes effect again.
+fn chapter_reasoning_effort(request: &ChapterSegmentationRequest) -> Option<&str> {
+    request
+        .reasoning_effort
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
 }
 
 #[cfg(test)]
@@ -853,6 +939,28 @@ mod tests {
         assert!(points.len() <= MAX_COVERAGE_POINTS);
         assert_eq!(points.first().copied(), Some(0.0));
         assert!(points.windows(2).all(|pair| pair[0] <= pair[1]));
+    }
+
+    #[test]
+    fn resegment_reference_formats_times_without_paths() {
+        let text = format_real_chapters(&[
+            dawnsight_media::MediaChapter {
+                id: 1,
+                start_ms: 0,
+                end_ms: Some(5_000),
+                title: Some("Chapter 01".to_string()),
+            },
+            dawnsight_media::MediaChapter {
+                id: 2,
+                start_ms: 65_170_000,
+                end_ms: None,
+                title: None,
+            },
+        ]);
+        assert!(text.contains("00:00-00:05"));
+        assert!(text.contains("Chapter 01"));
+        assert!(text.contains("未命名章节"));
+        assert!(!text.contains("C:\\"));
     }
 
     #[test]
@@ -1115,6 +1223,7 @@ mod tests {
             subtitle_choice_id: None,
             position_ms: None,
             spoiler_boundary: None,
+            resegment: false,
         };
 
         assert_eq!(
@@ -1148,6 +1257,7 @@ mod tests {
             subtitle_choice_id: None,
             position_ms: None,
             spoiler_boundary: None,
+            resegment: false,
         };
 
         assert_eq!(

@@ -5,6 +5,7 @@ import { errorMessage } from "@/lib/format";
 
 import { useAcpProfilesStore } from "@dawnsight/chat-ui/acpProfilesStore";
 import { useAcpSettingsStore } from "@dawnsight/chat-ui/acpSettingsStore";
+import { useModelCatalogStore } from "@dawnsight/chat-ui/modelCatalogStore";
 import { acpSetSessionModel, discoverAcpModels } from "./api";
 import { profilesHintFromStore } from "@dawnsight/chat-ui/defaultAgentProfiles";
 import {
@@ -42,9 +43,15 @@ export function useAgentModelControls({
   const reasoningEffort = useAcpSettingsStore((s) => s.reasoningEffort ?? "");
   const patchSettings = useAcpSettingsStore((s) => s.patchSettings);
 
-  // 当前世界只读自家桶：旧键躺着不动，新世界读不到旧世界的模型。
+  // Current world reads its own bucket first; the shared catalogue remembers
+  // last-seen advertised options per profile so a previously-connected runtime
+  // keeps its lists across switches even with no live session right now.
+  // Buckets (explicit refresh) still win over memory when both exist.
+  const rememberedOptions = useModelCatalogStore(
+    (s) => s.byProfile[activeProfileId ?? ""] ?? null,
+  );
   const discoveredOptions = activeProfileId
-    ? (discoveredOptionsByProfile[activeProfileId] ?? null)
+    ? (discoveredOptionsByProfile[activeProfileId] ?? rememberedOptions)
     : null;
   const optionSource =
     status?.activeProfileId === activeProfileId
@@ -57,6 +64,14 @@ export function useAgentModelControls({
   useEffect(() => {
     setControlError(null);
   }, [activeProfileId]);
+
+  // Write-through: whatever source just served this profile (live session or
+  // explicit refresh) is remembered in the shared catalogue, so all surfaces
+  // keep dynamic binding after disconnects and switches.
+  useEffect(() => {
+    if (!activeProfileId || !optionSource) return;
+    useModelCatalogStore.getState().rememberOptions(activeProfileId, optionSource);
+  }, [activeProfileId, optionSource]);
 
   useEffect(() => {
     if (!optionSource) return;

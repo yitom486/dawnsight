@@ -111,7 +111,7 @@ impl AcpService {
 
     // ---- profiles ------------------------------------------------------
 
-    fn resolve_profile<'a>(
+    pub(crate) fn resolve_profile<'a>(
         prepared: &'a AgentProfilesHint,
         profile_id: Option<&str>,
     ) -> Result<&'a super::model::AgentProfileInput, AcpError> {
@@ -126,7 +126,9 @@ impl AcpService {
     }
 
     /// Map a profile to the engine runtime id (or a custom program + args).
-    fn runtime_for(profile: &super::model::AgentProfileInput) -> Result<EngineRuntime, AcpError> {
+    pub(crate) fn runtime_for(
+        profile: &super::model::AgentProfileInput,
+    ) -> Result<EngineRuntime, AcpError> {
         use super::model::AgentKind;
         match profile.kind {
             AgentKind::Codex => Ok(EngineRuntime::Builtin("codex-acp")),
@@ -287,7 +289,7 @@ impl AcpService {
         }
     }
 
-    /// Map an engine runtime id to the stable Lumina profile id. The engine
+    /// Map an engine runtime id to the stable Dawnsight profile id. The engine
     /// owns transport ids (`codex-acp`, `cursor-cli`); persisted hints,
     /// snapshots and the UI key on the product ids (`codex`, `cursor`).
     /// Unknown ids pass through unchanged (e.g. `opencode-v2`).
@@ -1372,13 +1374,13 @@ impl Drop for BusyGuard<'_> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-enum EngineRuntime {
+pub(crate) enum EngineRuntime {
     Builtin(&'static str),
     Custom(String, Vec<String>),
 }
 
 impl EngineRuntime {
-    fn id(&self) -> &str {
+    pub(crate) fn id(&self) -> &str {
         match self {
             Self::Builtin(id) => id,
             Self::Custom(..) => "custom",
@@ -1413,7 +1415,7 @@ mod tests {
 
     #[test]
     fn resume_hint_is_namespaced_by_profile_and_workspace() {
-        let media_dir = std::env::temp_dir().join("lumina-acp-hint-test");
+        let media_dir = std::env::temp_dir().join("dawnsight-acp-hint-test");
         std::fs::create_dir_all(&media_dir).expect("mkdir");
         let media_hint = media_dir.to_str().expect("utf8").to_string();
         let workspace = resolve_agent_workspace(Some(&media_hint)).expect("workspace");

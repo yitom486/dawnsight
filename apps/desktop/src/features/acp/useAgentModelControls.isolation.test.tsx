@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useAcpProfilesStore } from "@dawnsight/chat-ui/acpProfilesStore";
 import { useAcpSettingsStore } from "@dawnsight/chat-ui/acpSettingsStore";
+import { useModelCatalogStore } from "@dawnsight/chat-ui/modelCatalogStore";
 import type { AcpStatus } from "./types";
 import { useAgentModelControls } from "./useAgentModelControls";
 
@@ -54,6 +55,7 @@ beforeEach(() => {
   localStorage.clear();
   useAcpProfilesStore.setState({ activeProfileId: "codex" });
   useAcpSettingsStore.setState({ modelId: "", reasoningEffort: "" });
+  useModelCatalogStore.getState().resetModelCatalog();
   vi.mocked(invoke).mockImplementation((cmd: string, args?: unknown) => {
     if (cmd === "library_agent_models_discover") {
       const profileId =
@@ -115,8 +117,7 @@ describe("useAgentModelControls profile-bucketed discovery", () => {
     ]);
   });
 
-  it("keeps the busy guard (switch-time disable mirrors prompting refusal)", () => {
-    const client = new QueryClient({
+  it("keeps the busy guard (switch-time disable mirrors prompting refusal)", () => {    const client = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
     const { result, rerender } = renderHook(
@@ -132,5 +133,53 @@ describe("useAgentModelControls profile-bucketed discovery", () => {
     expect(result.current.controlsDisabled).toBe(false);
     rerender({ busy: true });
     expect(result.current.controlsDisabled).toBe(true);
+  });
+
+  it("remembers live-advertised options per profile across switches without a session", async () => {
+    const live = (profileId: string): AcpStatus =>
+      ({
+        ...statusFor(profileId),
+        sessionModelOptions: optionsFor(profileId),
+      }) as unknown as AcpStatus;
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const { result, rerender } = renderHook(
+      ({ status }: { status: AcpStatus }) => useAgentModelControls({ status }),
+      {
+        initialProps: { status: live("codex") },
+        wrapper: ({ children }: { children: React.ReactNode }) => (
+          <QueryClientProvider client={client}>{children}</QueryClientProvider>
+        ),
+      },
+    );
+    // Live 下发即被记住（写穿证明）。
+    expect(result.current.modelOptions.map((m) => m.value)).toEqual([
+      "model-of-codex",
+    ]);
+    expect(
+      useModelCatalogStore.getState().byProfile["codex"]?.models.map((m) => m.value),
+    ).toEqual(["model-of-codex"]);
+
+    // 切走且断开：清掉已存选择以隔离记忆与 saved 回退，再断言读空。
+    await act(async () => {
+      useAcpProfilesStore.getState().switchActiveProfileId("claude");
+      useAcpSettingsStore.getState().patchSettings({ modelId: "", reasoningEffort: "" });
+    });
+    rerender({ status: statusFor("claude") });
+    expect(result.current.modelOptions).toEqual([]);
+    // codex 的记忆不受影响。
+    expect(
+      useModelCatalogStore.getState().byProfile["codex"]?.models.map((m) => m.value),
+    ).toEqual(["model-of-codex"]);
+
+    // 切回且依然无会话：记忆顶上，动态绑定不断。
+    await act(async () => {
+      useAcpProfilesStore.getState().switchActiveProfileId("codex");
+    });
+    rerender({ status: statusFor("codex") });
+    expect(result.current.modelOptions.map((m) => m.value)).toEqual([
+      "model-of-codex",
+    ]);
   });
 });

@@ -4,3 +4,10 @@ export function chapterSegmentationKey(
 ) {
   return ["chapter-segmentation", mediaPath ?? null, episodeKey ?? null] as const;
 }
+
+export function chapterResegmentationKey(
+  mediaPath: string | null | undefined,
+  episodeKey: string | null | undefined,
+) {
+  return ["chapter-resegmentation", mediaPath ?? null, episodeKey ?? null] as const;
+}

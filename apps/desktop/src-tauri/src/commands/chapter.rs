@@ -19,6 +19,8 @@ use tauri::AppHandle;
 mod chapter_worker;
 
 const CHAPTER_TASK_TYPE: &str = "chapter_segmentation";
+const RESEGMENT_TASK_TYPE: &str = "chapter_resegmentation";
+const RESEGMENT_KEY_PREFIX: &str = "chapter-resegmentation:";
 const MAX_ATTEMPTS: i64 = 3;
 const CHAPTER_ASSET_ROOT: &str = "chapter-assets";
 const MAX_CHAPTER_ASSET_BYTES: u64 = 8 * 1024 * 1024;
@@ -66,6 +68,8 @@ pub struct ChapterSegmentationRequest {
     pub position_ms: Option<u64>,
     #[serde(default)]
     pub spoiler_boundary: Option<SpoilerBoundary>,
+    #[serde(default)]
+    pub resegment: bool,
 }
 
 /// Identity supplied by the library-backed desktop entry point.
@@ -358,6 +362,71 @@ pub async fn chapter_segmentation_status(
         .map_err(|error| ChapterCommandError::internal(format!("chapter status join: {error}")))?
 }
 
+/// Cancel a not-yet-claimed chapter task (pending/validation_failure).
+/// Running tasks already hold the atomic claim; cancelling those would race
+/// the worker's terminal write, so they are returned unchanged and the UI
+/// disables the button while `taskStatus == "running"`.
+#[tauri::command]
+pub async fn chapter_segmentation_cancel(
+    request: ChapterSegmentationRequest,
+) -> Result<ChapterSegmentationSnapshot, ChapterCommandError> {
+    tauri::async_runtime::spawn_blocking(move || cancel_task(request))
+        .await
+        .map_err(|error| ChapterCommandError::internal(format!("chapter cancel join: {error}")))?
+}
+
+fn cancel_task(
+    request: ChapterSegmentationRequest,
+) -> Result<ChapterSegmentationSnapshot, ChapterCommandError> {
+    validate_request(&request)?;
+    let task_key = task_key(&request);
+    let database = open_database()?;
+    let task = database
+        .repository()
+        .get_agent_task_by_key(&task_key)
+        .map_err(ChapterCommandError::storage)?
+        .ok_or_else(ChapterCommandError::not_found)?;
+    if !matches!(task.status.as_str(), "pending" | "validation_failure") {
+        let drafts = draft_chapters_for_task(&database, &task)?;
+        return Ok(snapshot_from_task(
+            task,
+            request.worker_ready(),
+            request.episode_identity.as_ref(),
+            drafts,
+        ));
+    }
+    let report = PersistedChapterFailure {
+        code: "Cancelled".to_string(),
+        message: "用户已取消章节任务".to_string(),
+        summary: Some("已取消，可重新开始。".to_string()),
+        validation_report: None,
+    };
+    let report_json = serde_json::to_string(&report)
+        .map_err(|error| ChapterCommandError::internal(format!("cancel report: {error}")))?;
+    database
+        .repository()
+        .update_agent_task_status(
+            task.id,
+            "failed",
+            task.attempt_count,
+            task.retry_count,
+            Some(&report_json),
+        )
+        .map_err(ChapterCommandError::storage)?;
+    let task = database
+        .repository()
+        .get_agent_task(task.id)
+        .map_err(ChapterCommandError::storage)?
+        .ok_or_else(|| ChapterCommandError::internal("cancelled chapter task disappeared"))?;
+    let drafts = draft_chapters_for_task(&database, &task)?;
+    Ok(snapshot_from_task(
+        task,
+        request.worker_ready(),
+        request.episode_identity.as_ref(),
+        drafts,
+    ))
+}
+
 /// Resolve one persisted chapter image by its opaque resource reference.
 /// Missing or invalidated files deliberately degrade to `None` so the detail
 /// panel can keep rendering its text and show a placeholder.
@@ -474,7 +543,7 @@ fn create_or_load_task(
     let definition = TaskId::ChapterSegment.definition();
     let mut input = NewAgentTask::new(
         task_key(&request),
-        CHAPTER_TASK_TYPE,
+        task_type(&request),
         definition.version.to_string(),
     );
     input.output_contract_version = Some(definition.output_contract_version.to_string());
@@ -814,16 +883,29 @@ fn validate_request(request: &ChapterSegmentationRequest) -> Result<(), ChapterC
     Ok(())
 }
 
+fn task_type(request: &ChapterSegmentationRequest) -> &'static str {
+    if request.resegment {
+        RESEGMENT_TASK_TYPE
+    } else {
+        CHAPTER_TASK_TYPE
+    }
+}
+
 fn task_key(request: &ChapterSegmentationRequest) -> String {
+    let prefix = if request.resegment {
+        RESEGMENT_KEY_PREFIX
+    } else {
+        "chapter-segmentation:"
+    };
     if let Some((series_stable_id, episode_stable_id, ..)) = request
         .episode_identity
         .as_ref()
         .and_then(ChapterEpisodeIdentity::authoritative_parts)
     {
-        return format!("chapter-segmentation:identity:{series_stable_id}:{episode_stable_id}");
+        return format!("{prefix}identity:{series_stable_id}:{episode_stable_id}");
     }
     format!(
-        "chapter-segmentation:{}:{}",
+        "{prefix}{}:{}",
         request.media_path.trim(),
         request.episode_key.trim()
     )
@@ -833,13 +915,6 @@ pub(super) fn database_path() -> Result<PathBuf, ChapterCommandError> {
     let base = super::system::data_dir()
         .ok_or_else(|| ChapterCommandError::internal("application data directory unavailable"))?;
     let new_path = base.join("dawnsight").join("dawnsight.sqlite3");
-    let legacy_path = base.join("lumina").join("lumina.sqlite3");
-    if !new_path.exists() && legacy_path.exists() {
-        if let Some(parent) = new_path.parent() {
-            let _ = std::fs::create_dir_all(parent);
-        }
-        let _ = std::fs::copy(&legacy_path, &new_path);
-    }
     Ok(new_path)
 }
 
@@ -889,10 +964,11 @@ impl ChapterSegmentationRequest {
             return false;
         };
         self.profiles.as_ref().is_some_and(|profiles| {
-            profiles
-                .profiles
-                .iter()
-                .any(|profile| profile.id == profile_id)
+            profiles.profiles.is_empty()
+                || profiles
+                    .profiles
+                    .iter()
+                    .any(|profile| profile.id == profile_id)
         })
     }
 }
@@ -1000,6 +1076,7 @@ fn project_failure(value: &str) -> Option<FailureProjection> {
 fn stable_failure_message(code: &str, persisted_message: Option<&str>) -> &'static str {
     match code {
         "AgentNotConfigured" => "尚未配置可用的 AI Agent，请先完成 Agent 设置。",
+        "Cancelled" => "已取消章节任务，可重新开始。",
         "AgentUnavailable" => "章节 Agent 暂时不可用，请检查 Agent 设置后重试。",
         "MediaUnavailable" => "媒体文件不可用，请重新打开后重试。",
         "EvidenceUnavailable" => "未找到可用于章节分析的字幕或画面证据，请检查媒体资源后重试。",
@@ -1084,12 +1161,70 @@ mod tests {
             subtitle_choice_id: None,
             position_ms: None,
             spoiler_boundary: None,
+            resegment: false,
         };
         assert_eq!(
             task_key(&request),
             r"chapter-segmentation:C:\media\episode-1.mkv:s01e07"
         );
         assert_eq!(task_key(&request), task_key(&request));
+    }
+
+    #[test]
+    fn resegment_task_key_is_isolated_from_segmentation() {
+        let base = ChapterSegmentationRequest {
+            media_path: r"C:\media\episode-1.mkv".to_string(),
+            episode_key: "s01e07".to_string(),
+            episode_identity: None,
+            profile_id: None,
+            profiles: None,
+            model_id: None,
+            reasoning_effort: None,
+            subtitle_choice_id: None,
+            position_ms: None,
+            spoiler_boundary: None,
+            resegment: false,
+        };
+        let resegment = ChapterSegmentationRequest {
+            resegment: true,
+            ..base.clone()
+        };
+        assert_eq!(task_type(&base), CHAPTER_TASK_TYPE);
+        assert_eq!(task_type(&resegment), RESEGMENT_TASK_TYPE);
+        assert_eq!(
+            task_key(&resegment),
+            r"chapter-resegmentation:C:\media\episode-1.mkv:s01e07"
+        );
+        assert_ne!(task_key(&base), task_key(&resegment));
+    }
+
+    #[test]
+    fn worker_ready_accepts_empty_profile_list_like_the_frontend() {
+        let request = ChapterSegmentationRequest {
+            media_path: "media-1.mkv".to_string(),
+            episode_key: "episode-2".to_string(),
+            episode_identity: None,
+            profile_id: Some("codex".to_string()),
+            profiles: Some(AgentProfilesHint {
+                active_profile_id: "codex".to_string(),
+                profiles: Vec::new(),
+            }),
+            model_id: None,
+            reasoning_effort: None,
+            subtitle_choice_id: None,
+            position_ms: None,
+            spoiler_boundary: None,
+            resegment: true,
+        };
+        assert!(request.worker_ready());
+    }
+
+    #[test]
+    fn cancelled_failure_stays_a_business_message() {
+        assert_eq!(
+            stable_failure_message("Cancelled", None),
+            "已取消章节任务，可重新开始。"
+        );
     }
 
     #[test]
@@ -1105,6 +1240,7 @@ mod tests {
             subtitle_choice_id: None,
             position_ms: None,
             spoiler_boundary: None,
+            resegment: false,
         };
         let request_json = match serde_json::to_value(request) {
             Ok(value) => value,
@@ -1288,6 +1424,7 @@ mod tests {
             subtitle_choice_id: None,
             position_ms: None,
             spoiler_boundary: None,
+            resegment: false,
         };
         let second = ChapterSegmentationRequest {
             media_path: r"E:\library\new\renamed.mkv".to_string(),
@@ -1300,6 +1437,7 @@ mod tests {
             subtitle_choice_id: None,
             position_ms: None,
             spoiler_boundary: None,
+            resegment: false,
         };
         assert_eq!(task_key(&first), task_key(&second));
         assert_eq!(
@@ -1400,6 +1538,7 @@ mod tests {
             subtitle_choice_id: None,
             position_ms: None,
             spoiler_boundary: None,
+            resegment: false,
         };
         assert_eq!(
             task_key(&request),

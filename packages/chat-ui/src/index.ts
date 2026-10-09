@@ -14,6 +14,7 @@ export * from "./promptQueue";
 export * from "./chatUiStore";
 export * from "./acpSettingsStore";
 export * from "./acpProfilesStore";
+export * from "./modelCatalogStore";
 export * from "./acpSessionStore";
 export * from "./askAboutStore";
 export * from "./assistantBlocks";

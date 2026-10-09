@@ -55,7 +55,8 @@ use commands::acp::{
 };
 use commands::asr::{asr_install, asr_status, asr_transcribe};
 use commands::chapter::{
-    chapter_asset_get, chapter_segmentation_start, chapter_segmentation_status,
+    chapter_asset_get, chapter_segmentation_cancel, chapter_segmentation_start,
+    chapter_segmentation_status,
 };
 use commands::chat_store::{
     chat_hint_delete, chat_hint_get, chat_hint_upsert, chat_snapshot_delete, chat_snapshot_get,
@@ -168,6 +169,7 @@ pub fn run() {
             asr_install,
             chapter_segmentation_start,
             chapter_segmentation_status,
+            chapter_segmentation_cancel,
             chapter_asset_get,
             ytdl_status,
             ytdl_cookie_status,

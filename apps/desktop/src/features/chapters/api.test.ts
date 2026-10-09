@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { invoke } from "@tauri-apps/api/core";
 
 import {
+  cancelChapterSegmentation,
   chapterEpisodeIdentityFromLibraryContext,
   getChapterSegmentationStatus,
   parseDraftChapters,
@@ -64,6 +65,14 @@ describe("chapter segmentation API", () => {
     await expect(getChapterSegmentationStatus(request)).resolves.toEqual(snapshot);
 
     expect(invoke).toHaveBeenCalledWith("chapter_segmentation_status", {
+      request,
+    });
+  });
+
+  it("invokes the cancel command with the same stable request", async () => {
+    await expect(cancelChapterSegmentation(request)).resolves.toEqual(snapshot);
+
+    expect(invoke).toHaveBeenCalledWith("chapter_segmentation_cancel", {
       request,
     });
   });

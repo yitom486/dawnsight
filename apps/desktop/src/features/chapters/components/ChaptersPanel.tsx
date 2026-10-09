@@ -1,17 +1,34 @@
-import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@dawnsight/ui/button";
+import { Input } from "@dawnsight/ui/input";
 
 import { useMediaInfoQuery } from "@/features/media";
 import { usePlayerStore } from "@/features/player";
 import { ytdlResolveKey } from "@dawnsight/query-keys";
 import { getCachedYtdlResolve } from "@/features/ytdl";
+import { getAcpStatus } from "@/features/acp/api";
 import { formatTime } from "@/lib/format";
 import type { MediaChapter } from "@dawnsight/contracts";
 import { chapterAssetKey, getChapterAsset, parseDraftChapters } from "../api";
 import type { ChapterAssetData, ChapterDetailSnapshot, ChapterDraftSnapshot } from "../api";
 import { useChapterSegmentation } from "../hooks/useChapterSegmentation";
+import {
+  profilesHintFromStore,
+  useAcpProfilesStore,
+  useChatUiStore,
+} from "@dawnsight/chat-ui";
+import { profilesSignature } from "@dawnsight/chat-ui/profilesSignature";
+import { useAgentModelControls } from "@/features/acp/useAgentModelControls";
+
+// Panel-local option tuning: semantic popover tokens so the native popup
+// follows both themes without hardcoding colors or touching packages/ui.
+// NOTE: plain <select> (no overlay chevron component) is deliberate here —
+// the shared chevron overlay misaligned over the text in this narrow panel.
+const resegmentOptionClassName = "bg-popover text-popover-foreground";
+const resegmentControlClassName =
+  "h-7 w-full min-w-0 truncate rounded-md border border-input bg-background px-1.5 text-[11px] text-foreground disabled:opacity-60";
 
 export type AiSegmentationStatus =
   | "unavailable"
@@ -46,10 +63,6 @@ export function ChaptersPanel({
   const sourceKind = usePlayerStore((s) => s.sourceKind);
   const seek = usePlayerStore((s) => s.seek);
   const positionMs = usePlayerStore((s) => s.currentTimeMs);
-  const segmentation = useChapterSegmentation();
-  const effectiveSegmentationStatus =
-    aiSegmentationStatus ?? segmentation.status;
-  const startSegmentation = onStartAiSegmentation ?? segmentation.start;
   const isRemote =
     sourceKind === "remote" || (mediaPath?.startsWith("http") ?? false);
   const { data, isLoading, error } = useMediaInfoQuery();
@@ -62,6 +75,17 @@ export function ChaptersPanel({
     retry: false,
     staleTime: Infinity,
   });
+  // The resegment poller stays disabled until real chapters are confirmed.
+  // An always-on second poller would double `chapter_segmentation_status`
+  // traffic and break strictly-sequential consumers of that command.
+  const hasRealChapters = isRemote
+    ? (onlineQuery.data?.chapters ?? []).length > 0
+    : (data?.chapters ?? []).length > 0;
+  const segmentation = useChapterSegmentation();
+  const resegmentation = useChapterSegmentation({ resegment: true, enabled: hasRealChapters });
+  const effectiveSegmentationStatus =
+    aiSegmentationStatus ?? segmentation.status;
+  const startSegmentation = onStartAiSegmentation ?? segmentation.start;
 
   if (!mediaPath) {
     return (
@@ -105,7 +129,13 @@ export function ChaptersPanel({
       );
     }
     return (
-      <ChapterList chapters={onlineChapters} positionMs={positionMs} seek={seek} />
+      <RealChaptersWithResegment
+        realChapters={onlineChapters}
+        resegmentation={resegmentation}
+        onStartAiSegmentation={onStartAiSegmentation}
+        positionMs={positionMs}
+        seek={seek}
+      />
     );
   }
 
@@ -152,7 +182,397 @@ export function ChaptersPanel({
   }
 
   return (
-    <ChapterList chapters={chapters} positionMs={positionMs} seek={seek} />
+    <RealChaptersWithResegment
+      realChapters={chapters}
+      resegmentation={resegmentation}
+      onStartAiSegmentation={onStartAiSegmentation}
+      positionMs={positionMs}
+      seek={seek}
+    />
+  );
+}
+
+function RealChaptersWithResegment({
+  realChapters,
+  resegmentation,
+  onStartAiSegmentation,
+  positionMs,
+  seek,
+}: {
+  realChapters: MediaChapter[];
+  resegmentation: ReturnType<typeof useChapterSegmentation>;
+  onStartAiSegmentation?: () => void;
+  positionMs: number;
+  seek: (ms: number) => unknown;
+}) {
+  const [view, setView] = useState<"real" | "draft">("real");
+  const draftChapters = parseDraftChapters(resegmentation.snapshot);
+  const showToggle = draftChapters.length > 0;
+  const showDraft = showToggle && view === "draft";
+  // Media switches must not inherit the previous media's view: without drafts
+  // this already falls back to real, but a draft-capable next media would
+  // otherwise open on the stale "draft" tab.
+  const mediaIdentity = resegmentation.request?.episodeKey ?? "";
+  const currentFile = usePlayerStore((s) => s.currentFile);
+  useEffect(() => {
+    setView("real");
+  }, [mediaIdentity, currentFile]);
+  return (
+    <div className="min-h-0 flex flex-1 flex-col overflow-hidden">
+      {showToggle ? (
+        <div className="flex gap-1 px-3 pt-2" role="tablist" aria-label="章节来源切换">
+          <Button
+            type="button"
+            size="sm"
+            variant={view === "real" ? "default" : "ghost"}
+            aria-pressed={view === "real"}
+            className="h-7 px-2.5 text-xs font-normal"
+            onClick={() => setView("real")}
+          >
+            真实章节
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={view === "draft" ? "default" : "ghost"}
+            aria-pressed={view === "draft"}
+            className="h-7 px-2.5 text-xs font-normal"
+            onClick={() => setView("draft")}
+          >
+            AI重分段草稿
+          </Button>
+        </div>
+      ) : null}
+      {showDraft ? (
+        <ChapterDraftList
+          chapters={draftChapters}
+          positionMs={positionMs}
+          seek={seek}
+          progressMessage={resegmentation.liveProgress?.message}
+        />
+      ) : (
+        <ChapterList chapters={realChapters} positionMs={positionMs} seek={seek} />
+      )}
+      <ResegmentSection
+        segmentation={resegmentation}
+        onStartAiSegmentation={onStartAiSegmentation}
+      />
+    </div>
+  );
+}
+
+function ResegmentSection({
+  segmentation,
+  onStartAiSegmentation,
+}: {
+  segmentation: ReturnType<typeof useChapterSegmentation>;
+  onStartAiSegmentation?: () => void;
+}) {
+  const start = onStartAiSegmentation ?? segmentation.start;
+  return (
+    <div className="border-t border-border/70">
+      <div className="space-y-2 p-3 text-xs">
+        <ResegmentProgress segmentation={segmentation} />
+        <ResegmentModelControls disabled={segmentation.isPending} />
+      </div>
+      <EmptyChaptersState
+        onStartAiSegmentation={start}
+        aiSegmentationStatus={segmentation.status}
+        errorMessage={onStartAiSegmentation ? null : segmentation.errorMessage}
+        failureMessage={onStartAiSegmentation ? null : segmentation.failureMessage}
+        validationSummary={onStartAiSegmentation ? null : segmentation.validationSummary}
+        attemptCount={onStartAiSegmentation ? undefined : segmentation.attemptCount}
+        maxAttempts={onStartAiSegmentation ? undefined : segmentation.maxAttempts}
+        canRetry={onStartAiSegmentation ? undefined : segmentation.canRetry}
+        retryAction={onStartAiSegmentation ? undefined : segmentation.retryAction}
+        agentConfigured={onStartAiSegmentation ? undefined : segmentation.agentConfigured}
+        taskStatus={onStartAiSegmentation ? undefined : segmentation.taskStatus}
+        progressMessage={onStartAiSegmentation ? null : segmentation.liveProgress?.message}
+        description="容器章节较粗糙，可用 AI 完全重分段（不删除真实章节）。"
+      />
+    </div>
+  );
+}
+
+// Inline progress only: no Portal/fixed overlay, stays in the panel scroll
+// column as an HWND sibling so it can never cover the native video surface.
+function ResegmentProgress({
+  segmentation,
+}: {
+  segmentation: ReturnType<typeof useChapterSegmentation>;
+}) {
+  const live = segmentation.liveProgress;
+  const snapshot = segmentation.snapshot;
+  const draftCount = parseDraftChapters(snapshot).length;
+  const phase = live?.phase ?? snapshot?.status ?? null;
+  const failing =
+    snapshot?.status === "failed" || snapshot?.status === "validation_failure";
+  const steps = [
+    { id: "queued", label: "排队", done: phase !== null, bad: false },
+    { id: "evidence", label: "取证", done: phase === "preparing_evidence" || phase === "agent_running" || phase === "checking_result" || phase === "succeeded", bad: false },
+    { id: "agent", label: "Agent", done: phase === "agent_running" || phase === "checking_result" || phase === "succeeded", bad: false },
+    { id: "check", label: failing ? "校验未过" : "校验落库", done: phase === "succeeded" || failing, bad: failing },
+  ];
+  const attemptText =
+    typeof snapshot?.attemptCount === "number" && typeof snapshot?.maxAttempts === "number"
+      ? `尝试 ${snapshot.attemptCount}/${snapshot.maxAttempts}`
+      : null;
+  return (
+    <section aria-label="重分段进度" className="space-y-1.5 rounded-md border border-border/70 p-2">
+      <ol className="flex flex-wrap items-center gap-1">
+        {steps.map((step, index) => (
+          <li key={step.id} className="flex items-center gap-1">
+            {index > 0 ? <span aria-hidden className="text-muted-foreground">→</span> : null}
+            <span
+              aria-current={step.done ? "step" : undefined}
+              className={
+                step.bad
+                  ? "rounded-full bg-destructive px-2 py-0.5 text-[11px] text-destructive-foreground"
+                  : step.done
+                    ? "rounded-full bg-accent px-2 py-0.5 text-[11px] text-foreground"
+                    : "rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground"
+              }
+            >
+              {step.label}
+            </span>
+          </li>
+        ))}
+      </ol>
+      <p className="text-[11px] text-muted-foreground">
+        {[live?.message ?? segmentation.taskStatus ?? snapshot?.status ?? "尚未开始", attemptText, draftCount > 0 ? `草稿 ${draftCount} 段` : null]
+          .filter(Boolean)
+          .join(" · ")}
+      </p>
+      {segmentation.taskStatus === "running" ? (
+        <p className="text-[11px] text-muted-foreground">运行中暂不支持取消，请等待本轮结束。</p>
+      ) : null}
+      <div className="flex items-center gap-2">
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          disabled={!segmentation.canCancel || segmentation.isCancelling}
+          onClick={() => segmentation.cancel()}
+          className="h-7 px-2.5 text-xs font-normal"
+        >
+          {segmentation.isCancelling ? "取消中…" : "取消任务"}
+        </Button>
+        {segmentation.taskStatus === "failed" && snapshot?.failureMessage ? (
+          <span className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground">
+            {snapshot.failureMessage}
+          </span>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+// Runtime controls reuse the global Agent stores AND the chat composer's
+// discovery hook, so the chapter task snapshots the same profile/model/effort
+// and sees the same Agent-advertised lists (including the refresh flow).
+// sessionConnected=false: selection only patches the store, never pushes to
+// the live chat session. Native controls only: no floating Portal that could
+// overlay the HWND video area.
+function ResegmentModelControls({ disabled }: { disabled: boolean }) {
+  const queryClient = useQueryClient();
+  const activeProfileId = useAcpProfilesStore((s) => s.activeProfileId);
+  const profiles = useAcpProfilesStore((s) => s.profiles);
+  const profilesSig = useAcpProfilesStore((s) => profilesSignature(s.profiles));
+  const switchActiveProfileId = useAcpProfilesStore((s) => s.switchActiveProfileId);
+  const openChat = useChatUiStore((s) => s.openChat);
+  const statusQuery = useQuery({
+    // Identical key/shape to the chat panel (`AcpPanel`): one shared cache
+    // entry, so a connect in AI 对话 refreshes this panel automatically and
+    // both surfaces always see the same advertised lists.
+    queryKey: ["acp-status", activeProfileId ?? null, profilesSig],
+    queryFn: () => {
+      const state = useAcpProfilesStore.getState();
+      return getAcpStatus(profilesHintFromStore(state.activeProfileId, state.profiles));
+    },
+    retry: false,
+    staleTime: 15_000,
+  });
+  const models = useAgentModelControls({
+    status: statusQuery.data,
+    sessionConnected: false,
+  });
+  // Alignment: the model belongs to a profile. The panel keeps a small
+  // per-profile memory: switching away stashes the old profile's model,
+  // switching back restores it (falling back to Agent default for profiles
+  // with no remembered choice). A stale cross-profile combination can therefore
+  // never be snapshotted into a chapter task, and a deliberate choice is never
+  // blanked. The hook's defaults-merge still fills the advertised current
+  // model when the new profile has no memory yet.
+  const alignedProfileRef = useRef(activeProfileId);
+  const modelMemoryRef = useRef<Record<string, string>>({});
+  useEffect(() => {
+    if (alignedProfileRef.current === activeProfileId) return;
+    const prev = alignedProfileRef.current;
+    alignedProfileRef.current = activeProfileId;
+    modelMemoryRef.current[prev] = models.modelId;
+    models.patchSettings({
+      modelId: modelMemoryRef.current[activeProfileId] ?? "",
+      reasoningEffort: "",
+    });
+  }, [activeProfileId, models.modelId, models.patchSettings]);
+  // reasoningEffort is cleared too: isolated engine sessions honor it via
+  // `session/set_config`, so effort is chapter-relevant (per-profile) state.
+  // Model lists likewise come only from the live session advertisement
+  // (`acp_status.sessionModelOptions`); the discovery endpoint is a backend
+  // stub, so this panel never calls it.
+  const profileOptions =
+    profiles.length > 0
+      ? profiles
+      : activeProfileId?.trim()
+        ? [{ id: activeProfileId, name: activeProfileId }]
+        : [];
+  // The only working list source is the LIVE session's advertisement. When it
+  // belongs to another runtime, this panel honestly has no list — name both
+  // sides instead of showing a mysterious empty input.
+  const liveProfileId = statusQuery.data?.activeProfileId ?? "";
+  const liveModelCount = statusQuery.data?.sessionModelOptions?.models.length ?? 0;
+  const showSessionMismatch =
+    liveProfileId !== "" &&
+    liveProfileId !== activeProfileId &&
+    !models.hasModelOptions;
+  const liveProfile = profiles.find((profile) => profile.id === liveProfileId);
+  const liveProfileName =
+    (liveProfile && "name" in liveProfile && liveProfile.name) || liveProfileId;
+  return (
+    <section aria-label="重分段运行时" className="space-y-1.5 rounded-md border border-border/70 p-2">
+      <p className="text-[11px] text-muted-foreground">
+        运行时：{activeProfileId?.trim() || "未配置"} · {models.modelId.trim() || "Agent 默认"} ·{" "}
+        {models.reasoningEffort.trim() || "默认档"}
+      </p>
+      <p className="text-[11px] text-muted-foreground">修改下次启动/重试生效，运行中不改；切换运行时会同步影响 AI 对话。</p>
+      {showSessionMismatch ? (
+        <div className="space-y-1.5">
+          <p className="text-[11px] text-muted-foreground">
+            AI 对话已连接{liveProfileName}
+            {liveModelCount > 0 ? `（${liveModelCount} 个模型）` : ""}，章节当前选的是
+            {activeProfileId}暂无列表——切回可下拉选择，或在对话里连上{activeProfileId}。
+          </p>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={openChat}
+            className="h-7 px-2.5 text-xs font-normal"
+          >
+            去 AI 对话连接
+          </Button>
+        </div>
+      ) : null}
+      <div className="grid grid-cols-2 gap-1.5">
+        <label className="flex min-w-0 flex-col gap-1 text-[11px] text-muted-foreground">
+          <span className="truncate">运行时</span>
+          <select
+            aria-label="重分段运行时"
+            value={activeProfileId}
+            disabled={disabled || profileOptions.length === 0}
+            onChange={(event) => {
+              switchActiveProfileId(event.target.value);
+              // Mirror AcpPanel.handleSwitchProfile: status-derived lists
+              // (models/effort) are keyed off acp-status, so refresh them.
+              // Chat-transient cleanup (queue/permission/proposals) stays owned
+              // by AcpPanel and is intentionally not duplicated here.
+              void queryClient.invalidateQueries({ queryKey: ["acp-status"] });
+            }}
+            className={resegmentControlClassName}
+          >
+            {profileOptions.map((profile) => (
+              <option
+                key={profile.id}
+                value={profile.id}
+                className={resegmentOptionClassName}
+              >
+                {"name" in profile && profile.name ? profile.name : profile.id}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex min-w-0 flex-col gap-1 text-[11px] text-muted-foreground">
+          <span className="truncate">模型</span>
+          {models.hasModelOptions ? (
+            <select
+              aria-label="重分段模型"
+              value={models.modelId}
+              disabled={disabled || models.controlsDisabled}
+              onChange={(event) => {
+                void models.applyModelSelection({ modelId: event.target.value });
+              }}
+              className={resegmentControlClassName}
+            >
+              <option value="" className={resegmentOptionClassName}>
+                Agent 默认
+              </option>
+              {models.modelOptions.map((option) => (
+                <option
+                  key={option.value}
+                  value={option.value}
+                  className={resegmentOptionClassName}
+                >
+                  {option.name}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <Input
+              aria-label="重分段模型"
+              type="text"
+              value={models.modelId}
+              disabled={disabled}
+              placeholder="留空用 Agent 默认"
+              onChange={(event) => models.patchSettings({ modelId: event.target.value })}
+              className="h-7 w-full min-w-0 px-2 text-xs"
+            />
+          )}
+        </label>
+        <div className="flex min-w-0 flex-col gap-1 text-[11px] text-muted-foreground">
+          <span className="truncate">思考档</span>
+          <select
+            aria-label="重分段思考档"
+            value={models.reasoningEffort}
+            disabled={disabled || models.controlsDisabled}
+            onChange={(event) => {
+              void models.applyModelSelection({ reasoningEffort: event.target.value });
+            }}
+            className={resegmentControlClassName}
+          >
+            <option value="" className={resegmentOptionClassName}>
+              默认档
+            </option>
+            {models.reasoningOptions.map((option) => (
+              <option
+                key={option.value}
+                value={option.value}
+                className={resegmentOptionClassName}
+              >
+                {option.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex items-center gap-2">
+          {!models.hasModelOptions ? (
+            <>
+              <span className="min-w-0 flex-1 text-[11px] text-muted-foreground">
+                连接一次 AI 对话后，这里可下拉选择该运行时模型。
+              </span>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={openChat}
+                className="h-7 shrink-0 px-2.5 text-xs font-normal"
+              >
+                去 AI 对话
+              </Button>
+            </>
+          ) : null}
+        </div>
+      </div>
+    </section>
   );
 }
 
