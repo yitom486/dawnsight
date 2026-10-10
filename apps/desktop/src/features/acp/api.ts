@@ -329,8 +329,7 @@ export function getAcpTaskContracts(): Promise<AcpTaskContract[]> {
 export function discoverAcpModels(
   profiles: AgentProfilesHint,
   profileId: string,
+  modelId?: string | null,
 ): Promise<AcpModelDiscoveryResult> {
-  return invoke<AcpModelDiscoveryResult>("library_agent_models_discover", {
-    config: { profileId, profiles },
-  });
+  return invoke<AcpModelDiscoveryResult>("acp_models_discover", { profileId, profiles, modelId: modelId?.trim() || null });
 }

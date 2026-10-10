@@ -117,11 +117,15 @@ struct Shared {
 #[derive(Clone)]
 pub struct SidecarEngine {
     shared: Arc<Shared>,
+    #[cfg(test)]
+    test_command: Option<(PathBuf, Vec<String>)>,
 }
 
 impl SidecarEngine {
     pub fn new() -> Self {
         Self {
+            #[cfg(test)]
+            test_command: None,
             shared: Arc::new(Shared {
                 next_id: AtomicU64::new(1),
                 slots: Mutex::new(HashMap::new()),
@@ -135,6 +139,14 @@ impl SidecarEngine {
 
     pub fn is_alive(&self) -> bool {
         self.shared.alive.load(Ordering::SeqCst)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn for_test(program: PathBuf, args: Vec<String>) -> Self {
+        Self {
+            test_command: Some((program, args)),
+            ..Self::new()
+        }
     }
 
     /// Current engine generation (0 = never spawned).
@@ -177,8 +189,15 @@ impl SidecarEngine {
                 }
             }
         }
-        let path = resolve_engine_path()?;
+        #[cfg(test)]
+        let (path, args) = match &self.test_command {
+            Some((path, args)) => (path.clone(), args.clone()),
+            None => (resolve_engine_path()?, Vec::new()),
+        };
+        #[cfg(not(test))]
+        let (path, args) = (resolve_engine_path()?, Vec::<String>::new());
         let mut child = Command::new(&path)
+            .args(args)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())

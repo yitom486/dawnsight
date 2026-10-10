@@ -8,6 +8,7 @@ import { useAcpProfilesStore } from "@dawnsight/chat-ui/acpProfilesStore";
 import { useAcpSettingsStore } from "@dawnsight/chat-ui/acpSettingsStore";
 import { useChatUiStore } from "@dawnsight/chat-ui/chatUiStore";
 import { useModelCatalogStore } from "@dawnsight/chat-ui/modelCatalogStore";
+import { useChapterAgentSettingsStore } from "@dawnsight/chat-ui/chapterAgentSettingsStore";
 
 import { ChaptersPanel, type ChaptersPanelProps } from "./ChaptersPanel";
 
@@ -66,7 +67,8 @@ beforeEach(() => {
   // Cross-test isolation: the defaults-merge effect in the shared hook writes
   // global settings (e.g. advertised options backfill a blank modelId), so
   // reset all three stores or later tests inherit earlier tests' world.
-  useAcpProfilesStore.getState().setActiveProfileId("codex");
+  useAcpProfilesStore.setState({ activeProfileId: "codex", profiles: [] });
+  useChapterAgentSettingsStore.setState({ profileId: null, selections: {}, defaultsInitializedByProfile: {} });
   useAcpSettingsStore.getState().patchSettings({ modelId: "", reasoningEffort: "" });
   useModelCatalogStore.getState().resetModelCatalog();
   vi.mocked(invoke).mockImplementation((cmd: string) => {
@@ -810,23 +812,23 @@ describe("ChaptersPanel boundaries", () => {
     expect(screen.getByLabelText("重分段模型")).toHaveValue("gpt-6.1-sol");
 
     act(() => {
-      useAcpProfilesStore.getState().switchActiveProfileId("opencode-v2");
+      useChapterAgentSettingsStore.getState().selectProfile("opencode-v2");
     });
     await waitFor(() => expect(screen.getByLabelText("重分段模型")).toHaveValue(""));
     // Effort is chapter-relevant again (isolated sessions honor set_config),
     // so it resets with the model on runtime switch.
-    expect(useAcpSettingsStore.getState().reasoningEffort).toBe("");
+    expect(useChapterAgentSettingsStore.getState().selections["opencode-v2"]?.reasoningEffort ?? "").toBe("");
+    expect(useAcpSettingsStore.getState().reasoningEffort).toBe("high");
     // Per-profile memory: choosing a model under the new runtime, then
     // switching back, restores the original choice instead of blanking it.
     act(() => {
-      useAcpSettingsStore.getState().patchSettings({ modelId: "opencode-model-1" });
+      useChapterAgentSettingsStore.getState().patchSelection({ modelId: "opencode-model-1" });
     });
     act(() => {
-      useAcpProfilesStore.getState().switchActiveProfileId("codex");
+      useChapterAgentSettingsStore.getState().selectProfile("codex");
     });
     await waitFor(() => expect(screen.getByLabelText("重分段模型")).toHaveValue("gpt-6.1-sol"));
-    // The dead discovery endpoint must never be called (backend stub always
-    // answers connected:false); lists come only from a live session.
+    // Chapter preferences never mutate the live chat model.
     expect(invokeCmds("library_agent_models_discover")).toHaveLength(0);
 
     act(() => {
@@ -862,7 +864,7 @@ describe("ChaptersPanel boundaries", () => {
     expect(invokeCmds("acp_status")).toHaveLength(0);
   });
 
-  it("names both sides when the live session is on another runtime", async () => {
+  it("does not require navigating to chat when the live session is on another runtime", async () => {
     chapters = [{ id: 1, startMs: 0, endMs: null, title: "正片" }];
     act(() => {
       useAcpProfilesStore.getState().switchActiveProfileId("opencode-v2");
@@ -874,15 +876,10 @@ describe("ChaptersPanel boundaries", () => {
       if (cmd === "acp_status")
         return Promise.resolve({
           available: true,
-          activeProfileId: "codex",
+          activeProfileId: "opencode-v2",
+          liveProfileId: "codex",
           profiles: [],
-          sessionModelOptions: {
-            models: [
-              { value: "6.1 Sol", name: "6.1 Sol" },
-              { value: "6 Astra", name: "6 Astra" },
-            ],
-            reasoningEfforts: [],
-          },
+          sessionModelOptions: null,
         });
       if (cmd === "chapter_segmentation_status")
         return Promise.reject({ code: "NotFound", message: "尚未开始该媒体的 AI 分段" });
@@ -893,12 +890,9 @@ describe("ChaptersPanel boundaries", () => {
     renderPanel();
 
     await waitFor(() => expect(screen.getByText("正片")).toBeInTheDocument());
-    await waitFor(() =>
-      expect(screen.getByText(/AI 对话已连接codex（2 个模型）/)).toBeInTheDocument(),
-    );
-    expect(screen.getByText(/章节当前选的是opencode-v2暂无列表/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "去 AI 对话连接" }));
-    expect(useChatUiStore.getState().chatOpen).toBe(true);
+    await waitFor(() => expect(invokeCmds("acp_models_discover")).toHaveLength(1));
+    expect(screen.queryByRole("button", { name: "去 AI 对话连接" })).toBeNull();
+    expect(invokeCmds("acp_connect")).toHaveLength(0);
 
     act(() => {
       useChatUiStore.getState().closeChat();

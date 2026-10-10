@@ -4,3 +4,4 @@ export { mediaInfoKey, mediaToolStatusKey } from "./media";
 export { subtitleChoicesKey, transcriptKey } from "./transcript";
 export { noteFrameKey, notesKey } from "./notes";
 export { ytdlResolveKey } from "./ytdl";
+export { acpModelCatalogKey } from "./acp";

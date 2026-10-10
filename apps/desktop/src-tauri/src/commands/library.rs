@@ -382,5 +382,7 @@ pub async fn library_agent_models_discover(
         crate::library::adapter::discover_agent_models(config.profile_id, &config.profiles)
     })
     .await
-    .map_err(|error| LibraryError::internal(Some(&format!("agent model discovery join: {error}"))))
+    .map_err(|error| {
+        LibraryError::internal(Some(&format!("agent model discovery join: {error}")))
+    })?
 }

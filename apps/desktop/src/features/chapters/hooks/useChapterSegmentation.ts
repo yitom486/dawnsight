@@ -23,6 +23,7 @@ import {
 } from "../api";
 import { chapterResegmentationKey, chapterSegmentationKey } from "../queries";
 import { useChapterProgressStore } from "../progressStore";
+import { useChapterAgentSettingsStore } from "@dawnsight/chat-ui/chapterAgentSettingsStore";
 
 export type ChapterSegmentationUiStatus =
   | "unavailable"
@@ -57,10 +58,15 @@ export function useChapterSegmentation(options?: { resegment?: boolean; enabled?
   const mediaPath = usePlayerStore((state) => state.currentFile);
   const positionMs = usePlayerStore((state) => state.currentTimeMs);
   const subtitleChoiceId = useTrackStore((state) => state.subtitleChoiceId);
-  const activeProfileId = useAcpProfilesStore((state) => state.activeProfileId);
+  const chatProfileId = useAcpProfilesStore((state) => state.activeProfileId);
+  const selectedProfileId = useChapterAgentSettingsStore((state) => state.profileId);
+  const activeProfileId = selectedProfileId ?? chatProfileId;
   const profiles = useAcpProfilesStore((state) => state.profiles);
-  const modelId = useAcpSettingsStore((state) => state.modelId);
-  const reasoningEffort = useAcpSettingsStore((state) => state.reasoningEffort);
+  const selection = useChapterAgentSettingsStore((state) => state.selections[activeProfileId]);
+  const legacyModelId = useAcpSettingsStore((state) => state.modelId);
+  const legacyEffort = useAcpSettingsStore((state) => state.reasoningEffort);
+  const modelId = selection?.modelId ?? (selectedProfileId ? "" : legacyModelId);
+  const reasoningEffort = selection?.reasoningEffort ?? (selectedProfileId ? "" : legacyEffort);
   const queryClient = useQueryClient();
   const agentConfigured = Boolean(
     activeProfileId?.trim() &&

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, cleanup, renderHook } from "@testing-library/react";
+import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useAcpProfilesStore } from "@dawnsight/chat-ui/acpProfilesStore";
@@ -54,12 +54,12 @@ function renderControls(profileId: string) {
 beforeEach(() => {
   localStorage.clear();
   useAcpProfilesStore.setState({ activeProfileId: "codex" });
-  useAcpSettingsStore.setState({ modelId: "", reasoningEffort: "" });
+  useAcpSettingsStore.setState({ modelId: "", reasoningEffort: "", modelSelectionsByProfile: {}, modelDefaultsInitializedByProfile: {} });
   useModelCatalogStore.getState().resetModelCatalog();
   vi.mocked(invoke).mockImplementation((cmd: string, args?: unknown) => {
-    if (cmd === "library_agent_models_discover") {
+    if (cmd === "acp_models_discover") {
       const profileId =
-        (args as { config?: { profileId?: string } })?.config?.profileId ??
+        (args as { profileId?: string })?.profileId ??
         "codex";
       return Promise.resolve({
         connected: true,
@@ -84,9 +84,9 @@ describe("useAgentModelControls profile-bucketed discovery", () => {
     await act(async () => {
       await result.current.discoverModels();
     });
-    expect(
+    await waitFor(() => expect(
       result.current.discoveredOptionsByProfile["codex"]?.models.map((m) => m.value),
-    ).toEqual(["model-of-codex"]);
+    ).toEqual(["model-of-codex"]));
 
     // 切到 claude：旧桶不清全量，只是失活（当前读到空）。
     await act(async () => {
@@ -100,9 +100,9 @@ describe("useAgentModelControls profile-bucketed discovery", () => {
     await act(async () => {
       await result.current.discoverModels();
     });
-    expect(
+    await waitFor(() => expect(
       result.current.discoveredOptionsByProfile["claude"]?.models.map((m) => m.value),
-    ).toEqual(["model-of-claude"]);
+    ).toEqual(["model-of-claude"]));
     // codex 桶纹丝不动，绝不串台。
     expect(
       result.current.discoveredOptionsByProfile["codex"]?.models.map((m) => m.value),
@@ -117,7 +117,7 @@ describe("useAgentModelControls profile-bucketed discovery", () => {
     ]);
   });
 
-  it("keeps the busy guard (switch-time disable mirrors prompting refusal)", () => {    const client = new QueryClient({
+  it("keeps the busy guard (switch-time disable mirrors prompting refusal)", async () => {    const client = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
     const { result, rerender } = renderHook(
@@ -130,7 +130,7 @@ describe("useAgentModelControls profile-bucketed discovery", () => {
         ),
       },
     );
-    expect(result.current.controlsDisabled).toBe(false);
+    await waitFor(() => expect(result.current.controlsDisabled).toBe(false));
     rerender({ busy: true });
     expect(result.current.controlsDisabled).toBe(true);
   });
@@ -166,7 +166,7 @@ describe("useAgentModelControls profile-bucketed discovery", () => {
       useAcpProfilesStore.getState().switchActiveProfileId("claude");
       useAcpSettingsStore.getState().patchSettings({ modelId: "", reasoningEffort: "" });
     });
-    rerender({ status: statusFor("claude") });
+    rerender({ status: { ...statusFor("claude"), available: false } });
     expect(result.current.modelOptions).toEqual([]);
     // codex 的记忆不受影响。
     expect(

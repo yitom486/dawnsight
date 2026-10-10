@@ -1,178 +1,146 @@
-import { useEffect, useMemo, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { acpModelCatalogKey } from "@dawnsight/query-keys";
 import { errorMessage } from "@/lib/format";
-
 import { useAcpProfilesStore } from "@dawnsight/chat-ui/acpProfilesStore";
 import { useAcpSettingsStore } from "@dawnsight/chat-ui/acpSettingsStore";
+import { useChapterAgentSettingsStore } from "@dawnsight/chat-ui/chapterAgentSettingsStore";
 import { useModelCatalogStore } from "@dawnsight/chat-ui/modelCatalogStore";
 import { acpSetSessionModel, discoverAcpModels } from "./api";
 import { profilesHintFromStore } from "@dawnsight/chat-ui/defaultAgentProfiles";
-import {
-  buildModelOptions,
-  buildReasoningOptions,
-  mergeModelDefaults,
-  selectedOptionLabel,
-} from "@dawnsight/chat-ui/modelConfig";
-import type { AcpSessionModelOptions, AcpStatus } from "./types";
+import { buildModelOptions, buildReasoningOptions, mergeModelDefaults, selectedOptionLabel } from "@dawnsight/chat-ui/modelConfig";
+import type { ModelSelection } from "@dawnsight/chat-ui/modelConfig";
+import type { AcpClientSettings, AcpStatus } from "./types";
 
-type Options = {
-  status: AcpStatus | undefined;
-  busy?: boolean;
-  sessionConnected?: boolean;
-};
+type Options = { status: AcpStatus | undefined; busy?: boolean; sessionConnected?: boolean; purpose?: "chat" | "chapter" };
 
-export function useAgentModelControls({
-  status,
-  busy,
-  sessionConnected,
-}: Options) {
+// Cache identity includes launch/env changes, without putting credential values in query keys.
+function launchRevision(value: unknown): string {
+  const input = JSON.stringify(value);
+  let hash = 2166136261;
+  for (let i = 0; i < input.length; i++) hash = Math.imul(hash ^ input.charCodeAt(i), 16777619);
+  return (hash >>> 0).toString(16);
+}
+
+/** Same directory/controller implementation; each purpose owns its selection and session. */
+export function useAgentModelControls({ status, busy, sessionConnected, purpose = "chat" }: Options) {
   const queryClient = useQueryClient();
-  // 发现结果按 profile 分桶（对标隔壁 modelCatalogByRuntime 与 chatRestore
-  // pendingByProfile）：切换只失活旧键（下读新键），不清全量，切回即复用。
-  const [discoveredOptionsByProfile, setDiscoveredOptionsByProfile] = useState<
-    Record<string, AcpSessionModelOptions>
-  >({});
-  const [discoverBusy, setDiscoverBusy] = useState(false);
-  const [controlError, setControlError] = useState<string | null>(null);
-
-  const activeProfileId = useAcpProfilesStore((s) => s.activeProfileId);
+  const chatProfileId = useAcpProfilesStore((s) => s.activeProfileId);
   const profiles = useAcpProfilesStore((s) => s.profiles);
+  const chapterProfileId = useChapterAgentSettingsStore((s) => s.profileId);
+  const chapterSelections = useChapterAgentSettingsStore((s) => s.selections);
+  const activeProfileId = purpose === "chapter" ? chapterProfileId ?? chatProfileId : chatProfileId;
   const permissionMode = useAcpSettingsStore((s) => s.permissionMode);
-  const modelId = useAcpSettingsStore((s) => s.modelId ?? "");
-  const reasoningEffort = useAcpSettingsStore((s) => s.reasoningEffort ?? "");
-  const patchSettings = useAcpSettingsStore((s) => s.patchSettings);
+  const chatModelId = useAcpSettingsStore((s) => s.modelId ?? "");
+  const chatEffort = useAcpSettingsStore((s) => s.reasoningEffort ?? "");
+  const patchChat = useAcpSettingsStore((s) => s.patchSettings);
+  const patchChapter = useChapterAgentSettingsStore((s) => s.patchSelection);
+  const modelId = purpose === "chapter" ? chapterSelections[activeProfileId]?.modelId ?? "" : chatModelId;
+  const reasoningEffort = purpose === "chapter" ? chapterSelections[activeProfileId]?.reasoningEffort ?? "" : chatEffort;
+  const [selectionError, setSelectionError] = useState<string | null>(null);
+  const patchSettings = useCallback((patch: Partial<AcpClientSettings>) => {
+    if (purpose === "chat") {
+      if (patch.modelId != null || patch.reasoningEffort != null) useAcpSettingsStore.getState().markModelDefaultsInitialized(activeProfileId);
+      patchChat(patch); return;
+    }
+    const selection: Partial<ModelSelection> = {};
+    if (patch.modelId != null) selection.modelId = patch.modelId;
+    if (patch.reasoningEffort != null) selection.reasoningEffort = patch.reasoningEffort;
+    if (Object.keys(selection).length) useChapterAgentSettingsStore.getState().markDefaultsInitialized(activeProfileId);
+    patchChapter(selection);
+  }, [purpose, activeProfileId, patchChat, patchChapter]);
+  useEffect(() => { if (purpose === "chapter") useChapterAgentSettingsStore.getState().initialize(); }, [purpose]);
+  useEffect(() => { setSelectionError(null); }, [activeProfileId]);
 
-  // Current world reads its own bucket first; the shared catalogue remembers
-  // last-seen advertised options per profile so a previously-connected runtime
-  // keeps its lists across switches even with no live session right now.
-  // Buckets (explicit refresh) still win over memory when both exist.
-  const rememberedOptions = useModelCatalogStore(
-    (s) => s.byProfile[activeProfileId ?? ""] ?? null,
-  );
-  const discoveredOptions = activeProfileId
-    ? (discoveredOptionsByProfile[activeProfileId] ?? rememberedOptions)
-    : null;
-  const optionSource =
-    status?.activeProfileId === activeProfileId
-      ? (status?.sessionModelOptions ?? discoveredOptions ?? null)
-      : (discoveredOptions ?? null);
-
-  // Discovery results describe one agent's session; switching profile must
-  // not carry, say, Codex GPT models into another agent's composer.
-  // 分桶后切换不清全量：只清 transient 的 controlError，各家发现结果保留。
+  const selectedProfile = profiles.find((profile) => profile.id === activeProfileId);
+  const revision = launchRevision(selectedProfile ?? activeProfileId);
+  const liveOptions = status?.activeProfileId === activeProfileId
+    ? status.sessionModelOptions ?? null : null;
+  const liveMatchesModel = Boolean(liveOptions && (!modelId || liveOptions.currentModelId === modelId));
+  const rememberedOptions = useModelCatalogStore((s) =>
+    !s.revisionByProfile[activeProfileId] || s.revisionByProfile[activeProfileId] === revision
+      ? s.byProfile[activeProfileId] ?? null : null);
+  const catalogByProfile = useModelCatalogStore((s) => s.byProfile);
+  const directory = useQuery({
+    queryKey: acpModelCatalogKey(activeProfileId, revision, modelId),
+    queryFn: async () => {
+      const result = await discoverAcpModels(profilesHintFromStore(activeProfileId, profiles), activeProfileId, modelId);
+      if (!result?.connected) throw new Error(result?.message || "无法获取可用模型，请重试");
+      if (!modelId && result.options.currentModelId) {
+        queryClient.setQueryData(acpModelCatalogKey(activeProfileId, revision, result.options.currentModelId), result.options);
+      }
+      return result.options;
+    },
+    enabled: Boolean(status?.available && status.activeProfileId === activeProfileId && !busy
+      && !liveMatchesModel && !(purpose === "chat" && sessionConnected && liveOptions)),
+    retry: false,
+    staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+  });
   useEffect(() => {
-    setControlError(null);
-  }, [activeProfileId]);
-
-  // Write-through: whatever source just served this profile (live session or
-  // explicit refresh) is remembered in the shared catalogue, so all surfaces
-  // keep dynamic binding after disconnects and switches.
+    if (liveOptions) {
+      useModelCatalogStore.getState().rememberOptions(activeProfileId, liveOptions, revision);
+      if (liveOptions.currentModelId) queryClient.setQueryData(acpModelCatalogKey(activeProfileId, revision, liveOptions.currentModelId), liveOptions);
+    }
+  }, [activeProfileId, liveOptions, revision, queryClient]);
   useEffect(() => {
-    if (!activeProfileId || !optionSource) return;
-    useModelCatalogStore.getState().rememberOptions(activeProfileId, optionSource);
-  }, [activeProfileId, optionSource]);
-
+    if (directory.data) useModelCatalogStore.getState().rememberOptions(activeProfileId, directory.data, revision);
+  }, [activeProfileId, directory.data, revision]);
+  const optionSource = directory.data ?? (liveMatchesModel ? liveOptions : null)
+    ?? (rememberedOptions && (!modelId || rememberedOptions.currentModelId === modelId) ? rememberedOptions : null);
+  const modelSource = optionSource ?? liveOptions ?? rememberedOptions;
   useEffect(() => {
     if (!optionSource) return;
-    const saved = useAcpSettingsStore.getState();
-    const patch = mergeModelDefaults(
-      {
-        modelId: saved.modelId ?? "",
-        reasoningEffort: saved.reasoningEffort ?? "",
-      },
-      optionSource,
-    );
-    if (Object.keys(patch).length > 0) {
-      patchSettings(patch);
+    const initialized = purpose === "chapter"
+      ? useChapterAgentSettingsStore.getState().defaultsInitializedByProfile[activeProfileId]
+      : useAcpSettingsStore.getState().modelDefaultsInitializedByProfile[activeProfileId];
+    if (initialized) return;
+    const saved = purpose === "chapter"
+      ? useChapterAgentSettingsStore.getState().selections[activeProfileId] ?? { modelId: "", reasoningEffort: "" }
+      : useAcpSettingsStore.getState();
+    const patch = mergeModelDefaults({ modelId: saved.modelId ?? "", reasoningEffort: saved.reasoningEffort ?? "" }, optionSource);
+    if (Object.keys(patch).length) patchSettings(patch);
+    if (purpose === "chapter") useChapterAgentSettingsStore.getState().markDefaultsInitialized(activeProfileId);
+    else useAcpSettingsStore.getState().markModelDefaultsInitialized(activeProfileId);
+  }, [activeProfileId, optionSource, purpose, patchSettings]);
+
+  useEffect(() => {
+    if (optionSource && reasoningEffort && !optionSource.reasoningEfforts.some((option) => option.value === reasoningEffort)) {
+      patchSettings({ reasoningEffort: "" });
     }
-  }, [optionSource, patchSettings]);
+  }, [optionSource, reasoningEffort, patchSettings]);
 
-  const modelOptions = useMemo(
-    () => buildModelOptions(optionSource, modelId),
-    [modelId, optionSource],
-  );
-  const reasoningOptions = useMemo(
-    () => buildReasoningOptions(optionSource, reasoningEffort),
-    [optionSource, reasoningEffort],
-  );
-
-  const selectedModelLabel = selectedOptionLabel(
-    modelOptions,
-    modelId,
-    "Agent 默认",
-  );
-
-  const selectedReasoningLabel = selectedOptionLabel(
-    reasoningOptions,
-    reasoningEffort,
-    "默认",
-  );
-
-  const controlsDisabled = Boolean(busy || discoverBusy);
-
-  const applyModelSelection = async (next: {
-    modelId?: string;
-    reasoningEffort?: string;
-  }) => {
-    patchSettings(next);
-    if (!sessionConnected || busy) return;
-
+  const modelOptions = useMemo(() => buildModelOptions(modelSource, modelId), [modelSource, modelId]);
+  const reasoningOptions = useMemo(() => buildReasoningOptions(optionSource, ""), [optionSource]);
+  const applyModelSelection = async (next: Partial<ModelSelection>) => {
+    const changingModel = next.modelId != null && next.modelId !== modelId;
+    patchSettings(changingModel ? { ...next, reasoningEffort: "" } : next);
+    if (purpose !== "chat" || !sessionConnected || busy || status?.activeProfileId !== activeProfileId) return;
     try {
-      setControlError(null);
-      await acpSetSessionModel({
-        modelId: next.modelId ?? modelId,
-        reasoningEffort: next.reasoningEffort ?? reasoningEffort,
-      });
+      setSelectionError(null);
+      if (!(next.modelId || next.reasoningEffort)) return;
+      // A model change may replace the effort dimension. Never send the previous model's effort.
+      const result = await acpSetSessionModel({ modelId: next.modelId || null, reasoningEffort: next.reasoningEffort || null });
+      if (result) queryClient.setQueryData(acpModelCatalogKey(activeProfileId, revision, next.modelId ?? modelId), result);
       await queryClient.invalidateQueries({ queryKey: ["acp-status"] });
-    } catch (error) {
-      setControlError(errorMessage(error));
-    }
+    } catch (error) { setSelectionError(errorMessage(error)); }
   };
-
-  const discoverModels = async () => {
-    setDiscoverBusy(true);
-    setControlError(null);
-    try {
-      const result = await discoverAcpModels(
-        profilesHintFromStore(activeProfileId, profiles),
-        activeProfileId,
-      );
-      if (result.connected) {
-        const owner = activeProfileId;
-        setDiscoveredOptionsByProfile((prev) => ({ ...prev, [owner]: result.options }));
-        const patch = mergeModelDefaults({ modelId, reasoningEffort }, result.options);
-        if (Object.keys(patch).length > 0) {
-          patchSettings(patch);
-        }
-      } else {
-        setControlError(result.message);
-      }
-    } catch (error) {
-      setControlError(errorMessage(error));
-    } finally {
-      setDiscoverBusy(false);
-    }
-  };
-
   return {
+    activeProfileId,
     permissionMode,
-    discoveredOptions,
-    discoveredOptionsByProfile,
-    modelId,
-    reasoningEffort,
-    modelOptions,
-    reasoningOptions,
-    selectedModelLabel,
-    selectedReasoningLabel,
-    controlsDisabled,
-    controlError,
-    discoverBusy,
+    discoveredOptions: optionSource,
+    discoveredOptionsByProfile: catalogByProfile,
+    modelId, reasoningEffort, modelOptions, reasoningOptions,
+    selectedModelLabel: selectedOptionLabel(modelOptions, modelId, "Agent 默认"),
+    selectedReasoningLabel: selectedOptionLabel(reasoningOptions, reasoningEffort, "默认"),
+    controlsDisabled: Boolean(busy || directory.isFetching),
+    controlError: selectionError ?? (directory.error ? errorMessage(directory.error) : null),
+    discoverBusy: directory.isFetching,
     hasModelOptions: modelOptions.length > 0,
     hasReasoningOptions: reasoningOptions.length > 0,
-    patchSettings,
-    applyModelSelection,
-    discoverModels,
-    canDiscover: !sessionConnected && Boolean(status?.available),
+    patchSettings, applyModelSelection,
+    discoverModels: () => directory.refetch(),
+    canDiscover: Boolean(status?.available),
   };
 }

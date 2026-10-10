@@ -61,6 +61,14 @@ React 不得知道：mpv handle、native window handle、FFI pointer、libmpv / 
 - **换模型 ≠ 换 Agent**：Codex 内换 provider（Responses）；换 Claude 等 = 换 ACP Agent 进程（profile）
 - 终端用户**不必**装 bun/pnpm 才能播放；开发用 bun；产品不得把 bun 当用户运行时硬依赖
 
+### 共享运行时与会话隔离（2026-10-09 用户确认）
+
+- 主聊天与章节 Agent 的提示词、工具集不同。共享运行时目录、模型/配置发现、协议适配和通用连接实现，不共享业务会话、提示词、聊天历史或工具权限。
+- 配置 UI 必须通过后端能力入口获取运行时配置，不得依赖主聊天面板挂载或已有聊天会话；复用控件不得隐式关闭、恢复或改写主聊天。
+- 每个章节任务/attempt 使用独立会话与受信工具 scope；提示词由版本化任务仓库提供，工具由后端按用途授权，`tools/list` 与 `tools/call` 同时校验。
+- 模型目录可共享；配置选择按用途保存，任务启动时冻结快照。运行中修改其他用途的配置不得改变已有任务。
+- 现有独立 engine 隔离保持；未经并发通知、权限、取消、重连与上下文隔离验收，不将聊天、章节和模型发现合并到同一 engine 实例。执行细化见 `.plan/L2-agent-runtime-sharing-session-isolation.md`。
+
 ## Error handling（必读）
 
 细则见 [`.cursor/rules/errors.mdc`](.cursor/rules/errors.mdc)。摘要：

@@ -37,18 +37,19 @@ pub struct AcpClientSettings {
 
 impl AcpClientSettings {
     pub fn model_selection(&self) -> Option<super::model::AcpSessionModelSelection> {
-        let model_id = self.model_id.as_deref()?.trim();
-        if model_id.is_empty() {
+        let model_id = self.model_id.as_deref().unwrap_or("").trim();
+        let reasoning_effort = self
+            .reasoning_effort
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(str::to_string);
+        if model_id.is_empty() && reasoning_effort.is_none() {
             return None;
         }
         Some(super::model::AcpSessionModelSelection {
             model_id: model_id.to_string(),
-            reasoning_effort: self
-                .reasoning_effort
-                .as_deref()
-                .map(str::trim)
-                .filter(|value| !value.is_empty())
-                .map(str::to_string),
+            reasoning_effort,
         })
     }
 }
@@ -101,5 +102,16 @@ mod tests {
         let selection = settings.model_selection().expect("selection");
         assert_eq!(selection.model_id, "gpt-5");
         assert_eq!(selection.reasoning_effort.as_deref(), Some("high"));
+    }
+
+    #[test]
+    fn model_selection_preserves_effort_for_agent_default_model() {
+        let settings = AcpClientSettings {
+            reasoning_effort: Some(" low ".into()),
+            ..Default::default()
+        };
+        let selected = settings.model_selection().expect("effort override");
+        assert!(selected.model_id.is_empty());
+        assert_eq!(selected.reasoning_effort.as_deref(), Some("low"));
     }
 }

@@ -80,6 +80,8 @@ export type AcpStatus = {
   sessionActive: boolean;
   busy: boolean;
   sessionModelOptions?: AcpSessionModelOptions | null;
+  /** Product id of the live session's runtime, if one is open (any profile). */
+  liveProfileId?: string | null;
 };
 
 export type AcpSessionOption = {

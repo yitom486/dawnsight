@@ -5,9 +5,7 @@
 
 use crate::agent_pool::workshop_invoker;
 use crate::agent_stub::{AgentProfilesHint, OfflineAgentInvoker};
-use crate::library::{
-    AgentModelDiscoveryResult, AgentModelOptions, LibraryError, ResolverProviderConfig,
-};
+use crate::library::{AgentModelDiscoveryResult, LibraryError, ResolverProviderConfig};
 use dawnsight_core::{AgentInvoker, AgentTaskError, IsolatedAgentTask};
 
 /// Agent invoker for library calls: pooled ACP session when profiles resolve,
@@ -89,15 +87,17 @@ pub fn validation_invoker(provider: &ResolverProviderConfig) -> LibraryAgentInvo
         .unwrap_or(LibraryAgentInvoker::Offline(OfflineAgentInvoker))
 }
 
-/// Short-lived agent model discovery. The pool transport exposes no model
-/// catalogue, so this stays offline until a discovery path lands.
+/// Legacy library projection of the shared, isolated ACP discovery capability.
 pub fn discover_agent_models(
-    _profile_id: String,
-    _profiles: &serde_json::Value,
-) -> AgentModelDiscoveryResult {
-    AgentModelDiscoveryResult {
-        connected: false,
-        options: AgentModelOptions::default(),
-        message: "ACP transport 已下线，请等待 npm 客户端接入后重试".into(),
-    }
+    profile_id: String,
+    profiles: &serde_json::Value,
+) -> Result<AgentModelDiscoveryResult, LibraryError> {
+    let hint: crate::acp::AgentProfilesHint = serde_json::from_value(profiles.clone())
+        .map_err(|error| LibraryError::resolver_not_configured(Some(&error.to_string())))?;
+    let result = crate::acp::discovery::discover_models(&hint, &profile_id, None)
+        .map_err(|error| LibraryError::resolver_not_configured(error.details.as_deref()))?;
+    // The domain DTO intentionally excludes transport-only config dimensions.
+    let value = serde_json::to_value(result)
+        .map_err(|error| LibraryError::internal(Some(&error.to_string())))?;
+    serde_json::from_value(value).map_err(|error| LibraryError::internal(Some(&error.to_string())))
 }

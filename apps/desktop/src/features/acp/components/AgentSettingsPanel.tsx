@@ -107,7 +107,6 @@ export function AgentSettingsPanel({
                   // Codex); never leak a saved selection into another agent.
                   // permissionMode/thinkingLevel 保持现状不变（全局偏好，
                   // 切 profile 是否保留待产品确认，不擅自改语义）。
-                  patchSettings({ modelId: "", reasoningEffort: "" });
                   refreshStatus();
                 }}
               >

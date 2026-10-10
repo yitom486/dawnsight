@@ -1,5 +1,5 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 
 import { Button } from "@dawnsight/ui/button";
 import { Input } from "@dawnsight/ui/input";
@@ -17,10 +17,10 @@ import { useChapterSegmentation } from "../hooks/useChapterSegmentation";
 import {
   profilesHintFromStore,
   useAcpProfilesStore,
-  useChatUiStore,
 } from "@dawnsight/chat-ui";
 import { profilesSignature } from "@dawnsight/chat-ui/profilesSignature";
 import { useAgentModelControls } from "@/features/acp/useAgentModelControls";
+import { useChapterAgentSettingsStore } from "@dawnsight/chat-ui/chapterAgentSettingsStore";
 
 // Panel-local option tuning: semantic popover tokens so the native popup
 // follows both themes without hardcoding colors or touching packages/ui.
@@ -269,27 +269,46 @@ function ResegmentSection({
   onStartAiSegmentation?: () => void;
 }) {
   const start = onStartAiSegmentation ?? segmentation.start;
+  const isRunning =
+    segmentation.isPending || segmentation.taskStatus === "running";
   return (
     <div className="border-t border-border/70">
-      <div className="space-y-2 p-3 text-xs">
+      <div className="space-y-2.5 p-3 text-xs">
         <ResegmentProgress segmentation={segmentation} />
-        <ResegmentModelControls disabled={segmentation.isPending} />
+        <ResegmentModelControls disabled={isRunning} />
       </div>
-      <EmptyChaptersState
-        onStartAiSegmentation={start}
-        aiSegmentationStatus={segmentation.status}
-        errorMessage={onStartAiSegmentation ? null : segmentation.errorMessage}
-        failureMessage={onStartAiSegmentation ? null : segmentation.failureMessage}
-        validationSummary={onStartAiSegmentation ? null : segmentation.validationSummary}
-        attemptCount={onStartAiSegmentation ? undefined : segmentation.attemptCount}
-        maxAttempts={onStartAiSegmentation ? undefined : segmentation.maxAttempts}
-        canRetry={onStartAiSegmentation ? undefined : segmentation.canRetry}
-        retryAction={onStartAiSegmentation ? undefined : segmentation.retryAction}
-        agentConfigured={onStartAiSegmentation ? undefined : segmentation.agentConfigured}
-        taskStatus={onStartAiSegmentation ? undefined : segmentation.taskStatus}
-        progressMessage={onStartAiSegmentation ? null : segmentation.liveProgress?.message}
-        description="容器章节较粗糙，可用 AI 完全重分段（不删除真实章节）。"
-      />
+      {!isRunning ? (
+        segmentation.status === "completed" ? (
+          <div className="p-3 pt-0 space-y-2 text-xs">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-full text-xs"
+              onClick={start}
+            >
+              重新执行 AI 分段
+            </Button>
+          </div>
+        ) : (
+          <EmptyChaptersState
+            onStartAiSegmentation={start}
+            showModelControls={false}
+            aiSegmentationStatus={segmentation.status}
+            errorMessage={onStartAiSegmentation ? null : segmentation.errorMessage}
+            failureMessage={onStartAiSegmentation ? null : segmentation.failureMessage}
+            validationSummary={onStartAiSegmentation ? null : segmentation.validationSummary}
+            attemptCount={onStartAiSegmentation ? undefined : segmentation.attemptCount}
+            maxAttempts={onStartAiSegmentation ? undefined : segmentation.maxAttempts}
+            canRetry={onStartAiSegmentation ? undefined : segmentation.canRetry}
+            retryAction={onStartAiSegmentation ? undefined : segmentation.retryAction}
+            agentConfigured={onStartAiSegmentation ? undefined : segmentation.agentConfigured}
+            taskStatus={onStartAiSegmentation ? undefined : segmentation.taskStatus}
+            progressMessage={onStartAiSegmentation ? null : segmentation.liveProgress?.message}
+            description="容器章节较粗糙，可用 AI 完全重分段（不删除真实章节）。"
+          />
+        )
+      ) : null}
     </div>
   );
 }
@@ -307,79 +326,171 @@ function ResegmentProgress({
   const phase = live?.phase ?? snapshot?.status ?? null;
   const failing =
     snapshot?.status === "failed" || snapshot?.status === "validation_failure";
+  const isRunning =
+    segmentation.isPending || segmentation.taskStatus === "running";
+
+  const isQueued = phase !== null;
+  const isEvidence =
+    phase === "preparing_evidence" ||
+    phase === "agent_running" ||
+    phase === "checking_result" ||
+    phase === "succeeded";
+  const isAgent =
+    phase === "agent_running" ||
+    phase === "checking_result" ||
+    phase === "succeeded";
+  const isCheck = phase === "succeeded" || failing;
+
+  const activeStepId = failing
+    ? "check"
+    : phase === "checking_result"
+      ? "check"
+      : phase === "agent_running"
+        ? "agent"
+        : phase === "preparing_evidence"
+          ? "evidence"
+          : phase !== null && phase !== "succeeded"
+            ? "queued"
+            : null;
+
   const steps = [
-    { id: "queued", label: "排队", done: phase !== null, bad: false },
-    { id: "evidence", label: "取证", done: phase === "preparing_evidence" || phase === "agent_running" || phase === "checking_result" || phase === "succeeded", bad: false },
-    { id: "agent", label: "Agent", done: phase === "agent_running" || phase === "checking_result" || phase === "succeeded", bad: false },
-    { id: "check", label: failing ? "校验未过" : "校验落库", done: phase === "succeeded" || failing, bad: failing },
+    { id: "queued", label: "排队", done: isQueued, active: activeStepId === "queued", bad: false },
+    { id: "evidence", label: "取证", done: isEvidence, active: activeStepId === "evidence", bad: false },
+    { id: "agent", label: "Agent", done: isAgent, active: activeStepId === "agent", bad: false },
+    { id: "check", label: failing ? "校验未过" : "校验落库", done: isCheck, active: activeStepId === "check" && !failing, bad: failing },
   ];
+
   const attemptText =
     typeof snapshot?.attemptCount === "number" && typeof snapshot?.maxAttempts === "number"
       ? `尝试 ${snapshot.attemptCount}/${snapshot.maxAttempts}`
       : null;
+
+  const currentMessage =
+    live?.message ?? segmentation.taskStatus ?? snapshot?.status ?? "尚未开始";
+
   return (
-    <section aria-label="重分段进度" className="space-y-1.5 rounded-md border border-border/70 p-2">
-      <ol className="flex flex-wrap items-center gap-1">
+    <section
+      aria-label="重分段进度"
+      className="space-y-2.5 rounded-lg border border-border/70 bg-card/60 p-2.5 shadow-sm backdrop-blur-sm"
+    >
+      <ol className="flex items-center justify-between gap-1 rounded-md bg-muted/40 p-1 text-[11px]">
         {steps.map((step, index) => (
-          <li key={step.id} className="flex items-center gap-1">
-            {index > 0 ? <span aria-hidden className="text-muted-foreground">→</span> : null}
+          <li key={step.id} className="flex min-w-0 flex-1 items-center gap-1">
             <span
               aria-current={step.done ? "step" : undefined}
               className={
                 step.bad
-                  ? "rounded-full bg-destructive px-2 py-0.5 text-[11px] text-destructive-foreground"
-                  : step.done
-                    ? "rounded-full bg-accent px-2 py-0.5 text-[11px] text-foreground"
-                    : "rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground"
+                  ? "flex w-full items-center justify-center gap-1 rounded-md bg-destructive px-1.5 py-1 text-center font-medium text-destructive-foreground shadow-sm"
+                  : step.active
+                    ? "relative flex w-full items-center justify-center gap-1 rounded-md border border-primary/40 bg-primary/20 px-1.5 py-1 text-center font-medium text-primary shadow-[0_0_10px_rgba(56,189,248,0.2)]"
+                    : step.done
+                      ? "flex w-full items-center justify-center gap-1 rounded-md bg-accent px-1.5 py-1 text-center font-normal text-foreground"
+                      : "flex w-full items-center justify-center gap-1 rounded-md bg-transparent px-1.5 py-1 text-center font-normal text-muted-foreground/60"
               }
             >
-              {step.label}
+              {step.active ? (
+                <span className="relative flex h-1.5 w-1.5 shrink-0" aria-hidden="true">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
+                </span>
+              ) : null}
+              <span className="truncate">{step.label}</span>
             </span>
+            {index < steps.length - 1 ? (
+              <span
+                aria-hidden="true"
+                className={`shrink-0 select-none text-[10px] ${
+                  step.done ? "text-primary/70 font-semibold" : "text-muted-foreground/40"
+                }`}
+              >
+                →
+              </span>
+            ) : null}
           </li>
         ))}
       </ol>
-      <p className="text-[11px] text-muted-foreground">
-        {[live?.message ?? segmentation.taskStatus ?? snapshot?.status ?? "尚未开始", attemptText, draftCount > 0 ? `草稿 ${draftCount} 段` : null]
-          .filter(Boolean)
-          .join(" · ")}
-      </p>
-      {segmentation.taskStatus === "running" ? (
-        <p className="text-[11px] text-muted-foreground">运行中暂不支持取消，请等待本轮结束。</p>
+
+      {isRunning ? (
+        <div className="relative overflow-hidden rounded-md border border-primary/30 bg-primary/10 p-2.5 transition-all">
+          <div className="flex items-start gap-2">
+            <span className="relative flex h-2.5 w-2.5 shrink-0 mt-1" aria-hidden="true">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-80" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary shadow-[0_0_8px_rgba(56,189,248,0.6)]" />
+            </span>
+            <div className="min-w-0 flex-1 space-y-1.5">
+              <div className="flex items-center justify-between gap-1.5">
+                <span className="truncate text-xs font-medium text-foreground">
+                  {currentMessage}
+                </span>
+                {draftCount > 0 ? (
+                  <span className="shrink-0 rounded-full border border-primary/30 bg-primary/20 px-2 py-0.5 font-mono text-[10px] font-semibold text-primary">
+                    草稿 {draftCount} 段
+                  </span>
+                ) : null}
+              </div>
+              <div className="relative h-1 w-full overflow-hidden rounded-full bg-primary/20">
+                <div className="absolute inset-y-0 w-2/5 rounded-full bg-gradient-to-r from-transparent via-primary to-transparent animate-pulse" />
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center justify-between gap-1 text-[11px] text-muted-foreground">
+          <span>{currentMessage}</span>
+          <div className="flex items-center gap-1.5">
+            {attemptText ? (
+              <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                {attemptText}
+              </span>
+            ) : null}
+            {draftCount > 0 ? (
+              <span className="rounded bg-accent px-1.5 py-0.5 font-mono text-[10px] text-foreground">
+                草稿 {draftCount} 段
+              </span>
+            ) : null}
+          </div>
+        </div>
+      )}
+
+      {isRunning && segmentation.taskStatus === "running" ? (
+        <p className="text-[11px] text-muted-foreground/80">运行中暂不支持取消，请等待本轮结束。</p>
       ) : null}
-      <div className="flex items-center gap-2">
-        <Button
-          type="button"
-          size="sm"
-          variant="ghost"
-          disabled={!segmentation.canCancel || segmentation.isCancelling}
-          onClick={() => segmentation.cancel()}
-          className="h-7 px-2.5 text-xs font-normal"
-        >
-          {segmentation.isCancelling ? "取消中…" : "取消任务"}
-        </Button>
-        {segmentation.taskStatus === "failed" && snapshot?.failureMessage ? (
-          <span className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground">
+
+      {segmentation.canCancel || segmentation.isCancelling ? (
+        <div className="flex items-center gap-2 pt-0.5">
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            disabled={!segmentation.canCancel || segmentation.isCancelling}
+            onClick={() => segmentation.cancel()}
+            className="h-7 px-2.5 text-xs font-normal"
+          >
+            {segmentation.isCancelling ? "取消中…" : "取消任务"}
+          </Button>
+        </div>
+      ) : null}
+
+      {segmentation.taskStatus === "failed" && snapshot?.failureMessage ? (
+        <div className="pt-0.5">
+          <span className="min-w-0 flex-1 truncate text-[11px] text-destructive">
             {snapshot.failureMessage}
           </span>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
     </section>
   );
 }
 
-// Runtime controls reuse the global Agent stores AND the chat composer's
-// discovery hook, so the chapter task snapshots the same profile/model/effort
-// and sees the same Agent-advertised lists (including the refresh flow).
-// sessionConnected=false: selection only patches the store, never pushes to
-// the live chat session. Native controls only: no floating Portal that could
-// overlay the HWND video area.
+// Share the runtime registry, catalogue and controls; chapter selections and
+// execution sessions stay separate from chat. Native controls do not overlay HWND.
 function ResegmentModelControls({ disabled }: { disabled: boolean }) {
-  const queryClient = useQueryClient();
-  const activeProfileId = useAcpProfilesStore((s) => s.activeProfileId);
+  const chatProfileId = useAcpProfilesStore((s) => s.activeProfileId);
+  const selectedProfileId = useChapterAgentSettingsStore((s) => s.profileId);
+  const activeProfileId = selectedProfileId ?? chatProfileId;
   const profiles = useAcpProfilesStore((s) => s.profiles);
   const profilesSig = useAcpProfilesStore((s) => profilesSignature(s.profiles));
-  const switchActiveProfileId = useAcpProfilesStore((s) => s.switchActiveProfileId);
-  const openChat = useChatUiStore((s) => s.openChat);
+  const switchActiveProfileId = useChapterAgentSettingsStore((s) => s.selectProfile);
   const statusQuery = useQuery({
     // Identical key/shape to the chat panel (`AcpPanel`): one shared cache
     // entry, so a connect in AI 对话 refreshes this panel automatically and
@@ -387,7 +498,7 @@ function ResegmentModelControls({ disabled }: { disabled: boolean }) {
     queryKey: ["acp-status", activeProfileId ?? null, profilesSig],
     queryFn: () => {
       const state = useAcpProfilesStore.getState();
-      return getAcpStatus(profilesHintFromStore(state.activeProfileId, state.profiles));
+      return getAcpStatus(profilesHintFromStore(activeProfileId, state.profiles));
     },
     retry: false,
     staleTime: 15_000,
@@ -395,74 +506,21 @@ function ResegmentModelControls({ disabled }: { disabled: boolean }) {
   const models = useAgentModelControls({
     status: statusQuery.data,
     sessionConnected: false,
+    purpose: "chapter",
   });
-  // Alignment: the model belongs to a profile. The panel keeps a small
-  // per-profile memory: switching away stashes the old profile's model,
-  // switching back restores it (falling back to Agent default for profiles
-  // with no remembered choice). A stale cross-profile combination can therefore
-  // never be snapshotted into a chapter task, and a deliberate choice is never
-  // blanked. The hook's defaults-merge still fills the advertised current
-  // model when the new profile has no memory yet.
-  const alignedProfileRef = useRef(activeProfileId);
-  const modelMemoryRef = useRef<Record<string, string>>({});
-  useEffect(() => {
-    if (alignedProfileRef.current === activeProfileId) return;
-    const prev = alignedProfileRef.current;
-    alignedProfileRef.current = activeProfileId;
-    modelMemoryRef.current[prev] = models.modelId;
-    models.patchSettings({
-      modelId: modelMemoryRef.current[activeProfileId] ?? "",
-      reasoningEffort: "",
-    });
-  }, [activeProfileId, models.modelId, models.patchSettings]);
-  // reasoningEffort is cleared too: isolated engine sessions honor it via
-  // `session/set_config`, so effort is chapter-relevant (per-profile) state.
-  // Model lists likewise come only from the live session advertisement
-  // (`acp_status.sessionModelOptions`); the discovery endpoint is a backend
-  // stub, so this panel never calls it.
   const profileOptions =
     profiles.length > 0
       ? profiles
       : activeProfileId?.trim()
         ? [{ id: activeProfileId, name: activeProfileId }]
         : [];
-  // The only working list source is the LIVE session's advertisement. When it
-  // belongs to another runtime, this panel honestly has no list — name both
-  // sides instead of showing a mysterious empty input.
-  const liveProfileId = statusQuery.data?.activeProfileId ?? "";
-  const liveModelCount = statusQuery.data?.sessionModelOptions?.models.length ?? 0;
-  const showSessionMismatch =
-    liveProfileId !== "" &&
-    liveProfileId !== activeProfileId &&
-    !models.hasModelOptions;
-  const liveProfile = profiles.find((profile) => profile.id === liveProfileId);
-  const liveProfileName =
-    (liveProfile && "name" in liveProfile && liveProfile.name) || liveProfileId;
   return (
     <section aria-label="重分段运行时" className="space-y-1.5 rounded-md border border-border/70 p-2">
       <p className="text-[11px] text-muted-foreground">
         运行时：{activeProfileId?.trim() || "未配置"} · {models.modelId.trim() || "Agent 默认"} ·{" "}
         {models.reasoningEffort.trim() || "默认档"}
       </p>
-      <p className="text-[11px] text-muted-foreground">修改下次启动/重试生效，运行中不改；切换运行时会同步影响 AI 对话。</p>
-      {showSessionMismatch ? (
-        <div className="space-y-1.5">
-          <p className="text-[11px] text-muted-foreground">
-            AI 对话已连接{liveProfileName}
-            {liveModelCount > 0 ? `（${liveModelCount} 个模型）` : ""}，章节当前选的是
-            {activeProfileId}暂无列表——切回可下拉选择，或在对话里连上{activeProfileId}。
-          </p>
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            onClick={openChat}
-            className="h-7 px-2.5 text-xs font-normal"
-          >
-            去 AI 对话连接
-          </Button>
-        </div>
-      ) : null}
+      <p className="text-[11px] text-muted-foreground">修改下次启动/重试生效；章节配置独立保存。</p>
       <div className="grid grid-cols-2 gap-1.5">
         <label className="flex min-w-0 flex-col gap-1 text-[11px] text-muted-foreground">
           <span className="truncate">运行时</span>
@@ -472,11 +530,6 @@ function ResegmentModelControls({ disabled }: { disabled: boolean }) {
             disabled={disabled || profileOptions.length === 0}
             onChange={(event) => {
               switchActiveProfileId(event.target.value);
-              // Mirror AcpPanel.handleSwitchProfile: status-derived lists
-              // (models/effort) are keyed off acp-status, so refresh them.
-              // Chat-transient cleanup (queue/permission/proposals) stays owned
-              // by AcpPanel and is intentionally not duplicated here.
-              void queryClient.invalidateQueries({ queryKey: ["acp-status"] });
             }}
             className={resegmentControlClassName}
           >
@@ -521,7 +574,7 @@ function ResegmentModelControls({ disabled }: { disabled: boolean }) {
               aria-label="重分段模型"
               type="text"
               value={models.modelId}
-              disabled={disabled}
+              disabled={disabled || models.discoverBusy}
               placeholder="留空用 Agent 默认"
               onChange={(event) => models.patchSettings({ modelId: event.target.value })}
               className="h-7 w-full min-w-0 px-2 text-xs"
@@ -554,24 +607,15 @@ function ResegmentModelControls({ disabled }: { disabled: boolean }) {
           </select>
         </div>
         <div className="flex items-center gap-2">
-          {!models.hasModelOptions ? (
-            <>
-              <span className="min-w-0 flex-1 text-[11px] text-muted-foreground">
-                连接一次 AI 对话后，这里可下拉选择该运行时模型。
-              </span>
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                onClick={openChat}
-                className="h-7 shrink-0 px-2.5 text-xs font-normal"
-              >
-                去 AI 对话
-              </Button>
-            </>
-          ) : null}
+          <Button type="button" size="sm" variant="ghost" disabled={disabled || models.discoverBusy || !models.canDiscover}
+            onClick={() => { void models.discoverModels(); }} className="h-7 shrink-0 px-2.5 text-xs font-normal">
+            {models.discoverBusy ? "正在获取配置…" : "刷新配置"}
+          </Button>
         </div>
       </div>
+      {models.controlError ? <p role="alert" className="text-[11px] text-destructive">{models.controlError}</p> : null}
+      {!models.discoverBusy && !models.controlError && models.hasModelOptions && !models.hasReasoningOptions ? <p className="text-[11px] text-muted-foreground">该模型未提供可选思考档，将使用默认设置。</p> : null}
+      {!models.discoverBusy && !models.controlError && !models.hasModelOptions ? <p className="text-[11px] text-muted-foreground">该运行时未提供模型列表，可使用默认模型。</p> : null}
     </section>
   );
 }
@@ -590,7 +634,8 @@ function EmptyChaptersState({
   agentConfigured = true,
   taskStatus,
   progressMessage,
-}: ChaptersPanelProps & { description: string; errorMessage?: string | null }) {
+  showModelControls = true,
+}: ChaptersPanelProps & { description: string; errorMessage?: string | null; showModelControls?: boolean }) {
   const retryableFailure =
     (aiSegmentationStatus === "validation_failure" ||
       aiSegmentationStatus === "failed") &&
@@ -613,6 +658,7 @@ function EmptyChaptersState({
         <p>{description}</p>
         <p>点击后会创建独立章节 Agent 任务，结合字幕与按需画面生成语义章节。</p>
       </div>
+      {showModelControls ? <ResegmentModelControls disabled={aiSegmentationStatus === "pending"} /> : null}
       <Button
         type="button"
         size="sm"
@@ -744,47 +790,59 @@ function ChapterDraftList({
 
   return (
     <div className="min-h-0 flex-1 space-y-2 overflow-auto p-3">
-      <div className="text-xs text-muted-foreground">
-        AI 章节草稿 · 已从任务大纲持久化
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <span>AI 章节草稿 · 已从任务大纲持久化</span>
+        <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-mono font-medium text-foreground">
+          {chapters.length} 章节
+        </span>
       </div>
       {progressMessage ? (
-        <div className="rounded-md bg-muted px-2 py-1.5 text-[11px] text-muted-foreground">
-          {progressMessage}
+        <div className="flex items-center gap-2 rounded-md border border-primary/25 bg-primary/10 px-2.5 py-1.5 text-[11px] text-foreground">
+          <span className="relative flex h-2 w-2 shrink-0">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+          </span>
+          <span className="truncate">{progressMessage}</span>
         </div>
       ) : null}
-      {chapters.map((chapter, index) => {
-        const active = positionMs >= chapter.startMs && positionMs < chapter.endMs;
-        return (
-          <Button
-            key={`${chapter.id}-${chapter.updatedAtMs}`}
-            type="button"
-            size="sm"
-            variant="ghost"
-            className={
-              active
-                ? "h-auto w-full items-start gap-2 rounded-md bg-accent px-2 py-1.5 text-left text-xs font-normal hover:bg-accent"
-                : "h-auto w-full items-start gap-2 rounded-md px-2 py-1.5 text-left text-xs font-normal hover:bg-muted"
-            }
-            aria-pressed={selectedChapter?.id === chapter.id}
-            onClick={() => {
-              setSelectedChapterId(chapter.id);
-              void seek(chapter.startMs);
-            }}
-          >
-            <span className="shrink-0 font-mono text-primary">
-              {formatTime(chapter.startMs)}
-            </span>
-            <span className="min-w-0 flex-1 space-y-0.5">
-              <span className="block">
-                {chapter.title?.trim() || `章节 ${index + 1}`}
+      <div className="space-y-1">
+        {chapters.map((chapter, index) => {
+          const active = positionMs >= chapter.startMs && positionMs < chapter.endMs;
+          const isSelected = selectedChapter?.id === chapter.id;
+          return (
+            <Button
+              key={`${chapter.id}-${chapter.updatedAtMs}`}
+              type="button"
+              size="sm"
+              variant="ghost"
+              className={
+                isSelected
+                  ? "h-auto w-full items-start gap-2.5 rounded-md border border-primary/40 bg-primary/15 px-2.5 py-2 text-left text-xs font-normal shadow-sm"
+                  : active
+                    ? "h-auto w-full items-start gap-2.5 rounded-md bg-accent px-2.5 py-2 text-left text-xs font-normal hover:bg-accent"
+                    : "h-auto w-full items-start gap-2.5 rounded-md border border-transparent px-2.5 py-2 text-left text-xs font-normal hover:bg-muted/80"
+              }
+              aria-pressed={isSelected}
+              onClick={() => {
+                setSelectedChapterId(chapter.id);
+                void seek(chapter.startMs);
+              }}
+            >
+              <span className="shrink-0 font-mono text-xs font-medium text-primary">
+                {formatTime(chapter.startMs)}
               </span>
-              <span className="block text-[11px] text-muted-foreground">
-                {chapterDraftStatusLabel(chapter.status)}
+              <span className="min-w-0 flex-1 space-y-0.5">
+                <span className="block font-medium text-foreground">
+                  {chapter.title?.trim() || `章节 ${index + 1}`}
+                </span>
+                <span className="block text-[11px] text-muted-foreground">
+                  {chapterDraftStatusLabel(chapter.status)}
+                </span>
               </span>
-            </span>
-          </Button>
-        );
-      })}
+            </Button>
+          );
+        })}
+      </div>
       {selectedChapter ? (
         <ChapterDetailView detail={selectedChapter.detail} />
       ) : null}

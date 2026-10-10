@@ -9,6 +9,10 @@ import {
 } from "./types";
 
 type AcpSettingsStore = AcpClientSettings & {
+  modelSelectionsByProfile: Record<string, { modelId: string; reasoningEffort: string }>;
+  modelDefaultsInitializedByProfile: Record<string, boolean>;
+  markModelDefaultsInitialized: (profileId: string) => void;
+  selectModelProfile: (previousId: string, nextId: string) => void;
   transcriptWindowPreset: TranscriptWindowPreset;
   patchSettings: (
     patch: Partial<AcpClientSettings> & {
@@ -17,7 +21,9 @@ type AcpSettingsStore = AcpClientSettings & {
   ) => void;
 };
 
-const DEFAULT_SETTINGS: Omit<AcpSettingsStore, "patchSettings"> = {
+const DEFAULT_SETTINGS: Omit<AcpSettingsStore, "patchSettings" | "selectModelProfile" | "markModelDefaultsInitialized"> = {
+  modelSelectionsByProfile: {},
+  modelDefaultsInitializedByProfile: {},
   permissionMode: "auto",
   thinkingLevel: "minimal",
   agentMode: "default",
@@ -36,6 +42,8 @@ export function mergeAcpSettings(
   >;
   return {
     ...current,
+    modelSelectionsByProfile: (persisted as Partial<AcpSettingsStore> | null)?.modelSelectionsByProfile ?? {},
+    modelDefaultsInitializedByProfile: (persisted as Partial<AcpSettingsStore> | null)?.modelDefaultsInitializedByProfile ?? {},
     permissionMode:
       saved.permissionMode ?? current.permissionMode ?? DEFAULT_SETTINGS.permissionMode,
     thinkingLevel:
@@ -59,6 +67,12 @@ export const useAcpSettingsStore = create<AcpSettingsStore>()(
   persist(
     (set) => ({
       ...DEFAULT_SETTINGS,
+      markModelDefaultsInitialized: (profileId) => set((state) => ({ modelDefaultsInitializedByProfile: { ...state.modelDefaultsInitializedByProfile, [profileId]: true } })),
+      selectModelProfile: (previousId, nextId) => set((state) => ({
+        modelSelectionsByProfile: { ...state.modelSelectionsByProfile, [previousId]: { modelId: state.modelId ?? "", reasoningEffort: state.reasoningEffort ?? "" } },
+        modelId: state.modelSelectionsByProfile[nextId]?.modelId ?? "",
+        reasoningEffort: state.modelSelectionsByProfile[nextId]?.reasoningEffort ?? "",
+      })),
       patchSettings: (patch) =>
         set((state) => ({
           ...state,
@@ -72,6 +86,8 @@ export const useAcpSettingsStore = create<AcpSettingsStore>()(
     {
       name: "dawnsight-acp-settings",
       partialize: (state) => ({
+        modelSelectionsByProfile: state.modelSelectionsByProfile,
+        modelDefaultsInitializedByProfile: state.modelDefaultsInitializedByProfile,
         permissionMode: state.permissionMode,
         thinkingLevel: state.thinkingLevel,
         agentMode: state.agentMode,

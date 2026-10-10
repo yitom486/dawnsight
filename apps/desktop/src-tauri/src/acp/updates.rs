@@ -9,14 +9,21 @@ use serde_json::Value;
 
 use super::{AcpEvent, PermissionOption};
 
-/// Unwrap the engine envelope `{ sessionId, update }` (or a bare update).
+/// Unwrap the engine envelope `{ sessionId, update }` (or a bare update, or a tagged `{ notification, params }`).
 fn update_payload(value: &Value) -> Option<&Value> {
     if value.get("sessionUpdate").and_then(Value::as_str).is_some() {
         return Some(value);
     }
-    value
+    if let Some(inner) = value
         .get("update")
         .filter(|inner| inner.get("sessionUpdate").and_then(Value::as_str).is_some())
+    {
+        return Some(inner);
+    }
+    if let Some(params) = value.get("params") {
+        return update_payload(params);
+    }
+    None
 }
 
 fn update_kind(update: &Value) -> Option<&str> {
@@ -300,6 +307,26 @@ mod tests {
         assert!(matches!(
             event,
             AcpEvent::PermissionRequest { ref request_id, .. } if request_id == "req_1"
+        ));
+    }
+
+    #[test]
+    fn tagged_notification_envelope_projects_text() {
+        let value = json!({
+            "notification": "session/update",
+            "params": {
+                "sessionId": "s1",
+                "update": {
+                    "sessionUpdate": "agent_message_chunk",
+                    "content": [{ "type": "text", "text": "streaming reply" }],
+                },
+            },
+        });
+        let events = project_session_update(&value);
+        assert_eq!(events.len(), 1);
+        assert!(matches!(
+            events[0],
+            AcpEvent::AgentMessage { ref text } if text == "streaming reply"
         ));
     }
 }

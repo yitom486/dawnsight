@@ -6,7 +6,9 @@
 //! Tauri surface the frontend already uses.
 
 pub mod adapter;
+mod config;
 pub mod context;
+pub mod discovery;
 pub mod engine;
 pub mod environment;
 pub mod error;

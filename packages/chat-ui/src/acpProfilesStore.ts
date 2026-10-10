@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { useAcpSettingsStore } from "./acpSettingsStore";
 
 import {
   defaultAgentProfiles,
@@ -64,6 +65,9 @@ export const useAcpProfilesStore = create<AcpProfilesStore>()(
       switchActiveProfileId: (id) => {
         const next = id.trim();
         if (!next) return;
+        if (next !== get().activeProfileId) {
+          useAcpSettingsStore.getState().selectModelProfile(get().activeProfileId, next);
+        }
         set((state) =>
           state.activeProfileId === next ? state : { activeProfileId: next },
         );

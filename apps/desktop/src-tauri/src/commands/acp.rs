@@ -116,6 +116,20 @@ pub async fn acp_status(
     .map_err(|error| AcpError::internal(Some(&format!("acp status join: {error}"))))?
 }
 
+/// Retrieve real Agent config through an isolated connection without application MCP tools.
+#[tauri::command]
+pub async fn acp_models_discover(
+    profiles: AgentProfilesHint,
+    profile_id: String,
+    model_id: Option<String>,
+) -> Result<crate::acp::AcpModelDiscoveryResult, AcpError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        crate::acp::discovery::discover_models(&profiles, &profile_id, model_id.as_deref())
+    })
+    .await
+    .map_err(|error| AcpError::internal(Some(&format!("model discovery join: {error}"))))?
+}
+
 /// Read the durable watch-feed projection without touching the live ACP chat.
 #[tauri::command]
 pub async fn acp_watch_feed(app: AppHandle) -> Result<AcpWatchFeedResponse, AcpError> {

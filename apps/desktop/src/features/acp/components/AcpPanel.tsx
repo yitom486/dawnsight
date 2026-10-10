@@ -523,12 +523,7 @@ export function AcpPanel() {
     proposalBindingsRef.current = createProposalBindings();
     setAttachments([]);
     useAcpProfilesStore.getState().switchActiveProfileId(id);
-    // 模型选择按 profile 隔离：id 即 agent 专属，绝不跨家。permissionMode 与
-    // thinkingLevel 保持现状不变（全局偏好，切 profile 是否保留待产品确认，
-    // 不擅自改语义），只清模型二元组。
-    useAcpSettingsStore
-      .getState()
-      .patchSettings({ modelId: "", reasoningEffort: "" });
+    // switchActiveProfileId restores this profile's own model/effort selection.
     // savedSessions hint 与 chatRestore 快照按 profile 分键故意保留：
     // 切回即 resume，本路径绝不删别家键（也不调 scheduleClear/discard）。
     void queryClient.invalidateQueries({ queryKey: ["acp-status"] });

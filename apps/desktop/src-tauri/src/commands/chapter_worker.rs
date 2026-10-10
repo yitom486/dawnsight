@@ -526,6 +526,15 @@ fn execute_attempt(
     let composed = compose_prompt(TaskId::ChapterSegment, &slots).map_err(|error| {
         WorkerFailure::business("章节分析提示词准备失败，请重试", error.to_string())
     })?;
+    tracing::info!(
+        transcript_windows = evidence.transcript_windows.len(),
+        prewarmed_screenshots = evidence.screenshots.len(),
+        prompt_chars = composed.initial_prompt().len(),
+        media_duration_ms = scope.duration_ms,
+        model = ?chapter_model_id(request),
+        effort = ?chapter_reasoning_effort(request),
+        "composed chapter prompt and prepared agent context"
+    );
 
     let profiles = request
         .profiles
@@ -589,8 +598,42 @@ fn execute_attempt(
 /// Everything else stays in tracing; the durable task row remains the source
 /// of truth and assistant text is never treated as a completion signal here.
 fn forward_engine_progress(progress: &mut ProgressEmitter, event: crate::acp::AcpEvent) {
-    if let crate::acp::AcpEvent::Progress { message } = event {
-        progress.emit("agent_running", &message, false);
+    match event {
+        crate::acp::AcpEvent::Progress { message } => {
+            tracing::info!(%message, "agent reported engine progress");
+            progress.emit("agent_running", &message, false);
+        }
+        crate::acp::AcpEvent::ToolCall {
+            title,
+            tool_call_id,
+            status,
+            ..
+        } => {
+            tracing::info!(
+                tool_call_id = %tool_call_id,
+                tool = ?title,
+                status = ?status,
+                "agent requested tool call"
+            );
+            if let Some(name) = title.filter(|t| !t.trim().is_empty()) {
+                let friendly = match name.as_str() {
+                    "dawnsight_create_chapter_outline" => "Agent 正在规划章节大纲…",
+                    "dawnsight_capture_chapter_evidence" => "Agent 正在抓取章节关键帧与视觉证据…",
+                    "dawnsight_update_chapter_draft" => "Agent 正在写入章节草稿与剧情主线…",
+                    "dawnsight_finalize_chapter_task" => "Agent 正在进行章节质量验证与入库…",
+                    other => other,
+                };
+                progress.emit("agent_running", friendly, false);
+            }
+        }
+        crate::acp::AcpEvent::AgentThought { text } => {
+            tracing::info!(
+                thought_chars = text.len(),
+                "agent streaming reasoning thought"
+            );
+            progress.emit("agent_running", "Agent 正在深度推理剧情与章节结构…", false);
+        }
+        _ => {}
     }
 }
 

@@ -221,6 +221,11 @@ pub struct AcpStatus {
     /// Whether a live Agent process/session is currently open.
     pub session_active: bool,
     pub busy: bool,
+    /// Product id of the live session's runtime, regardless of which profile
+    /// the caller asked about. `active_profile_id` echoes the request, so UI
+    /// surfaces that need to name a *mismatched* live session must read this.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub live_profile_id: Option<String>,
     /// Model / reasoning options from the live session, when connected.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub session_model_options: Option<AcpSessionModelOptions>,

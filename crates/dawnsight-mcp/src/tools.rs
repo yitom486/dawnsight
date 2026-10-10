@@ -11,7 +11,7 @@ const TEST_CAPTURE_FIXTURE_DIR_ENV: &str = "DAWNSIGHT_MCP_TEST_CAPTURE_FIXTURE_D
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use serde::Serialize;
 use serde_json::{json, Value};
-use tracing::warn;
+use tracing::{info, warn};
 
 use crate::snapshot::{
     ephemeral_tmp_dir, resolve_snapshot_path, ChapterTaskContext, DawnsightMcpSnapshot,
@@ -122,8 +122,13 @@ pub fn handle_tool_call_with_context(
     } else {
         Err(format!("Unknown tool: {name}"))
     };
-    if let Err(message) = result.as_ref() {
-        warn!(tool = name, reason = %message, "dawnsight MCP tool failed");
+    match result.as_ref() {
+        Ok(_) => {
+            info!(tool = name, "dawnsight MCP tool executed successfully");
+        }
+        Err(message) => {
+            warn!(tool = name, reason = %message, "dawnsight MCP tool failed");
+        }
     }
     result
 }
@@ -1538,59 +1543,11 @@ fn update_chapter_draft(context: &ChapterTaskContext, args: &Value) -> Result<Va
     let (database_path, _) = validate_context(context)?;
     let (task_id, attempt_id, episode_id) = required_scope(args, context)?;
     let chapter_id = required_i64(args, "chapterId")?;
-    let mainline = args
-        .get("mainline")
-        .and_then(Value::as_str)
-        .filter(|value| !value.trim().is_empty() && value.len() <= 20_000)
-        .ok_or_else(|| "mainline 无效".to_string())?;
-    let title = args.get("title").and_then(Value::as_str);
     let draft_key = args
         .get("draftKey")
         .and_then(Value::as_str)
         .filter(|value| !value.trim().is_empty() && value.len() <= 128)
         .ok_or_else(|| "draftKey 无效".to_string())?;
-    let evidence_ids = args
-        .get("evidenceAssetIds")
-        .and_then(Value::as_array)
-        .filter(|items| !items.is_empty() && items.len() <= 16)
-        .ok_or_else(|| "evidenceAssetIds 必须是非空数组".to_string())?
-        .iter()
-        .map(|value| {
-            value
-                .as_i64()
-                .filter(|id| *id > 0)
-                .ok_or_else(|| "证据 assetId 无效".to_string())
-        })
-        .collect::<Result<Vec<_>, _>>()?;
-    let recap = args.get("recap").and_then(Value::as_str).unwrap_or("");
-    let outlook = args.get("outlook").and_then(Value::as_str).unwrap_or("");
-    let highlights = args
-        .get("highlights")
-        .and_then(Value::as_array)
-        .cloned()
-        .unwrap_or_default();
-    let questions = args
-        .get("questions")
-        .and_then(Value::as_array)
-        .cloned()
-        .unwrap_or_default();
-    if recap.len() > 20_000
-        || outlook.len() > 20_000
-        || highlights.len() > 32
-        || questions.len() > 32
-    {
-        return Err("章节草稿字段超出限制".to_string());
-    }
-    let content = json!({
-        "title": title,
-        "mainline": mainline,
-        "recap": recap,
-        "outlook": outlook,
-        "highlights": highlights,
-        "evidenceAssetIds": evidence_ids,
-        "draftKey": draft_key,
-    });
-    let content_text = serde_json::to_string(&content).map_err(|error| error.to_string())?;
 
     let mut database = Database::open(database_path).map_err(database_message)?;
     let result = database
@@ -1619,10 +1576,80 @@ fn update_chapter_draft(context: &ChapterTaskContext, args: &Value) -> Result<Va
                     details: None,
                 });
             }
+
+            // 读取历史版本实现增量合并，支持缺什么补什么
+            let previous_revision = repository.get_latest_chapter_revision(chapter_id)?;
+            let previous_json: Option<Value> = previous_revision
+                .as_ref()
+                .and_then(|rev| serde_json::from_str(&rev.content).ok());
+
+            let mainline_arg = args
+                .get("mainline")
+                .and_then(Value::as_str)
+                .map(str::trim)
+                .filter(|s| !s.is_empty() && s.len() <= 20_000);
+            let mainline = mainline_arg
+                .or(chapter.mainline.as_deref())
+                .or_else(|| {
+                    previous_json
+                        .as_ref()
+                        .and_then(|j| j.get("mainline").and_then(Value::as_str))
+                })
+                .ok_or_else(|| dawnsight_library::DatabaseError {
+                    code: dawnsight_library::DatabaseErrorCode::InvalidInput,
+                    message: "mainline 不能为空且无历史草稿可继承".to_string(),
+                    details: None,
+                })?;
+
+            let title_arg = args
+                .get("title")
+                .and_then(Value::as_str)
+                .map(str::trim)
+                .filter(|s| !s.is_empty());
+            let title = title_arg.or(chapter.title.as_deref()).or_else(|| {
+                previous_json
+                    .as_ref()
+                    .and_then(|j| j.get("title").and_then(Value::as_str))
+            });
+
+            let evidence_ids = if let Some(items) = args
+                .get("evidenceAssetIds")
+                .and_then(Value::as_array)
+                .filter(|arr| !arr.is_empty())
+            {
+                if items.len() > 16 {
+                    return Err(dawnsight_library::DatabaseError {
+                        code: dawnsight_library::DatabaseErrorCode::InvalidInput,
+                        message: "证据数量超出限制 (最多16个)".to_string(),
+                        details: None,
+                    });
+                }
+                items
+                    .iter()
+                    .map(|v| {
+                        v.as_i64().filter(|id| *id > 0).ok_or_else(|| {
+                            dawnsight_library::DatabaseError {
+                                code: dawnsight_library::DatabaseErrorCode::InvalidInput,
+                                message: "证据 assetId 无效".to_string(),
+                                details: None,
+                            }
+                        })
+                    })
+                    .collect::<Result<Vec<_>, _>>()?
+            } else if let Some(items) = previous_json
+                .as_ref()
+                .and_then(|j| j.get("evidenceAssetIds").and_then(Value::as_array))
+            {
+                items.iter().filter_map(Value::as_i64).collect::<Vec<_>>()
+            } else {
+                Vec::new()
+            };
+
             let assets = repository.list_chapter_assets_by_chapter(chapter_id)?;
-            if evidence_ids
-                .iter()
-                .any(|id| !assets.iter().any(|asset| asset.id == *id))
+            if !evidence_ids.is_empty()
+                && evidence_ids
+                    .iter()
+                    .any(|id| !assets.iter().any(|asset| asset.id == *id))
             {
                 return Err(dawnsight_library::DatabaseError {
                     code: dawnsight_library::DatabaseErrorCode::InvalidInput,
@@ -1630,6 +1657,95 @@ fn update_chapter_draft(context: &ChapterTaskContext, args: &Value) -> Result<Va
                     details: None,
                 });
             }
+
+            let recap_arg = args
+                .get("recap")
+                .and_then(Value::as_str)
+                .unwrap_or("")
+                .trim();
+            let recap = if !recap_arg.is_empty() {
+                recap_arg
+            } else {
+                previous_json
+                    .as_ref()
+                    .and_then(|j| j.get("recap").and_then(Value::as_str))
+                    .unwrap_or("")
+            };
+
+            let outlook_arg = args
+                .get("outlook")
+                .and_then(Value::as_str)
+                .unwrap_or("")
+                .trim();
+            let outlook = if !outlook_arg.is_empty() {
+                outlook_arg
+            } else {
+                previous_json
+                    .as_ref()
+                    .and_then(|j| j.get("outlook").and_then(Value::as_str))
+                    .unwrap_or("")
+            };
+
+            let highlights_arg = args
+                .get("highlights")
+                .and_then(Value::as_array)
+                .cloned()
+                .unwrap_or_default();
+            let highlights = if !highlights_arg.is_empty() {
+                highlights_arg
+            } else {
+                previous_json
+                    .as_ref()
+                    .and_then(|j| j.get("highlights").and_then(Value::as_array))
+                    .cloned()
+                    .unwrap_or_default()
+            };
+
+            let questions_arg = args
+                .get("questions")
+                .and_then(Value::as_array)
+                .cloned()
+                .unwrap_or_default();
+            let questions = if !questions_arg.is_empty() {
+                questions_arg
+            } else {
+                previous_json
+                    .as_ref()
+                    .and_then(|j| j.get("questions").and_then(Value::as_array))
+                    .cloned()
+                    .unwrap_or_default()
+            };
+
+            if recap.len() > 20_000
+                || outlook.len() > 20_000
+                || highlights.len() > 32
+                || questions.len() > 32
+            {
+                return Err(dawnsight_library::DatabaseError {
+                    code: dawnsight_library::DatabaseErrorCode::InvalidInput,
+                    message: "章节草稿字段超出限制".to_string(),
+                    details: None,
+                });
+            }
+
+            let content = json!({
+                "title": title,
+                "mainline": mainline,
+                "recap": recap,
+                "outlook": outlook,
+                "highlights": highlights,
+                "evidenceAssetIds": evidence_ids,
+                "draftKey": draft_key,
+                "questions": questions,
+            });
+            let content_text = serde_json::to_string(&content).map_err(|error| {
+                dawnsight_library::DatabaseError {
+                    code: dawnsight_library::DatabaseErrorCode::InvalidInput,
+                    message: "章节草稿 JSON 序列化失败".to_string(),
+                    details: Some(error.to_string()),
+                }
+            })?;
+
             repository.ensure_agent_task_chapter_scope(task_id, episode_id, chapter_id)?;
             let chapter = repository.update_draft_chapter_for_agent_task(
                 task_id,
@@ -1753,6 +1869,128 @@ fn update_chapter_draft(context: &ChapterTaskContext, args: &Value) -> Result<Va
     text_result(&result)
 }
 
+fn validate_chapters_readiness(
+    repository: &dawnsight_library::Repository<'_>,
+    task_id: i64,
+    episode_id: i64,
+) -> Result<(), String> {
+    let chapters = repository
+        .list_chapters_by_agent_task(task_id, episode_id)
+        .map_err(database_message)?;
+    if chapters.is_empty() {
+        return Err(
+            "章节任务尚未创建章节大纲，请先调用 dawnsight_create_chapter_outline".to_string(),
+        );
+    }
+
+    let episode = repository
+        .get_episode(episode_id)
+        .map_err(database_message)?;
+    let is_first_episode = episode
+        .as_ref()
+        .map(|e| e.episode_number.unwrap_or(1) <= 1 && e.season_number.unwrap_or(1) <= 1)
+        .unwrap_or(true);
+
+    let mut issues = Vec::new();
+
+    for (index, chapter) in chapters.iter().enumerate() {
+        let chapter_num = index + 1;
+        let title = chapter.title.as_deref().unwrap_or("未命名章节");
+        let mut missing_fields = Vec::new();
+
+        if chapter.title.as_deref().is_none_or(|t| t.trim().is_empty()) {
+            missing_fields.push("title (章节标题)");
+        }
+        if chapter
+            .mainline
+            .as_deref()
+            .is_none_or(|m| m.trim().is_empty())
+        {
+            missing_fields.push("mainline (本章剧情主线概括)");
+        }
+
+        let assets = repository
+            .list_chapter_assets_by_chapter(chapter.id)
+            .map_err(database_message)?;
+        if assets.is_empty() {
+            missing_fields.push(
+                "evidenceAssetIds (关键画面证据截图，请调用 dawnsight_capture_chapter_evidence)",
+            );
+        }
+
+        let revision = repository
+            .get_latest_chapter_revision(chapter.id)
+            .map_err(database_message)?;
+        if let Some(rev) = revision {
+            let parsed: Value = serde_json::from_str(&rev.content).unwrap_or(Value::Null);
+            let recap = parsed
+                .get("recap")
+                .and_then(Value::as_str)
+                .unwrap_or("")
+                .trim();
+            let outlook = parsed
+                .get("outlook")
+                .and_then(Value::as_str)
+                .unwrap_or("")
+                .trim();
+            let highlights_count = parsed
+                .get("highlights")
+                .and_then(Value::as_array)
+                .map(|a| {
+                    a.iter()
+                        .filter_map(Value::as_str)
+                        .filter(|s| !s.trim().is_empty())
+                        .count()
+                })
+                .unwrap_or(0);
+            let questions_count = repository
+                .list_question_candidates_by_chapter(chapter.id)
+                .map(|q| {
+                    q.into_iter()
+                        .filter(|c| !c.question.trim().is_empty())
+                        .count()
+                })
+                .unwrap_or(0);
+
+            // 前情提要：除非是第一集的第一章允许免填（全剧序幕无需前情），后续章节以及第二集以后必须具备承接前序剧情的提要
+            let recap_optional = is_first_episode && index == 0;
+            if !recap_optional && recap.is_empty() {
+                missing_fields.push("recap (前情提要：梳理承接上一章节或前序剧情的脉络)");
+            }
+            if highlights_count == 0 {
+                missing_fields.push("highlights (本章不剧透的观看重点列表：至少 1-3 条)");
+            }
+            if outlook.is_empty() {
+                missing_fields.push("outlook (后续看点/悬念预告)");
+            }
+            if questions_count == 0 {
+                missing_fields.push("questions (可以留意的问题候选：至少 1-3 条)");
+            }
+        } else {
+            missing_fields.push("草稿内容尚未写入 (请调用 dawnsight_update_chapter_draft)");
+        }
+
+        if !missing_fields.is_empty() {
+            issues.push(format!(
+                "- 章节 {} (chapterId={}, 标题='{}'): 缺少 {}",
+                chapter_num,
+                chapter.id,
+                title,
+                missing_fields.join(", ")
+            ));
+        }
+    }
+
+    if !issues.is_empty() {
+        return Err(format!(
+            "章节发布校验未通过！发现以下章节内容不完整，请使用 dawnsight_update_chapter_draft 仅对下列章节进行增量补全，已有且合格的章节无需重复提交：\n{}\n\n增量补齐上述章节后，请再次调用 dawnsight_finalize_chapter_task 完成发布。",
+            issues.join("\n")
+        ));
+    }
+
+    Ok(())
+}
+
 fn finalize_chapter_task(context: &ChapterTaskContext, args: &Value) -> Result<Value, String> {
     let (database_path, _) = validate_context(context)?;
     let (task_id, attempt_id, episode_id) = required_scope(args, context)?;
@@ -1766,6 +2004,13 @@ fn finalize_chapter_task(context: &ChapterTaskContext, args: &Value) -> Result<V
                     details: None,
                 },
             )?;
+            validate_chapters_readiness(repository, task_id, episode_id).map_err(|message| {
+                dawnsight_library::DatabaseError {
+                    code: dawnsight_library::DatabaseErrorCode::InvalidInput,
+                    message,
+                    details: None,
+                }
+            })?;
             let output = serde_json::to_string(&json!({
                 "taskId": task_id,
                 "attemptId": attempt_id,
@@ -3113,6 +3358,8 @@ mod tests {
         update_args["chapterId"] = json!(chapter_id);
         update_args["mainline"] = json!("The durable chapter draft.");
         update_args["recap"] = json!("A short recap.");
+        update_args["highlights"] = json!(["Key highlight to watch."]);
+        update_args["outlook"] = json!("Outlook for the upcoming story.");
         update_args["questions"] = json!(["What changes next?"]);
         update_args["evidenceAssetIds"] = json!([asset]);
         update_args["draftKey"] = json!("draft-001");
@@ -3171,6 +3418,136 @@ mod tests {
             .expect("feed")
             .iter()
             .any(|item| item.chapter_id == Some(chapter_id) && item.published_at_ms.is_some()));
+    }
+
+    #[test]
+    fn incremental_patch_heals_incomplete_draft_after_targeted_finalize_validation() {
+        let fixture = chapter_tool_fixture();
+        let mut outline_args = chapter_scope_args(&fixture);
+        outline_args["chapters"] = json!([
+            {
+                "stableId": "scene-01",
+                "startMs": 0,
+                "endMs": 2_500,
+                "title": "Scene 1"
+            },
+            {
+                "stableId": "scene-02",
+                "startMs": 2_500,
+                "endMs": 5_000,
+                "title": "Scene 2"
+            }
+        ]);
+        let outline = invoke_chapter_tool(
+            &fixture,
+            dawnsight_core::tool_contract::TOOL_CREATE_CHAPTER_OUTLINE,
+            outline_args,
+        )
+        .expect("outline");
+        let chapter_ids: Vec<i64> = chapter_tool_payload(&outline)["chapters"]
+            .as_array()
+            .expect("chapters array")
+            .iter()
+            .map(|c| c["chapterId"].as_i64().expect("id"))
+            .collect();
+        assert_eq!(chapter_ids.len(), 2);
+
+        let asset_path = fixture.dir.join("frame-incremental.jpg");
+        fs::write(&asset_path, b"jpeg").expect("asset write");
+        let database = Database::open(&fixture.context.database_path).expect("open db");
+        let asset1 = database
+            .repository()
+            .insert_chapter_asset(&dawnsight_library::NewChapterAsset::new(
+                chapter_ids[0],
+                "jpeg_frame",
+                asset_path.to_string_lossy().into_owned(),
+                "hash-1",
+                1_000,
+                "test",
+            ))
+            .expect("asset 1");
+        let asset2 = database
+            .repository()
+            .insert_chapter_asset(&dawnsight_library::NewChapterAsset::new(
+                chapter_ids[1],
+                "jpeg_frame",
+                asset_path.to_string_lossy().into_owned(),
+                "hash-2",
+                3_000,
+                "test",
+            ))
+            .expect("asset 2");
+        drop(database);
+
+        // 完整写入第 1 章
+        let mut ch1_args = chapter_scope_args(&fixture);
+        ch1_args["chapterId"] = json!(chapter_ids[0]);
+        ch1_args["mainline"] = json!("Scene 1 mainline plot.");
+        ch1_args["highlights"] = json!(["Scene 1 highlight."]);
+        ch1_args["outlook"] = json!("Scene 1 outlook.");
+        ch1_args["questions"] = json!(["Scene 1 question?"]);
+        ch1_args["evidenceAssetIds"] = json!([asset1]);
+        ch1_args["draftKey"] = json!("draft-v1");
+        invoke_chapter_tool(
+            &fixture,
+            dawnsight_core::tool_contract::TOOL_UPDATE_CHAPTER_DRAFT,
+            ch1_args,
+        )
+        .expect("ch1 update");
+
+        // 第 2 章最初只写入了 mainline 和截图，遗漏了 recap, highlights, outlook, questions
+        let mut ch2_initial = chapter_scope_args(&fixture);
+        ch2_initial["chapterId"] = json!(chapter_ids[1]);
+        ch2_initial["mainline"] = json!("Scene 2 initial mainline.");
+        ch2_initial["evidenceAssetIds"] = json!([asset2]);
+        ch2_initial["draftKey"] = json!("draft-v1");
+        invoke_chapter_tool(
+            &fixture,
+            dawnsight_core::tool_contract::TOOL_UPDATE_CHAPTER_DRAFT,
+            ch2_initial,
+        )
+        .expect("ch2 initial update");
+
+        // 此时执行终验，必须被拦截并返回针对第 2 章缺失项的精准报错报告
+        let finalize_err = invoke_chapter_tool(
+            &fixture,
+            dawnsight_core::tool_contract::TOOL_FINALIZE_CHAPTER_TASK,
+            chapter_scope_args(&fixture),
+        )
+        .expect_err("finalize must fail when fields are missing");
+
+        assert!(finalize_err.contains("章节发布校验未通过"));
+        assert!(finalize_err.contains(&format!("chapterId={}", chapter_ids[1])));
+        assert!(finalize_err.contains("recap"));
+        assert!(finalize_err.contains("highlights"));
+        assert!(finalize_err.contains("outlook"));
+        assert!(finalize_err.contains("questions"));
+        assert!(finalize_err.contains("增量补全"));
+
+        // 模型根据报错，针对第 2 章进行增量写入：缺什么补什么，无需重发 mainline 和 evidenceAssetIds
+        let mut ch2_patch = chapter_scope_args(&fixture);
+        ch2_patch["chapterId"] = json!(chapter_ids[1]);
+        ch2_patch["recap"] = json!("Scene 2 recap connecting to Scene 1.");
+        ch2_patch["highlights"] = json!(["Scene 2 new highlight."]);
+        ch2_patch["outlook"] = json!("Scene 2 outlook.");
+        ch2_patch["questions"] = json!(["Scene 2 question?"]);
+        ch2_patch["draftKey"] = json!("draft-v2-patch");
+        let patch_res = invoke_chapter_tool(
+            &fixture,
+            dawnsight_core::tool_contract::TOOL_UPDATE_CHAPTER_DRAFT,
+            ch2_patch,
+        )
+        .expect("ch2 patch update must succeed");
+        assert_eq!(chapter_tool_payload(&patch_res)["status"], "draft");
+
+        // 再次终验，此时应顺利通过并发布
+        let finalize_ok = invoke_chapter_tool(
+            &fixture,
+            dawnsight_core::tool_contract::TOOL_FINALIZE_CHAPTER_TASK,
+            chapter_scope_args(&fixture),
+        )
+        .expect("finalize must succeed after incremental repair");
+        assert_eq!(chapter_tool_payload(&finalize_ok)["status"], "published");
     }
 
     #[test]

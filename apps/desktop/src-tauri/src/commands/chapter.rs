@@ -549,12 +549,20 @@ fn create_or_load_task(
     input.output_contract_version = Some(definition.output_contract_version.to_string());
     input.max_attempts = MAX_ATTEMPTS;
 
-    let database = open_database()?;
+    let mut database = open_database()?;
     let task = database
         .repository()
         .get_or_create_agent_task(&input)
         .map_err(ChapterCommandError::storage)?;
-    let task = normalize_retryable_failed_task(&database, task)?;
+    let task = if task.status == "succeeded"
+        || (task.status == "failed" && task.attempt_count >= task.max_attempts)
+    {
+        database
+            .reset_agent_task_for_rerun(task.id)
+            .map_err(ChapterCommandError::storage)?
+    } else {
+        normalize_retryable_failed_task(&database, task)?
+    };
     let drafts = draft_chapters_for_task(&database, &task)?;
     Ok(snapshot_from_task(
         task,
@@ -1335,6 +1343,34 @@ mod tests {
         let terminal = snapshot_from_task(task_with_failure("failed", 3, 3), true, None, vec![]);
         assert!(!terminal.can_retry);
         assert_eq!(terminal.retry_action, None);
+    }
+
+    #[test]
+    fn succeeded_task_is_reset_to_pending_for_rerun() {
+        let database = Database::open_in_memory().expect("open database");
+        let task_input = NewAgentTask::new("rerun-segmentation", CHAPTER_TASK_TYPE, "v1");
+        let task = database
+            .repository()
+            .get_or_create_agent_task(&task_input)
+            .expect("create task");
+        database
+            .repository()
+            .update_agent_task_status(task.id, "succeeded", 2, 1, None)
+            .expect("update status to succeeded");
+
+        let loaded = database
+            .repository()
+            .get_agent_task(task.id)
+            .expect("read task")
+            .expect("task exists");
+        assert_eq!(loaded.status, "succeeded");
+
+        let reset = database
+            .repository()
+            .reset_agent_task_for_rerun(task.id)
+            .expect("reset task");
+        assert_eq!(reset.status, "pending");
+        assert_eq!(reset.attempt_count, 0);
     }
 
     #[test]

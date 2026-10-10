@@ -49,9 +49,9 @@ use tracing_subscriber::{layer::SubscriberExt as _, util::SubscriberInitExt as _
 
 use commands::acp::{
     acp_cancel, acp_close, acp_connect, acp_delete_session, acp_list_agent_sessions,
-    acp_load_session, acp_new_chat, acp_prompt, acp_respond_permission, acp_set_session_config,
-    acp_set_session_model, acp_status, acp_switch_session, acp_sync_mcp_capabilities,
-    acp_task_contracts, acp_watch_feed,
+    acp_load_session, acp_models_discover, acp_new_chat, acp_prompt, acp_respond_permission,
+    acp_set_session_config, acp_set_session_model, acp_status, acp_switch_session,
+    acp_sync_mcp_capabilities, acp_task_contracts, acp_watch_feed,
 };
 use commands::asr::{asr_install, asr_status, asr_transcribe};
 use commands::chapter::{
@@ -207,6 +207,7 @@ pub fn run() {
             library_models_discover,
             library_agent_models_discover,
             acp_status,
+            acp_models_discover,
             acp_task_contracts,
             acp_watch_feed,
             acp_respond_permission,

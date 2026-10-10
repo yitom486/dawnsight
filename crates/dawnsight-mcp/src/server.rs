@@ -284,17 +284,17 @@ fn chapter_tool_json(name: &str) -> Option<Value> {
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "chapterId": { "type": "integer", "minimum": 1 },
-                    "title": { "type": "string", "minLength": 1, "maxLength": 200 },
-                    "mainline": { "type": "string", "minLength": 1, "maxLength": 20000 },
-                    "recap": { "type": "string", "maxLength": 20000 },
-                    "outlook": { "type": "string", "maxLength": 20000 },
-                    "highlights": { "type": "array", "maxItems": 32, "items": { "type": "string", "minLength": 1, "maxLength": 1000 } },
-                    "questions": { "type": "array", "maxItems": 32, "items": { "type": "string", "minLength": 1, "maxLength": 1000 } },
-                    "evidenceAssetIds": { "type": "array", "minItems": 1, "maxItems": 16, "items": { "type": "integer", "minimum": 1 } },
-                    "draftKey": { "type": "string", "minLength": 1, "maxLength": 128 }
+                    "chapterId": { "type": "integer", "minimum": 1, "description": "当前章节 ID" },
+                    "title": { "type": "string", "minLength": 1, "maxLength": 200, "description": "章节标题" },
+                    "mainline": { "type": "string", "minLength": 1, "maxLength": 20000, "description": "本章剧情主线概括（清晰、接地气，紧扣台词与画面事件）" },
+                    "recap": { "type": "string", "maxLength": 20000, "description": "本章前情提要（梳理承接上一章节或前置剧情的脉络）" },
+                    "outlook": { "type": "string", "maxLength": 20000, "description": "后续看点（不剧透地指引下一段剧情的悬念与期待）" },
+                    "highlights": { "type": "array", "maxItems": 32, "items": { "type": "string", "minLength": 1, "maxLength": 1000 }, "description": "本章不剧透的观看重点列表（1-3条，例如高光台词、人物关系变化）" },
+                    "questions": { "type": "array", "maxItems": 32, "items": { "type": "string", "minLength": 1, "maxLength": 1000 }, "description": "观剧过程中可以留意的探索性问题列表（1-3条）" },
+                    "evidenceAssetIds": { "type": "array", "minItems": 1, "maxItems": 16, "items": { "type": "integer", "minimum": 1 }, "description": "通过 capture_chapter_evidence 截取并关联到本章节的资产 ID 列表" },
+                    "draftKey": { "type": "string", "minLength": 1, "maxLength": 128, "description": "草稿版本标识，例如 draft-1" }
                 },
-                "required": ["chapterId", "mainline", "evidenceAssetIds", "draftKey"],
+                "required": ["chapterId", "draftKey"],
                 "additionalProperties": false
             }
         })

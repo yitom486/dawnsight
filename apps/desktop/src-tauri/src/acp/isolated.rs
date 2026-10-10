@@ -61,12 +61,13 @@ impl IsolatedSession {
             }
         })?;
         Self::connect_runtime(&engine, spec.workspace, profile, on_event)?;
-        let session_id = Self::open_task_session(&engine, &spec.mcp_servers)?;
+        let (session_id, advertised) = Self::open_task_session(&engine, &spec.mcp_servers)?;
         Self::apply_model_selection(
             &engine,
             &session_id,
             spec.model_id,
             spec.reasoning_effort,
+            advertised,
             on_event,
         );
         tracing::debug!(session_id = %session_id, profile_id = %profile.id, "isolated chapter session opened");
@@ -160,7 +161,7 @@ impl IsolatedSession {
         self.engine.shutdown();
     }
 
-    fn connect_runtime(
+    pub(crate) fn connect_runtime(
         engine: &SidecarEngine,
         workspace: &Path,
         profile: &AgentProfileInput,
@@ -200,7 +201,10 @@ impl IsolatedSession {
             })
     }
 
-    fn open_task_session(engine: &SidecarEngine, mcp_servers: &Value) -> Result<String, AcpError> {
+    fn open_task_session(
+        engine: &SidecarEngine,
+        mcp_servers: &Value,
+    ) -> Result<(String, super::AcpSessionModelOptions), AcpError> {
         let result = engine
             .call(
                 "session/open",
@@ -212,11 +216,12 @@ impl IsolatedSession {
             .inspect_err(|error| {
                 tracing::warn!(code = ?error.code, details = ?error.details, "isolated engine session/open failed");
             })?;
-        result
+        let session_id = result
             .get("sessionId")
             .and_then(Value::as_str)
             .map(str::to_string)
-            .ok_or_else(|| AcpError::protocol(Some("engine session/open without sessionId")))
+            .ok_or_else(|| AcpError::protocol(Some("engine session/open without sessionId")))?;
+        Ok((session_id, super::config::response_options(&result)?))
     }
 
     /// Apply model + effort before the first prompt. Failures only warn and
@@ -227,26 +232,35 @@ impl IsolatedSession {
         session_id: &str,
         model_id: Option<&str>,
         reasoning_effort: Option<&str>,
+        advertised: super::AcpSessionModelOptions,
         on_event: &mut dyn FnMut(AcpEvent),
     ) {
+        let mut options = Some(advertised);
         if let Some(model) = model_id.map(str::trim).filter(|value| !value.is_empty()) {
             on_event(AcpEvent::Progress {
                 message: format!("正在切换模型到 {model}…"),
             });
-            if let Err(error) = engine.call(
+            match engine.call(
                 "session/set_config",
-                json!({ "sessionId": session_id, "configId": "model", "value": model }),
+                json!({ "sessionId": session_id, "configId": options.as_ref().map(super::config::model_config_id).unwrap_or("model"), "value": model }),
             ) {
-                tracing::warn!(details = ?error.details, "isolated model pre-selection failed; continuing");
+                Ok(response) => options = super::config::response_options(&response).ok(),
+                Err(error) => tracing::warn!(details = ?error.details, "isolated model pre-selection failed; continuing"),
             }
         }
         if let Some(effort) = reasoning_effort
             .map(str::trim)
             .filter(|value| !value.is_empty())
         {
+            let Some(config_id) = options
+                .as_ref()
+                .and_then(|options| super::config::effort_config_id(options, effort))
+            else {
+                return;
+            };
             if let Err(error) = engine.call(
                 "session/set_config",
-                json!({ "sessionId": session_id, "configId": "reasoning_effort", "value": effort }),
+                json!({ "sessionId": session_id, "configId": config_id, "value": effort }),
             ) {
                 tracing::warn!(details = ?error.details, "isolated effort pre-selection failed; continuing");
             }
@@ -285,7 +299,8 @@ impl IsolatedSession {
                 return;
             }
         }
-        for event in project_session_update(note) {
+        let params = note.get("params").unwrap_or(note);
+        for event in project_session_update(params) {
             if let AcpEvent::AgentMessage { ref text } = event {
                 full_text.push_str(text);
             }
@@ -399,6 +414,34 @@ mod tests {
         assert_eq!(
             pick_approve_option(&json!({ "requestId": "r", "params": { "options": [] } })),
             None
+        );
+    }
+
+    #[test]
+    fn route_notification_accumulates_streamed_chunks() {
+        let note = json!({
+            "notification": "session/update",
+            "params": {
+                "sessionId": "s1",
+                "update": {
+                    "sessionUpdate": "agent_message_chunk",
+                    "content": [{ "type": "text", "text": "chapter chunk 1; " }],
+                },
+            },
+        });
+        let engine = SidecarEngine::new();
+        let mut full_text = String::new();
+        let mut events = Vec::new();
+        IsolatedSession::route_notification(
+            &engine,
+            &note,
+            &mut |ev| events.push(ev),
+            &mut full_text,
+        );
+        assert_eq!(full_text, "chapter chunk 1; ");
+        assert_eq!(events.len(), 1);
+        assert!(
+            matches!(&events[0], AcpEvent::AgentMessage { text } if text == "chapter chunk 1; ")
         );
     }
 }

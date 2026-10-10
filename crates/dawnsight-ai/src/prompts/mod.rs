@@ -158,7 +158,19 @@ impl TaskId {
                 evidence_boundary: "Use transcript windows and screenshots as evidence. A boundary must be explainable by a change in scene, subject, goal, or dramatic movement; do not manufacture chapters from elapsed time alone.",
                 output_contract_version: "chapter_tool_workflow.v1",
                 output_skeleton: None,
-                task_rules: "This is a tool-driven chapter task; do not return a large chapter JSON result. The chapter tools derive task, attempt, and episode scope from the trusted session snapshot, so never invent or send those internal ids. First call dawnsight_create_chapter_outline with the ordered boundaries, titles, and stable ids so the UI can show the draft skeleton. Then, for each chapter, use dawnsight_capture_chapter_evidence and any available subtitle/frame read tools, and call dawnsight_update_chapter_draft with only that chapter's grounded fields and evidence references. If a tool returns a validation report, correct only the current chapter or field and retry it incrementally. Call dawnsight_finalize_chapter_task only after every chapter has sufficient evidence and valid content. Keep anchors within the media duration and honor the spoiler boundary; ordinary assistant text never declares task success. If the task-scoped tools are unavailable, explain the limitation briefly rather than pretending that a final JSON response completed the task.",
+                task_rules: "This is a tool-driven chapter workflow for long-form narrative media. Follow this recommended thinking progression while freely exercising your narrative judgement: \
+1. Global Comprehension: Read the supplied dialogue transcript, episode metadata (series, season, episode, title), and background lore to identify key characters, central conflicts, and dramatic arcs. \
+2. Outline & Structural Boundaries: Divide the episode into natural dramatic chapters based on scene transitions, objective shifts, character confrontations, or emotional turning points (avoid arbitrary mechanical time slices). Call dawnsight_create_chapter_outline first with ordered boundaries, titles, and stable ids so the UI initializes the chapter skeleton. \
+3. Visual Verification & Representative Covers: For each chapter, identify the pivotal dramatic peak, emotional climax, or iconic scene turning point. Use dawnsight_capture_chapter_evidence at those timestamps to visually verify the scene and capture high-quality chapter covers (never mechanically select the very start or end of a chapter, which are often black frames, fades, or empty pauses). \
+4. Progressive Chapter Detailing: Call dawnsight_update_chapter_draft for each chapter, enriching it with complete grounded fields: \
+  - 'title': evocative chapter title; \
+  - 'mainline': grounded and concise plot summary of what happens; \
+  - 'recap': narrative bridge leading into this chapter (for chapter 1, bridge from previous episode/story context; for subsequent chapters, connect to the preceding chapter's developments); \
+  - 'highlights': 1-3 spoiler-free viewing highlights (pivotal dialogue, emotional beats, or subtle character shifts); \
+  - 'outlook': forward-looking tension, hook, or anticipation without giving away key twists; \
+  - 'questions': 1-3 intriguing open questions for the viewer to ponder while watching; \
+  - 'evidenceAssetIds': asset IDs captured in step 3. \
+5. Verification & Publication: After all chapters have valid evidence and rich content, call dawnsight_finalize_chapter_task to atomically publish. If a tool returns a validation report, correct only that chapter and retry incrementally. Keep anchors within media duration and honor spoiler limits; ordinary assistant text never declares task success.",
                 dynamic_slots: CHAPTER_SEGMENT_SLOTS,
             },
             Self::ChapterRecap => TaskDefinition {

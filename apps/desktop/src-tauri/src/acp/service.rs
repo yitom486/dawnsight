@@ -76,6 +76,14 @@ pub struct AcpService {
 }
 
 impl AcpService {
+    #[cfg(test)]
+    pub(crate) fn with_test_engine(engine: SidecarEngine) -> Self {
+        Self {
+            engine,
+            ..Self::new()
+        }
+    }
+
     pub fn new() -> Self {
         Self {
             engine: SidecarEngine::new(),
@@ -171,6 +179,7 @@ impl AcpService {
             session_active: false,
             busy: self.busy.load(Ordering::SeqCst),
             session_model_options: None,
+            live_profile_id: None,
         };
         if !super::engine::engine_binary_present() {
             status.message = "ACP 引擎缺失".to_string();
@@ -260,6 +269,11 @@ impl AcpService {
         }
         if let Ok(guard) = self.session.lock() {
             if let Some(session) = guard.as_ref() {
+                if session.engine_gen == self.engine.generation() && self.engine.is_alive() {
+                    // The live session's owner is reported regardless of the
+                    // requested profile; options stay gated on an exact match.
+                    status.live_profile_id = Some(session.profile_id.clone());
+                }
                 if session.profile_id == active_profile_id
                     && session.engine_gen == self.engine.generation()
                     && self.engine.is_alive()
@@ -412,54 +426,55 @@ impl AcpService {
             .get("restoreMethod")
             .and_then(Value::as_str)
             .unwrap_or("new");
-        let mut model_options = result
-            .get("modelOptions")
-            .map(convert_engine_model_options)
-            .transpose()?;
+        let mut model_options = Some(super::config::response_options(&result)?);
         // Apply the requested model before the first prompt.
-        if let Some(selection) = model_selection
-            .as_ref()
-            .filter(|selection| !selection.model_id.trim().is_empty())
-        {
-            on_event(AcpEvent::Progress {
-                message: format!("正在切换模型到 {}…", selection.model_id),
-            });
-            match self.engine.call(
-                "session/set_config",
-                json!({
-                    "sessionId": session_id,
-                    "configId": "model",
-                    "value": selection.model_id,
-                }),
-            ) {
-                Ok(response) => {
-                    if let Some(options) = response.get("modelOptions") {
-                        model_options =
-                            convert_engine_model_options(options).ok().or(model_options);
+        if let Some(selection) = model_selection.as_ref() {
+            if !selection.model_id.trim().is_empty() {
+                on_event(AcpEvent::Progress {
+                    message: format!("正在切换模型到 {}…", selection.model_id),
+                });
+                let config_id = model_options
+                    .as_ref()
+                    .map(super::config::model_config_id)
+                    .unwrap_or("model");
+                let response = self.engine.call(
+                    "session/set_config",
+                    json!({
+                        "sessionId": session_id, "configId": config_id, "value": selection.model_id,
+                    }),
+                );
+                match response {
+                    Ok(response) => {
+                        model_options = super::config::response_options(&response)
+                            .ok()
+                            .or(model_options)
                     }
-                }
-                Err(error) => {
-                    tracing::warn!(details = ?error.details, "model pre-selection failed; continuing");
+                    Err(error) => {
+                        tracing::warn!(details = ?error.details, "model pre-selection failed; continuing")
+                    }
                 }
             }
             if let Some(effort) = selection
                 .reasoning_effort
                 .as_deref()
                 .filter(|value| !value.trim().is_empty())
+                .filter(|value| {
+                    model_options
+                        .as_ref()
+                        .and_then(|options| super::config::effort_config_id(options, value))
+                        .is_some()
+                })
             {
                 match self.engine.call(
                     "session/set_config",
                     json!({
                         "sessionId": session_id,
-                        "configId": "reasoning_effort",
+                        "configId": model_options.as_ref().and_then(|options| super::config::effort_config_id(options, effort)),
                         "value": effort,
                     }),
                 ) {
                     Ok(response) => {
-                        if let Some(options) = response.get("modelOptions") {
-                            model_options =
-                                convert_engine_model_options(options).ok().or(model_options);
-                        }
+                        model_options = super::config::response_options(&response).ok().or(model_options);
                     }
                     Err(error) => {
                         tracing::warn!(details = ?error.details, "effort pre-selection failed; continuing");
@@ -1261,18 +1276,20 @@ impl AcpService {
         F: FnMut(AcpEvent),
     {
         let session_id = self.live_session_id()?;
-        let mut latest: Option<AcpSessionModelOptions> = None;
+        let mut latest = self.session.lock().ok().and_then(|session| {
+            session
+                .as_ref()
+                .and_then(|session| session.model_options.clone())
+        });
         if let Some(id) = model_id.as_deref().filter(|value| !value.trim().is_empty()) {
             on_event(AcpEvent::Progress {
                 message: format!("正在切换模型到 {id}…"),
             });
             let response = self.engine.call(
                 "session/set_config",
-                json!({ "sessionId": session_id, "configId": "model", "value": id }),
+                json!({ "sessionId": session_id, "configId": latest.as_ref().map(super::config::model_config_id).unwrap_or("model"), "value": id }),
             )?;
-            latest = response
-                .get("modelOptions")
-                .and_then(|options| convert_engine_model_options(options).ok());
+            latest = Some(super::config::response_options(&response)?);
         }
         if let Some(effort) = reasoning_effort
             .as_deref()
@@ -1281,18 +1298,19 @@ impl AcpService {
             on_event(AcpEvent::Progress {
                 message: format!("正在设置推理深度到 {effort}…"),
             });
+            let config_id = latest
+                .as_ref()
+                .and_then(|options| super::config::effort_config_id(options, effort))
+                .ok_or_else(|| AcpError::bad_request("该模型不支持所选思考档"))?;
             let response = self.engine.call(
                 "session/set_config",
                 json!({
                     "sessionId": session_id,
-                    "configId": "reasoning_effort",
+                    "configId": config_id,
                     "value": effort,
                 }),
             )?;
-            latest = response
-                .get("modelOptions")
-                .and_then(|options| convert_engine_model_options(options).ok())
-                .or(latest);
+            latest = Some(super::config::response_options(&response)?);
         }
         let mut latest = latest.ok_or_else(|| AcpError::protocol(Some("no model options")))?;
         // Fill gaps the engine omits (it only returns what changed).
@@ -1339,10 +1357,7 @@ impl AcpService {
             "session/set_config",
             json!({ "sessionId": session_id, "configId": config_id, "value": parsed }),
         )?;
-        let options = response
-            .get("modelOptions")
-            .ok_or_else(|| AcpError::protocol(Some("no model options")))
-            .and_then(convert_engine_model_options)?;
+        let options = super::config::response_options(&response)?;
         if let Ok(mut guard) = self.session.lock() {
             if let Some(session) = guard.as_mut() {
                 session.model_options = Some(options.clone());
@@ -1685,7 +1700,9 @@ mod tests {
 }
 
 /// Convert the engine `modelOptions` projection into [`AcpSessionModelOptions`].
-fn convert_engine_model_options(value: &Value) -> Result<AcpSessionModelOptions, AcpError> {
+pub(crate) fn convert_engine_model_options(
+    value: &Value,
+) -> Result<AcpSessionModelOptions, AcpError> {
     let option = |item: &Value| {
         Some(AcpSessionOption {
             value: item.get("value")?.as_str()?.to_string(),

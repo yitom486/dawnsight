@@ -425,6 +425,11 @@ impl Database {
         self.transaction(|repository| repository.migrate_legacy_episode(input))
     }
 
+    /// Reset an agent task and purge all associated chapters, drafts, attempts and projections for a complete rerun.
+    pub fn reset_agent_task_for_rerun(&mut self, task_id: i64) -> DatabaseResult<AgentTaskRecord> {
+        self.transaction(|repository| repository.reset_agent_task_for_rerun(task_id))
+    }
+
     /// Reconcile tasks that were running when the application last exited.
     ///
     /// A desktop process can disappear between an ACP prompt and the final
@@ -1940,6 +1945,83 @@ impl Repository<'_> {
             )
             .map_err(|error| map_write_error("complete agent task", error))?;
         Ok(changed == 1)
+    }
+
+    /// Reset an agent task and purge all associated chapters, drafts, attempts and projections for a complete rerun.
+    ///
+    /// This is used when a terminal task (e.g. succeeded or exhausted failed) is restarted
+    /// by the user, starting fresh from attempt 0 with clean state.
+    pub fn reset_agent_task_for_rerun(&self, task_id: i64) -> DatabaseResult<AgentTaskRecord> {
+        let _task = self.get_agent_task(task_id)?.ok_or_else(|| {
+            DatabaseError::new(
+                DatabaseErrorCode::QueryFailed,
+                "任务不存在，无法重新执行",
+                Some("agent task not found for rerun reset".to_string()),
+            )
+        })?;
+
+        // 1. Purge all chapters linked to this task.
+        // ON DELETE CASCADE on episode_chapters also removes revisions, assets, and chapter-scoped items.
+        self.connection
+            .execute(
+                "DELETE FROM episode_chapters
+                 WHERE id IN (SELECT chapter_id FROM agent_task_chapters WHERE task_id = ?1)",
+                params![task_id],
+            )
+            .map_err(|error| map_write_error("purge chapters for task rerun", error))?;
+
+        // 2. Explicitly clean agent_task_chapters, feed items and question candidates tied to this task
+        self.connection
+            .execute(
+                "DELETE FROM agent_task_chapters WHERE task_id = ?1",
+                params![task_id],
+            )
+            .map_err(|error| map_write_error("purge task chapters mapping for rerun", error))?;
+
+        self.connection
+            .execute(
+                "DELETE FROM watch_feed_items WHERE task_id = ?1",
+                params![task_id],
+            )
+            .map_err(|error| map_write_error("purge watch feed items for rerun", error))?;
+
+        self.connection
+            .execute(
+                "DELETE FROM question_candidates WHERE task_id = ?1",
+                params![task_id],
+            )
+            .map_err(|error| map_write_error("purge question candidates for rerun", error))?;
+
+        // 3. Purge previous attempts
+        self.connection
+            .execute(
+                "DELETE FROM agent_attempts WHERE task_id = ?1",
+                params![task_id],
+            )
+            .map_err(|error| map_write_error("purge agent attempts for rerun", error))?;
+
+        // 4. Reset task to pending with clean counters and reports
+        self.connection
+            .execute(
+                "UPDATE agent_tasks
+                 SET status = 'pending',
+                     attempt_count = 0,
+                     retry_count = 0,
+                     validation_report = NULL,
+                     output_json = NULL,
+                     updated_at_ms = ?1
+                 WHERE id = ?2",
+                params![now_ms(), task_id],
+            )
+            .map_err(|error| map_write_error("reset agent task for rerun", error))?;
+
+        self.get_agent_task(task_id)?.ok_or_else(|| {
+            DatabaseError::new(
+                DatabaseErrorCode::QueryFailed,
+                "任务重置后读取失败",
+                Some("agent task not found after reset".to_string()),
+            )
+        })
     }
 
     pub fn update_agent_task_session_id(
@@ -4767,6 +4849,92 @@ mod tests {
         };
         assert_eq!(persisted.attempt_count, persisted.max_attempts);
         assert_eq!(persisted.status, "validation_failure");
+    }
+
+    #[test]
+    fn reset_agent_task_for_rerun_purges_chapters_and_resets_pending() {
+        let mut database = value_or_panic(Database::open_in_memory());
+        let series_id = value_or_panic(database.repository().insert_series(&NewSeries::new(
+            "series-rerun",
+            "Series Rerun",
+            "test",
+        )));
+        let episode_id = value_or_panic(
+            database
+                .repository()
+                .get_or_create_episode(&NewEpisode::new(series_id, "ep-rerun", "test")),
+        )
+        .id;
+        let task_input = NewAgentTask::new("rerun-task", "chapter_segmentation", "v1");
+        let task = value_or_panic(database.repository().get_or_create_agent_task(&task_input));
+        value_or_panic(database.repository().update_agent_task_scope(
+            task.id,
+            Some(episode_id),
+            None,
+        ));
+
+        let _attempt_id = value_or_panic(database.repository().insert_agent_attempt(
+            &NewAgentAttempt::new(
+                task.id,
+                1,
+                "chapter_segmentation",
+                "running",
+                "v1",
+                now_ms(),
+            ),
+        ));
+        let chapter_input = NewChapter::new(episode_id, "ch-01", 0, 1000, "agent");
+        let chapter = value_or_panic(database.repository().upsert_draft_chapter_for_agent_task(
+            task.id,
+            episode_id,
+            &chapter_input,
+        ));
+        let revision_input =
+            NewChapterRevision::new(chapter.id, 1, "draft", "test content", "agent", "1.0");
+        value_or_panic(
+            database
+                .repository()
+                .insert_chapter_revision(&revision_input),
+        );
+
+        value_or_panic(database.repository().complete_agent_task(
+            task.id,
+            "succeeded",
+            1,
+            0,
+            None,
+            r#"{"chapters":[]}"#,
+        ));
+        let completed = value_or_panic(database.repository().get_agent_task(task.id)).unwrap();
+        assert_eq!(completed.status, "succeeded");
+        assert!(!value_or_panic(
+            database
+                .repository()
+                .list_chapters_by_agent_task(task.id, episode_id)
+        )
+        .is_empty());
+
+        let reset = value_or_panic(database.reset_agent_task_for_rerun(task.id));
+        assert_eq!(reset.status, "pending");
+        assert_eq!(reset.attempt_count, 0);
+        assert_eq!(reset.retry_count, 0);
+        assert!(reset.validation_report.is_none());
+        assert!(reset.output_json.is_none());
+
+        let chapters = value_or_panic(
+            database
+                .repository()
+                .list_chapters_by_agent_task(task.id, episode_id),
+        );
+        assert!(chapters.is_empty());
+
+        let reclaimed = value_or_panic(
+            database
+                .repository()
+                .claim_agent_task_by_key(&task_input.task_key),
+        );
+        assert!(reclaimed.is_some());
+        assert_eq!(reclaimed.unwrap().attempt_count, 1);
     }
 
     #[test]
