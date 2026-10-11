@@ -2,11 +2,18 @@ export function isToolFailed(status?: string): boolean {
   switch (status) {
     case "failed":
     case "error":
-    case "cancelled":
       return true;
     default:
       return false;
   }
+}
+
+/**
+ * 取消不是失败：样式、文案和提示都必须与失败分开，不能承诺
+ * 未经保证的“Agent 将尝试其他方式继续”（F5）。
+ */
+export function isToolCancelled(status?: string): boolean {
+  return status === "cancelled";
 }
 
 export function isToolSucceeded(status?: string): boolean {
@@ -73,6 +80,7 @@ function extractToolMessage(value: unknown): string | undefined {
 }
 
 export function toolFailureHint(status?: string, detail?: string): string | null {
+  if (isToolCancelled(status)) return "操作已取消";
   if (!isToolFailed(status)) return null;
   const readable = parseToolDetail(detail);
   if (readable) return readable;

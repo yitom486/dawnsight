@@ -69,7 +69,7 @@ describe("applyAcpEventToTurn", () => {
     expect(turn.showActivities).toBe(true);
   });
 
-  it("drops pre-tool agent text and keeps only post-tool answer", () => {
+  it("preserves safely-composed prose through tool execution; raw draft never renders", () => {
     const seq = { n: 0 };
     let turn = createTurn(seq, "这段讲了什么");
     turn = applyAcpEventToTurn(
@@ -80,20 +80,18 @@ describe("applyAcpEventToTurn", () => {
       },
       "minimal",
     );
+    // 可见正文是合成后的安全文本（英文导语已剥离），不是原始 draft。
+    expect(turn.answer).toBe("我先查字幕。");
     turn = applyAcpEventToTurn(
       turn,
       { type: "toolCall", toolCallId: "t1", title: "dawnsight_get_transcript_window" },
       "minimal",
     );
-    expect(turn.answer).toBe("");
+    // F1：工具启动不再清空已展示的正文；原始 draft 进 segments 待终稿合成。
+    expect(turn.answer).toBe("我先查字幕。");
     expect(turn.agentDraft).toBe("");
     expect(turn.agentSegments?.[0]).toContain("Natural English");
 
-    turn = applyAcpEventToTurn(
-      turn,
-      { type: "toolCallUpdate", toolCallId: "t1", status: "completed" },
-      "minimal",
-    );
     turn = applyAcpEventToTurn(
       turn,
       {
@@ -102,7 +100,22 @@ describe("applyAcpEventToTurn", () => {
       },
       "minimal",
     );
-    expect(turn.answer).toContain("这段主要讲");
+    // 工具有 running 时新文本只进草稿，可见正文冻结，不暴露半截内容。
+    expect(turn.answer).toBe("我先查字幕。");
+    expect(turn.agentDraft).toContain("这段主要讲");
+
+    turn = applyAcpEventToTurn(
+      turn,
+      { type: "toolCallUpdate", toolCallId: "t1", status: "completed" },
+      "minimal",
+    );
+    // 工具落定后无活动工具，新消息走正常合成（终稿前可见即所得）。
+    turn = applyAcpEventToTurn(
+      turn,
+      { type: "agentMessage", text: "补一句收尾。" },
+      "minimal",
+    );
+    expect(turn.answer).toContain("补一句收尾。");
 
     turn = applyAcpEventToTurn(
       turn,

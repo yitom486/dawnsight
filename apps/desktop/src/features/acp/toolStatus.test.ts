@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  isToolCancelled,
   isToolFailed,
   mergeToolDetail,
   toolFailureHint,
@@ -11,6 +12,14 @@ describe("toolStatus", () => {
   it("maps failed status to Chinese label", () => {
     expect(toolStatusLabel("failed")).toBe("失败");
     expect(isToolFailed("failed")).toBe(true);
+  });
+
+  it("keeps cancelled out of failed styling and retry promises", () => {
+    expect(toolStatusLabel("cancelled")).toBe("已取消");
+    expect(isToolCancelled("cancelled")).toBe(true);
+    expect(isToolFailed("cancelled")).toBe(false);
+    expect(toolFailureHint("cancelled", "anything raw")).toBe("操作已取消");
+    expect(toolFailureHint("cancelled")).toBe("操作已取消");
   });
 
   it("prefers detail for failure hint", () => {

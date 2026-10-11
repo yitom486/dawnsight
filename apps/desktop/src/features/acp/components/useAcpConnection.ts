@@ -66,6 +66,8 @@ export type UseAcpConnectionInput = {
   setPendingPermission: (value: PendingPermission | null) => void;
   seedHandledProposals: (turns: ChatTurn[]) => void;
   initialRestore: ChatRestoreSnapshot | null;
+  /** F2：scope 替换（resume 错位清 turns）前停滚动跟随。 */
+  stopScroll: () => void;
 };
 
 /**
@@ -93,6 +95,7 @@ export function useAcpConnection(input: UseAcpConnectionInput) {
     setPendingPermission,
     seedHandledProposals,
     initialRestore,
+    stopScroll,
   } = input;
 
   const activeProfileId = useAcpProfilesStore((s) => s.activeProfileId);
@@ -215,6 +218,8 @@ export function useAcpConnection(input: UseAcpConnectionInput) {
       turnsRef.current.length === restore.turnCount
     ) {
       // 旧会话不在了（后端给了新 id），且用户还没说过话：清掉秒开摆出来的旧 turns。
+      // F2：内容替换前先停 hook，防旧锁定把新内容拉走。
+      stopScroll();
       setTurns([]);
       setNotices([]);
       clearDraft();

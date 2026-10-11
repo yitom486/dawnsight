@@ -26,7 +26,7 @@ import {
 } from "../shortcutOutput";
 import type { CompanionTaskId } from "./CompanionQuickActions";
 import { CompanionQuickActions } from "./CompanionQuickActions";
-import { ChatMarkdown } from "./ChatMarkdown";
+import { ChatMarkdownLazy } from "./ChatMarkdownLazy";
 import {
   countWatchFeedItemsAfterPosition,
   currentWatchFeedChapter,
@@ -221,7 +221,7 @@ function PersistedWatchFeedContent({
         blocks={shortcut.blocks}
         density="compact"
         onAction={onAssistantAction}
-        renderMarkdown={(markdown) => <ChatMarkdown content={markdown} />}
+        renderMarkdown={(markdown) => <ChatMarkdownLazy content={markdown} />}
       />
     );
   }
@@ -236,7 +236,7 @@ function PersistedWatchFeedContent({
         blocks={structured.blocks}
         density="compact"
         onAction={onAssistantAction}
-        renderMarkdown={(markdown) => <ChatMarkdown content={markdown} />}
+        renderMarkdown={(markdown) => <ChatMarkdownLazy content={markdown} />}
       />
     );
   }
@@ -249,7 +249,7 @@ function PersistedWatchFeedContent({
     );
   }
 
-  return <ChatMarkdown content={item.content} />;
+  return <ChatMarkdownLazy content={item.content} />;
 }
 
 function shortcutTaskForItem(itemType: string): AcpTaskId | null {

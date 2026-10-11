@@ -1,6 +1,13 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Streamdown controls render Tailwind utilities from their dist output;
+   Tailwind v4 only generates classes it can see, so point it at the real
+   installed files (bun isolated layout: apps/desktop/node_modules). */
+@source "../node_modules/streamdown/dist/*.js";
+@source "../node_modules/@streamdown/math/dist/*.js";
+@source "../node_modules/@streamdown/cjk/dist/*.js";
+
 @theme inline {
   --font-sans: "Segoe UI", system-ui, sans-serif;
 

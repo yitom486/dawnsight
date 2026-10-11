@@ -1,5 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { useStickToBottom } from "use-stick-to-bottom";
 
 import {
   createNote,
@@ -100,6 +108,7 @@ import { ChatHistorySheet } from "@dawnsight/chat-ui/components/ChatHistorySheet
 import { ChatComposerBar, type ChatComposerBarHandle } from "./ChatComposerBar";
 import { ChatShell } from "@dawnsight/chat-ui/components/ChatShell";
 import { ChatColumn } from "@dawnsight/chat-ui/components/ChatShell";
+import { Button } from "@dawnsight/ui/button";
 import { ChatToolbar } from "./ChatToolbar";
 import { CompanionHeaderPanel } from "./CompanionHeaderPanel";
 import { ChatTurnList } from "./ChatTurnList";
@@ -205,6 +214,24 @@ export function AcpPanel() {
   const idSeq = useState(() => ({ n: 0 }))[0];
   const listKey = useId();
   const turnListRef = useRef<HTMLDivElement | null>(null);
+  // 唯一的滚动跟随机制：use-stick-to-bottom 绑定真实滚动容器。
+  // resize 用 instant——token 流里不对每次增量启动滚动动画；
+  // reduced-motion 下同样无动画（见 chat-motion 约定）。
+  // initial:false：挂载不自动抢滚，首帧意图由下面的 effect 按进入时
+  // 的 stickToEnd 显式处理一次（恢复旧会话回到上次底部，读历史 stays top）。
+  const stick = useStickToBottom({ resize: "instant", initial: false });
+  const setScrollElement = useCallback(
+    (element: HTMLDivElement | null) => {
+      turnListRef.current = element;
+      stick.scrollRef(element);
+    },
+    [stick.scrollRef],
+  );
+  // F2：scope 替换（历史装载/新建/切 profile/resume 错位）必须先停 hook
+  // 的内部跟随与未结束滚动，否则正文增高时会被旧锁定状态拉回底部。
+  const stopChatFollow = useCallback(() => {
+    stick.stopScroll();
+  }, [stick.stopScroll]);
   const composerRef = useRef<ChatComposerBarHandle | null>(null);
   // 秒开恢复（第 1 层）：首渲染直接摆内存镜像里的 turns + 草稿，零网络、
   // 无 effect 闪帧（冷启动时镜像为空则先空白，随后 hydrate 从 SQLite 回填
@@ -231,12 +258,13 @@ export function AcpPanel() {
   const proposeToolCallIdsRef = useRef<Set<string>>(new Set());
   const proposalBindingsRef = useRef<ProposalBindings>(createProposalBindings());
 
-  const syncProposalBindings = () => {
+  // 只碰 refs：身份稳定，供批注回调与历史 hook 复用。
+  const syncProposalBindings = useCallback(() => {
     proposalBindingsRef.current = {
       handledProposalIds: handledProposalIdsRef.current,
       proposalTurnById: proposalTurnByIdRef.current,
     };
-  };
+  }, []);
   const seedHandledProposals = (nextTurns: ChatTurn[]) => {
     const bindings = seedProposalBindingsFromTurns(nextTurns);
     handledProposalIdsRef.current = bindings.handledProposalIds;
@@ -266,9 +294,12 @@ export function AcpPanel() {
     setAttachments([]);
   };
 
-  const pushSystem = (content: string) => {
-    setNotices((prev) => pushNotice(prev, idSeq, content));
-  };
+  const pushSystem = useCallback(
+    (content: string) => {
+      setNotices((prev) => pushNotice(prev, idSeq, content));
+    },
+    [idSeq],
+  );
 
   const syncPromptQueue = (next: QueuedPrompt[]) => {
     promptQueueRef.current = next;
@@ -301,6 +332,7 @@ export function AcpPanel() {
     setPendingPermission,
     seedHandledProposals,
     initialRestore,
+    stopScroll: stopChatFollow,
   });
 
   const composerBusy =
@@ -336,7 +368,29 @@ export function AcpPanel() {
     setSessionBanner: connection.setSessionBanner,
     titleOverrides: connection.titleOverrides,
     setTitleOverrides: connection.setTitleOverrides,
+    stopScroll: stopChatFollow,
   });
+
+  // 跟随意图同步：挂载首帧按进入时的 stickToEnd 定位一次（恢复跟到底的
+  // 回到底部，读历史的不动）；之后只有用户主动上滚（hook 的 isAtBottom
+  // 变 false）才关掉 app 的跟随。发送/快捷任务等新消息入口显式置 true
+  // 并 scrollToBottom（见 send/selectCompanionTask）。
+  const mountFollowRef = useRef<boolean | null>(null);
+  if (mountFollowRef.current === null) {
+    mountFollowRef.current = history.stickToEnd;
+  }
+  const stickAtBottom = stick.isAtBottom;
+  useEffect(() => {
+    if (mountFollowRef.current !== false) {
+      const follow = mountFollowRef.current;
+      mountFollowRef.current = false;
+      if (follow) void stick.scrollToBottom("instant");
+      return;
+    }
+    if (!stickAtBottom && history.stickToEnd) {
+      history.setStickToEnd(false);
+    }
+  }, [stick, history, stickAtBottom]);
 
   // B3：dawnsight-acp-session（acpSessionStore persist）保留作纯离线备，
   // 以 SQLite 为准，挂载时只清已下线的旧历史键，绝不动会话 hint 备层。
@@ -522,6 +576,8 @@ export function AcpPanel() {
     proposeToolCallIdsRef.current.clear();
     proposalBindingsRef.current = createProposalBindings();
     setAttachments([]);
+    // F2：切 profile 进新世界前同样停 hook（各家 turns 随后水合替换内容）。
+    stopChatFollow();
     useAcpProfilesStore.getState().switchActiveProfileId(id);
     // switchActiveProfileId restores this profile's own model/effort selection.
     // savedSessions hint 与 chatRestore 快照按 profile 分键故意保留：
@@ -561,35 +617,43 @@ export function AcpPanel() {
     }
   };
 
-  const clearTurnAnnotation = (turnId: string) => {
+  const clearTurnAnnotation = useCallback((turnId: string) => {
     setTurns((prev) => applyClearTurnAnnotation(prev, turnId));
-  };
+  }, []);
 
-  const handleDismissAnnotation = (turnId: string) => {
-    if (sessionCwd) {
-      void dismissAnnotationProposal(sessionCwd).catch((error) => {
-        pushSystem(errorMessage(error));
-      });
-    }
-    clearTurnAnnotation(turnId);
-  };
+  // 列表回调身份稳定：ChatTurnView 经 memo 后，旧 turn 不再跟随每次 token
+  // 更新重渲染。不稳定闭包会直接废掉 memo（见 chatStreamingRerender 回归）。
+  const handleDismissAnnotation = useCallback(
+    (turnId: string) => {
+      if (sessionCwd) {
+        void dismissAnnotationProposal(sessionCwd).catch((error) => {
+          pushSystem(errorMessage(error));
+        });
+      }
+      clearTurnAnnotation(turnId);
+    },
+    [sessionCwd, pushSystem, clearTurnAnnotation],
+  );
 
-  const handleSaveAnnotation = (turnId: string, proposalId?: string) => {
-    setTurns((prev) => applySaveAnnotation(prev, turnId, proposalId));
-    if (proposalId) {
-      syncProposalBindings();
-      attachProposalBinding(
-        proposalId,
-        turnId,
-        proposalBindingsRef.current,
-      );
-      handledProposalIdsRef.current =
-        proposalBindingsRef.current.handledProposalIds;
-      proposalTurnByIdRef.current =
-        proposalBindingsRef.current.proposalTurnById;
-    }
-    pushSystem("批注已写入笔记库");
-  };
+  const handleSaveAnnotation = useCallback(
+    (turnId: string, proposalId?: string) => {
+      setTurns((prev) => applySaveAnnotation(prev, turnId, proposalId));
+      if (proposalId) {
+        syncProposalBindings();
+        attachProposalBinding(
+          proposalId,
+          turnId,
+          proposalBindingsRef.current,
+        );
+        handledProposalIdsRef.current =
+          proposalBindingsRef.current.handledProposalIds;
+        proposalTurnByIdRef.current =
+          proposalBindingsRef.current.proposalTurnById;
+      }
+      pushSystem("批注已写入笔记库");
+    },
+    [syncProposalBindings, pushSystem],
+  );
 
   useEffect(() => {
     if (!sessionCwd) return;
@@ -798,6 +862,7 @@ export function AcpPanel() {
 
     const anchorPositionMs = consumeAnchorPositionMs();
     history.setStickToEnd(true);
+    void stick.scrollToBottom("instant");
     runMutation.mutate({
       text: COMPANION_TASK_LABELS[taskId],
       taskId,
@@ -806,29 +871,32 @@ export function AcpPanel() {
     });
   };
 
-  const onAssistantAction = (action: AssistantAction) => {
-    const live = usePlayerStore.getState();
-    void handleAssistantAction(action, {
-      mediaPath: live.currentFile,
-      currentTimeMs: live.currentTimeMs,
-      busy: composerBusy,
-      seek: (positionMs) => usePlayerStore.getState().seek(positionMs),
-      askAbout: (anchorMs, prompt) =>
-        useAskAboutStore.getState().askAbout(anchorMs, prompt),
-      saveNote: async ({ mediaPath, positionMs, body }) => {
-        await createNote({
-          mediaPath,
-          positionMs,
-          body,
-          includeQuotes: false,
-        });
-        await queryClient.invalidateQueries({
-          queryKey: notesKey(mediaPath),
-        });
-      },
-      notify: pushSystem,
-    });
-  };
+  const onAssistantAction = useCallback(
+    (action: AssistantAction) => {
+      const live = usePlayerStore.getState();
+      void handleAssistantAction(action, {
+        mediaPath: live.currentFile,
+        currentTimeMs: live.currentTimeMs,
+        busy: composerBusy,
+        seek: (positionMs) => usePlayerStore.getState().seek(positionMs),
+        askAbout: (anchorMs, prompt) =>
+          useAskAboutStore.getState().askAbout(anchorMs, prompt),
+        saveNote: async ({ mediaPath, positionMs, body }) => {
+          await createNote({
+            mediaPath,
+            positionMs,
+            body,
+            includeQuotes: false,
+          });
+          await queryClient.invalidateQueries({
+            queryKey: notesKey(mediaPath),
+          });
+        },
+        notify: pushSystem,
+      });
+    },
+    [composerBusy, queryClient, pushSystem],
+  );
 
   const launchNextQueuedPrompt = () => {
     if (
@@ -877,6 +945,7 @@ export function AcpPanel() {
     }
     const anchorPositionMs = consumeAnchorPositionMs();
     history.setStickToEnd(true);
+    void stick.scrollToBottom("instant");
     if (busy || busyRef.current || runMutation.isPending) {
       syncPromptQueue(
         enqueuePrompt(
@@ -935,6 +1004,7 @@ export function AcpPanel() {
   const startNewChat = () => {
     if (busy || connection.newChatPending) return;
     history.setStickToEnd(false);
+    stopChatFollow();
     if (!available) {
       setTurns([]);
       setNotices([]);
@@ -1055,7 +1125,7 @@ export function AcpPanel() {
       </div>
 
       <div
-        ref={turnListRef}
+        ref={setScrollElement}
         className="chat-scroll min-h-0 flex-1 overflow-y-auto overscroll-y-contain"
       >
         {connection.sessionBanner ? (
@@ -1074,7 +1144,7 @@ export function AcpPanel() {
           <ChatTurnList
             turns={turns}
             notices={notices}
-            followEnd={history.stickToEnd}
+            contentRef={stick.contentRef}
             annotationWorkspace={sessionCwd}
             onDismissAnnotation={handleDismissAnnotation}
             onSaveAnnotation={handleSaveAnnotation}
@@ -1083,6 +1153,24 @@ export function AcpPanel() {
           />
         </div>
       </div>
+
+      {!stickAtBottom && turns.length > 0 ? (
+        <ChatColumn className="shrink-0 py-1 text-center">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-7 px-3 text-[11px]"
+            aria-label="回到最新"
+            onClick={() => {
+              history.setStickToEnd(true);
+              void stick.scrollToBottom("instant");
+            }}
+          >
+            回到最新
+          </Button>
+        </ChatColumn>
+      ) : null}
 
       {pendingPermission ? (
         <PermissionPrompt

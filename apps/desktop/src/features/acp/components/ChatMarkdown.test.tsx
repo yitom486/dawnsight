@@ -31,6 +31,99 @@ describe("ChatMarkdown", () => {
     );
     expect(container.querySelector(".katex")).toBeTruthy();
   });
+
+  it("keeps streaming an unclosed fence and completes without loss", async () => {
+    const fence = "```";
+    const partial = `结论如下：\n\n${fence}text\n未闭合的代码`;
+    const { rerender } = render(
+      <ChatMarkdown content={partial} streaming />,
+    );
+    expect(screen.getByText(/未闭合的代码/)).toBeInTheDocument();
+    rerender(
+      <ChatMarkdown content={`${partial}\n收尾。\n${fence}\n\n末尾段。`} />,
+    );
+    expect(await screen.findByText(/末尾段/)).toBeInTheDocument();
+    expect(screen.getByText(/未闭合的代码/)).toBeInTheDocument();
+  });
+
+  it("renders tables and semantic links without hardcoded palette", () => {
+    const { container } = render(
+      <ChatMarkdown
+        content={"| 甲 | 乙 |\n| --- | --- |\n| 1 | 2 |\n\n见[文档](https://example.com/a)。"}
+      />,
+    );
+    expect(container.querySelector("table")).toBeTruthy();
+    const link = screen.getByRole("link", { name: "文档" });
+    expect(link).toHaveAttribute("href", "https://example.com/a");
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link.className).toContain("text-info");
+    expect(link.className).not.toContain("text-sky-400");
+  });
+
+  it("never executes raw HTML from Agent output", () => {
+    const { container } = render(
+      <ChatMarkdown
+        content={'正常文本<script>alert("x")</script><img src="x" onerror="alert(1)" />'}
+      />,
+    );
+    expect(container.querySelector("script")).toBeNull();
+    expect(container.querySelector("img")).toBeNull();
+  });
+
+  it("strips dangerous URL schemes but keeps http and mailto", () => {
+    const { container } = render(
+      <ChatMarkdown
+        content={
+          "见[本地](file:///C:/secret.txt)和[弹](javascript:alert(1))，" +
+          "以及[官网](https://example.com)与[邮件](mailto:a@b.c)。"
+        }
+      />,
+    );
+    expect(screen.getByRole("link", { name: "官网" })).toHaveAttribute(
+      "href",
+      "https://example.com/",
+    );
+    expect(screen.getByRole("link", { name: "邮件" })).toHaveAttribute(
+      "href",
+      "mailto:a@b.c",
+    );
+    const html = container.innerHTML;
+    expect(html).not.toContain("file:///C:/secret.txt");
+    expect(html).not.toContain("javascript:");
+  });
+
+  it("strips relative, fragment and non-web schemes (tightened vs old default)", () => {
+    // 旧 react-markdown 默认已拒 file:（safeProtocol 仅 http(s)/irc(s)/
+    // mailto/xmpp）；本渲染器进一步收紧到 http/https/mailto：相对路径、
+    // 片段与 irc 等一律去 URL 只留文字（R1 §3.2）。
+    const { container } = render(
+      <ChatMarkdown
+        content={
+          "见[相对](./pic.png)、[片段](#sec2)与[聊天](irc://host/ch)，" +
+          "官网[直链](https://example.com/x)正常。"
+        }
+      />,
+    );
+    expect(screen.getByRole("link", { name: "直链" })).toHaveAttribute(
+      "href",
+      "https://example.com/x",
+    );
+    const html = container.innerHTML;
+    expect(html).not.toContain("./pic.png");
+    expect(html).not.toContain("#sec2");
+    expect(html).not.toContain("irc://host/ch");
+    expect(screen.getByText("相对")).toBeInTheDocument();
+  });
+
+  it("offers a Chinese copy button for code blocks", async () => {
+    const fence = "```";
+    render(
+      <ChatMarkdown content={`示例：\n\n${fence}js\nconsole.log("hi");\n${fence}\n`} />,
+    );
+    expect(
+      await screen.findByRole("button", { name: "复制代码" }),
+    ).toBeInTheDocument();
+  });
 });
 
 function renderMarkdown(content: string) {

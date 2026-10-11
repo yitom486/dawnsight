@@ -24,17 +24,22 @@ export function syncTurnIdSeq(seq: { n: number }, turns: ChatTurn[]): void {
   seq.n = max;
 }
 
-/** Seal pre-tool agent text; only the post-tool segment stays visible. */
+/**
+ * Seal pre-tool agent text into segments for final composition.
+ * The last safely-composed `answer` stays visible through tool execution:
+ * blanking already-displayed prose on every toolCall is a visible-text loss
+ * (F1). The raw draft (may hold half-JSON or thought overlap) only feeds the
+ * final composition — the view never renders it directly.
+ */
 function sealAgentSegment(turn: ChatTurn): ChatTurn {
   const pending = (turn.agentDraft ?? turn.answer).trim();
   if (!pending) {
-    return { ...turn, agentDraft: "", answer: "" };
+    return { ...turn, agentDraft: "" };
   }
   return {
     ...turn,
     agentSegments: [...(turn.agentSegments ?? []), pending],
     agentDraft: "",
-    answer: "",
   };
 }
 
@@ -75,10 +80,11 @@ export function applyAcpEventToTurn(
     case "agentMessage": {
       const draft = `${turn.agentDraft ?? ""}${event.text}`;
       if (hasActiveToolActivity(turn.activities)) {
+        // 工具期新文本只进草稿：可见正文冻结在上一次安全合成，
+        // 半截 JSON/thought 重叠绝不直接上屏（F1）。
         return {
           ...turn,
           agentDraft: draft,
-          answer: "",
           status: "streaming",
         };
       }

@@ -296,8 +296,18 @@ describe("profile switch isolation blackbox (switch world entry)", () => {
     expect(screen.getByText("需要你的审批：旧世界审批")).toBeInTheDocument();
 
     const user = userEvent.setup();
-    await user.click(await screen.findByLabelText("切换 Agent"));
-    await user.click(await screen.findByRole("menuitem", { name: "Cursor" }));
+    // 回合落定是异步的：busy 回落前按钮 disabled，此时点击是空操作，
+    // 随后找 menuitem 会超时。全量并行负载下已复现此竞态，等可点再点；
+    // 若 busy 永久不回落，这里照样超时失败，不掩盖真问题。
+    await waitFor(() => {
+      expect(screen.getByLabelText("切换 Agent")).toBeEnabled();
+    });
+    await user.click(screen.getByLabelText("切换 Agent"));
+    // Base UI 下拉挂载是异步渲染：重负载并行时默认 1000ms 不够。
+    // 只放宽等待（菜单永不打开照样失败），不断言改动。
+    await user.click(
+      await screen.findByRole("menuitem", { name: "Cursor" }, { timeout: 10_000 }),
+    );
 
     expect((await screen.findAllByText("cursor 的问题")).length).toBeGreaterThanOrEqual(1);
     // 旧世界的弹窗、进度、排队指示一个都不许进新世界。

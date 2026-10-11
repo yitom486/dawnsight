@@ -17,7 +17,7 @@ type Props = {
   blocks: readonly AssistantBlock[];
   onAction?: (action: AssistantAction) => void;
   /** Inject the existing ChatMarkdown here; the renderer never parses HTML. */
-  renderMarkdown?: (markdown: string) => ReactNode;
+  renderMarkdown?: (markdown: string, opts?: { streaming?: boolean }) => ReactNode;
   className?: string;
   density?: "default" | "compact";
 };
@@ -53,9 +53,15 @@ function BlockView({
 }: {
   block: AssistantBlock;
   onAction?: (action: AssistantAction) => void;
-  renderMarkdown?: (markdown: string) => ReactNode;
+  renderMarkdown?: (markdown: string, opts?: { streaming?: boolean }) => ReactNode;
   density: "default" | "compact";
 }) {
+  // Static sub-blocks never follow the turn's streaming animation: their
+  // content is complete by construction. Only the narrative path inherits
+  // the caller's streaming state (via omitted opts).
+  const renderStatic = renderMarkdown
+    ? (markdown: string) => renderMarkdown(markdown, { streaming: false })
+    : undefined;
   switch (block.kind) {
     case "narrative":
       return (
@@ -68,7 +74,7 @@ function BlockView({
         </section>
       );
     case "transcript-quote":
-      return <TranscriptQuote block={block} renderMarkdown={renderMarkdown} />;
+      return <TranscriptQuote block={block} renderMarkdown={renderStatic} />;
     case "timeline":
       return (
         <section
@@ -87,11 +93,11 @@ function BlockView({
                   {formatTime(item.atMs)}
                 </p>
                 <div className="text-sm font-medium text-foreground">
-                  {renderMarkdown ? renderMarkdown(item.title) : item.title}
+                  {renderStatic ? renderStatic(item.title) : item.title}
                 </div>
                 {item.summary ? (
                   <div className="whitespace-pre-wrap break-words text-xs leading-relaxed text-muted-foreground">
-                    {renderMarkdown ? renderMarkdown(item.summary) : item.summary}
+                    {renderStatic ? renderStatic(item.summary) : item.summary}
                   </div>
                 ) : null}
               </li>
@@ -105,7 +111,7 @@ function BlockView({
           block={block}
           onAction={onAction}
           density={density}
-          renderMarkdown={renderMarkdown}
+          renderMarkdown={renderStatic}
         />
       );
     case "watch-feed-card":
@@ -114,7 +120,7 @@ function BlockView({
           block={block}
           onAction={onAction}
           density={density}
-          renderMarkdown={renderMarkdown}
+          renderMarkdown={renderStatic}
         />
       );
     case "question-card":
@@ -123,7 +129,7 @@ function BlockView({
           block={block}
           onAction={onAction}
           density={density}
-          renderMarkdown={renderMarkdown}
+          renderMarkdown={renderStatic}
         />
       );
     case "agent-task-status":

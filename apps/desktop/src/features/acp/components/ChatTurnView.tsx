@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { Suspense, lazy, useState } from "react";
+import { memo, useState } from "react";
 
 import { Button } from "@dawnsight/ui/button";
 import {
@@ -15,7 +15,8 @@ import { createNote } from "@/features/notes/api";
 import { notesKey } from "@dawnsight/query-keys";
 import { usePlayerStore } from "@/features/player";
 
-import { waitingLabel, hasActiveToolActivity } from "@dawnsight/chat-ui/activityStatus";
+import { waitingLabel } from "@dawnsight/chat-ui/activityStatus";
+import { summarizeActivityOutcome } from "@dawnsight/chat-ui/activityStatus";
 import {
   presentChatActivities,
   type ChatPresentationMode,
@@ -23,17 +24,13 @@ import {
 import type { AssistantAction } from "@dawnsight/chat-ui/assistantBlocks";
 import { parseAssistantBlocksText } from "@dawnsight/chat-ui/assistantBlocks";
 import { RichBlockRenderer } from "@dawnsight/chat-ui/components/RichBlockRenderer";
+import { blocksToPlainText } from "@dawnsight/chat-ui/assistantBlocksText";
 import type { ChatTurn } from "../types";
 import { normalizeRestoredShortcutOutput } from "../shortcutOutput";
 import { ChatActivityFeed } from "@dawnsight/chat-ui/components/ChatActivityFeed";
 import { ChatColumn } from "@dawnsight/chat-ui/components/ChatShell";
 import { ChatWaitingDots } from "@dawnsight/chat-ui/components/ChatWaitingDots";
-
-// Split markdown+KaTeX out of the initial bundle: chat is never visible on
-// cold start, so parsing ~400KB can wait until the first answer renders.
-const ChatMarkdown = lazy(() =>
-  import("./ChatMarkdown").then((module) => ({ default: module.ChatMarkdown })),
-);
+import { ChatMarkdownLazy } from "./ChatMarkdownLazy";
 
 type Props = {
   turn: ChatTurn;
@@ -48,6 +45,47 @@ type Props = {
 const BUILD_PRESENTATION_MODE: ChatPresentationMode = import.meta.env.DEV
   ? "development"
   : "release";
+
+/**
+ * Done-turn message action: copy the VISIBLE text, never the internal JSON.
+ * Rich answers export their verified blocks as plain text (same data the
+ * renderer shows); plain answers copy as-is. Clipboard denial gets a short
+ * business note — never silence, never technical details.
+ */
+function CopyAnswerButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  const [denied, setDenied] = useState(false);
+
+  if (!text.trim()) return null;
+  return (
+    <span className="mt-2 inline-flex flex-wrap items-center gap-2">
+      <Button
+        type="button"
+        size="sm"
+        variant="ghost"
+        className="h-auto rounded-none px-0 py-0 text-[11px] font-normal text-muted-foreground hover:bg-transparent hover:text-foreground"
+        aria-label="复制回答"
+        onClick={() => {
+          void (async () => {
+            try {
+              await navigator.clipboard.writeText(text);
+              setDenied(false);
+              setCopied(true);
+              window.setTimeout(() => setCopied(false), 2000);
+            } catch {
+              setDenied(true);
+            }
+          })();
+        }}
+      >
+        {copied ? "已复制" : "复制"}
+      </Button>
+      {denied ? (
+        <span className="text-[11px] text-muted-foreground">复制失败，请重试</span>
+      ) : null}
+    </span>
+  );
+}
 
 /**
  * P6-M3: save any done answer as a note (two-step inline confirm, no dialog
@@ -94,8 +132,7 @@ function SaveAnswerNote({ turn }: { turn: ChatTurn }) {
   );
 }
 
-function ConfirmSaveNote({
-  turn,
+function ConfirmSaveNote({  turn,
   onSaved,
   onCancel,
 }: {
@@ -166,7 +203,7 @@ function ConfirmSaveNote({
   );
 }
 
-export function ChatTurnView({
+export const ChatTurnView = memo(function ChatTurnView({
   turn,
   annotationWorkspace,
   onDismissAnnotation,
@@ -177,9 +214,9 @@ export function ChatTurnView({
   const [toolsOpen, setToolsOpen] = useState(false);
   const isError = turn.status === "error";
   const isStreaming = turn.status === "streaming";
-  const hideAnswerWhileTools =
-    isStreaming && hasActiveToolActivity(turn.activities);
-  const visibleAnswer = hideAnswerWhileTools ? "" : turn.answer;
+  // 工具执行不再清空已展示的安全正文：过程 feed 在上、正文在下并行展示，
+  // thought/半截 JSON/未校验结构化数据仍由各自环节隐藏（见下）。
+  const visibleAnswer = turn.answer;
   const waitingForText = isStreaming && !visibleAnswer.trim();
   const showWaitingDots =
     waitingForText && !(turn.showActivities && turn.activities.length > 0);
@@ -191,6 +228,12 @@ export function ChatTurnView({
   const showActivityFeed =
     visibleActivities.length > 0 &&
     (isStreaming || (presentationMode === "development" && toolsOpen));
+  // 正式模式完成后保留一行可展开的可信业务过程摘要（无活动记录的历史
+  // 回答不编造）。展开内容继续经 presentChatActivities 安全投影。
+  const doneSummary =
+    !isStreaming && !isError && presentationMode === "release"
+      ? summarizeActivityOutcome(visibleActivities)
+      : null;
   const restoredShortcut =
     !isError && !isStreaming && visibleAnswer
       ? normalizeRestoredShortcutOutput(visibleAnswer)
@@ -201,6 +244,11 @@ export function ChatTurnView({
       ? parseAssistantBlocksText(normalizedAnswer, { streaming: isStreaming })
       : null;
   const richBlocks = structuredAnswer?.blocks ?? [];
+  // 复制永远拿用户看到的文字：富回答导出已验证 blocks 的纯文本，
+  // 纯文本回答沿用原文。绝不复制内部 JSON 信封（F4）。
+  const copyableAnswerText = richBlocks.length
+    ? blocksToPlainText(richBlocks)
+    : normalizedAnswer;
   const answerText =
     (looksLikeStructuredJson(normalizedAnswer) && !richBlocks.length
       ? "正在整理结构化结果…"
@@ -257,6 +305,23 @@ export function ChatTurnView({
           </Collapsible>
         ) : null}
 
+        {doneSummary ? (
+          <Collapsible open={toolsOpen} onOpenChange={setToolsOpen}>
+            <CollapsibleTrigger className="mb-2 inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              {doneSummary}
+              <span aria-hidden="true">{toolsOpen ? "收起" : "展开"}</span>
+            </CollapsibleTrigger>
+            {toolsOpen ? (
+              <CollapsibleContent>
+                <ChatActivityFeed
+                  activities={visibleActivities}
+                  collapsible={false}
+                />
+              </CollapsibleContent>
+            ) : null}
+          </Collapsible>
+        ) : null}
+
         <div
           className={cn(
             "w-full rounded-lg px-3 py-2 text-sm break-words",
@@ -270,25 +335,18 @@ export function ChatTurnView({
             isError ? (
               answerText
             ) : richBlocks.length ? (
-              <Suspense
-                fallback={
-                  <span className="whitespace-pre-wrap">{answerText}</span>
-                }
-              >
-                <RichBlockRenderer
-                  blocks={richBlocks}
-                  onAction={onAssistantAction}
-                  renderMarkdown={(markdown) => <ChatMarkdown content={markdown} />}
-                />
-              </Suspense>
+              <RichBlockRenderer
+                blocks={richBlocks}
+                onAction={onAssistantAction}
+                renderMarkdown={(markdown, opts) => (
+                  <ChatMarkdownLazy
+                    content={markdown}
+                    streaming={opts?.streaming ?? isStreaming}
+                  />
+                )}
+              />
             ) : (
-              <Suspense
-                fallback={
-                  <span className="whitespace-pre-wrap">{answerText}</span>
-                }
-              >
-                <ChatMarkdown content={answerText} />
-              </Suspense>
+              <ChatMarkdownLazy content={answerText} streaming={isStreaming} />
             )
           ) : showWaitingDots ? (
             <ChatWaitingDots label={waitingLabel(turn.activities)} />
@@ -308,6 +366,9 @@ export function ChatTurnView({
         ) : null}
 
         <SaveAnswerNote turn={turn} />
+        {!isError && turn.status === "done" ? (
+          <CopyAnswerButton text={copyableAnswerText} />
+        ) : null}
 
         {turn.annotationProposalSaved ? (
           <div className="mt-2 rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-[12px] text-success-foreground">
@@ -330,7 +391,7 @@ export function ChatTurnView({
       </div>
     </ChatColumn>
   );
-}
+});
 
 function looksLikeStructuredJson(value: string): boolean {
   const source = value.trimStart();

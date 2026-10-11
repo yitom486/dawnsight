@@ -67,6 +67,11 @@ export type UseHistoryConversationInput = {
   setSessionBanner: (value: string | null) => void;
   titleOverrides: Record<string, string>;
   setTitleOverrides: Dispatch<SetStateAction<Record<string, string>>>;
+  /**
+   * F2：scope 替换前停止滚动跟随（use-stick-to-bottom 的内部锁定与
+   * 未结束滚动）。由持有 stick 实例的调用方传入。
+   */
+  stopScroll: () => void;
 };
 
 /**
@@ -104,6 +109,7 @@ export function useHistoryConversation(input: UseHistoryConversationInput) {
     setSessionBanner,
     titleOverrides,
     setTitleOverrides,
+    stopScroll,
   } = input;
 
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -227,6 +233,9 @@ export function useHistoryConversation(input: UseHistoryConversationInput) {
     syncTurnIdSeq(idSeq, cached);
     seedHandledProposals(cached);
     clearPromptQueue();
+    // F2：先停 hook 再换内容 + 滚顶。只关 app 跟随不够：hook 内部
+    // 的锁定/未结束滚动会在正文增高时把阅读位置拉回底部（竞态）。
+    stopScroll();
     setTurns([...cached]);
     // 读历史从头看：停掉跟随到底，滚到顶部。
     setStickToEnd(false);

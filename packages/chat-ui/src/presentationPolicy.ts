@@ -68,25 +68,45 @@ function safeToolIdentifier(activity: ChatActivity): string | null {
 }
 
 function releaseToolLabel(identifier: string | null, status?: string): string {
-  const completed = status === "completed" || status === "success";
-  const prefix = completed ? "已" : "正在";
+  const verb = releaseToolVerb(identifier);
+  switch (status) {
+    case "completed":
+    case "success":
+      return `已${verb}`;
+    case "cancelled":
+      return `已取消${verb}`;
+    case "failed":
+    case "error":
+      return `未能${verb}`;
+    case "running":
+    case "in_progress":
+      return `正在${verb}`;
+    case "pending":
+      return `等待${verb}`;
+    default:
+      // F7：未知状态绝不能声称正在执行——运行与未知必须分开。
+      return `${verb}（状态未知）`;
+  }
+}
+
+function releaseToolVerb(identifier: string | null): string {
   const value = identifier?.toLowerCase() ?? "";
   if (value.includes("transcript") || value.includes("subtitle")) {
-    return `${prefix}读取该段台词`;
+    return "读取该段台词";
   }
   if (value.includes("frame") || value.includes("capture")) {
-    return `${prefix}分析画面`;
+    return "分析画面";
   }
   if (value.includes("playback") || value.includes("position")) {
-    return `${prefix}获取播放位置`;
+    return "获取播放位置";
   }
   if (value.includes("library") || value.includes("episode")) {
-    return `${prefix}读取剧集信息`;
+    return "读取剧集信息";
   }
   if (value.includes("annotation") || value.includes("note")) {
-    return `${prefix}整理批注`;
+    return "整理批注";
   }
-  return `${prefix}分析该段内容`;
+  return "分析该段内容";
 }
 
 function safeToolStatus(status?: string): string | undefined {

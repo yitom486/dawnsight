@@ -54,8 +54,15 @@ describe("RichBlockRenderer", () => {
     );
 
     expect(renderMarkdown).toHaveBeenCalledWith("叙述");
-    expect(renderMarkdown).toHaveBeenCalledWith("字幕证据 · [00:10]-[00:20]");
-    expect(renderMarkdown).toHaveBeenCalledWith("结构化总结");
+    // 静态子块（引用/结构化/时间线）固定以 static 模式渲染，不跟随 turn 动画。
+    expect(renderMarkdown).toHaveBeenCalledWith("字幕引用", { streaming: false });
+    expect(renderMarkdown).toHaveBeenCalledWith("开始", { streaming: false });
+    expect(renderMarkdown).toHaveBeenCalledWith("字幕证据 · [00:10]-[00:20]", {
+      streaming: false,
+    });
+    expect(renderMarkdown).toHaveBeenCalledWith("结构化总结", {
+      streaming: false,
+    });
     expect(markup).toContain("<strong>叙述</strong>");
     expect(markup).toContain("<strong>结构化总结</strong>");
     expect(markup).toContain("字幕证据 · [00:10]-[00:20]");
