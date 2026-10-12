@@ -40,9 +40,9 @@ export function WorkspaceRail({
   return (
     <nav
       aria-label="工作区导航"
-      className="relative z-10 flex w-[5.75rem] shrink-0 flex-col items-center border-r border-border bg-surface-elevated px-2 py-3 max-[700px]:w-14 max-[700px]:px-1.5"
+      className="relative z-10 flex w-[5.75rem] shrink-0 flex-col items-center border-r border-border bg-surface-elevated px-[var(--space-ui-2)] py-[var(--space-ui-3)] max-[700px]:w-14 max-[700px]:px-1.5"
     >
-      <div className="flex w-full flex-col items-center gap-1.5">
+      <div className="flex w-full flex-col items-center gap-[var(--space-ui-2)]">
         {items.map(({ id, label, icon: Icon }) => {
           const selected = activeTab === id;
           return (
@@ -54,9 +54,9 @@ export function WorkspaceRail({
                   variant="ghost"
                   size="default"
                   className={cn(
-                    "group flex h-14 w-full flex-col gap-1 rounded-lg px-1 py-2 text-[10px] font-medium leading-tight transition-[background-color,color,box-shadow] max-[700px]:size-10 max-[700px]:gap-0 max-[700px]:rounded-md",
+                    "flex h-14 w-full flex-col gap-[var(--space-ui-1)] rounded-[var(--radius-ui-control)] px-[var(--space-ui-1)] py-[var(--space-ui-2)] text-[length:var(--text-ui-label)] leading-[var(--text-ui-label--line-height)] font-medium transition-[background-color,color,border-color] duration-[var(--duration-ui-feedback)] motion-reduce:transition-none max-[700px]:size-10 max-[700px]:gap-0",
                     selected
-                      ? "border-l-2 border-ai bg-ai-muted text-ai shadow-sm hover:bg-ai-muted"
+                      ? "border-l-2 border-foreground/60 bg-surface-subtle text-foreground hover:bg-surface-subtle"
                       : "border-l-2 border-transparent text-muted-foreground hover:bg-surface-subtle hover:text-foreground",
                   )}
                   aria-label={label}
@@ -68,7 +68,7 @@ export function WorkspaceRail({
                     onSelect(id);
                   }}
                   >
-                    <Icon className="size-5 shrink-0 transition-transform group-hover:scale-105 max-[700px]:size-4" />
+                    <Icon className="size-5 shrink-0 max-[700px]:size-4" />
                     <span className="max-[700px]:sr-only">{label}</span>
                   </Button>
                 }
@@ -79,7 +79,7 @@ export function WorkspaceRail({
         })}
       </div>
 
-      <div className="mt-auto w-full border-t border-border/70 pt-3">
+      <div className="mt-auto w-full border-t border-border/70 pt-[var(--space-ui-3)]">
         <Tooltip>
           <TooltipTrigger
             render={
@@ -88,7 +88,7 @@ export function WorkspaceRail({
               variant="ghost"
               size="default"
               className={cn(
-                "group flex h-14 w-full flex-col gap-1 rounded-lg px-1 py-2 text-[10px] font-medium leading-tight max-[700px]:size-10 max-[700px]:gap-0 max-[700px]:rounded-md",
+                "flex h-14 w-full flex-col gap-[var(--space-ui-1)] rounded-[var(--radius-ui-control)] px-[var(--space-ui-1)] py-[var(--space-ui-2)] text-[length:var(--text-ui-label)] leading-[var(--text-ui-label--line-height)] font-medium transition-[background-color,color,border-color] duration-[var(--duration-ui-feedback)] motion-reduce:transition-none max-[700px]:size-10 max-[700px]:gap-0",
                 chatOpen
                   ? "border-l-2 border-ai bg-ai-muted text-ai hover:bg-ai-muted"
                   : "border-l-2 border-transparent text-muted-foreground hover:bg-surface-subtle hover:text-foreground",
@@ -99,7 +99,7 @@ export function WorkspaceRail({
               data-active={chatOpen ? "true" : "false"}
               onClick={toggleChat}
               >
-                <Sparkles className="size-5 shrink-0 transition-transform group-hover:scale-105 max-[700px]:size-4" />
+                <Sparkles className="size-5 shrink-0 max-[700px]:size-4" />
                 <span className="max-[700px]:sr-only">AI 对话</span>
               </Button>
             }

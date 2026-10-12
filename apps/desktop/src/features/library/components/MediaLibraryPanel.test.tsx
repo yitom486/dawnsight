@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { usePlayerStore } from "@/features/player";
 import { useLibrarySettingsStore } from "../settingsStore";
 import { LibrarySettingsPanel } from "./LibrarySettingsPanel";
 import { MediaLibraryPanel } from "./MediaLibraryPanel";
@@ -225,9 +226,25 @@ describe("MediaLibraryPanel pending groups", () => {
 describe("MediaLibraryPanel workspace", () => {
   it("keeps library operations out of the presentation-only workspace", () => {
     renderWorkspace();
-    expect(screen.getByText("影视库")).toBeInTheDocument();
+    // Single frame-owned heading: the workspace keeps description + live
+    // current-media line with no second title or duplicate landmark.
+    expect(
+      screen.getByText("浏览系列、阅读进度，并从真实媒体条目继续播放。"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("影视库")).not.toBeInTheDocument();
     expect(screen.queryByText("选择目录")).not.toBeInTheDocument();
     expect(screen.queryByText("启动扫描")).not.toBeInTheDocument();
     expect(screen.queryByText("智能匹配设置")).not.toBeInTheDocument();
+  });
+
+  it("maps the raw playback status to business copy", () => {
+    usePlayerStore.setState({
+      currentFile: "D:\\v\\a.mkv",
+      status: "Paused",
+    });
+    renderWorkspace();
+
+    expect(screen.getByText(/已暂停/)).toBeInTheDocument();
+    expect(screen.queryByText(/Paused/)).not.toBeInTheDocument();
   });
 });

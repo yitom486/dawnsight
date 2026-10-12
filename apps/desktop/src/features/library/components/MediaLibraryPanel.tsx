@@ -12,6 +12,7 @@ import { Progress } from "@dawnsight/ui/progress";
 import { profilesHintFromStore } from "@dawnsight/chat-ui/defaultAgentProfiles";
 import { useAcpProfilesStore } from "@dawnsight/chat-ui/acpProfilesStore";
 import { usePlayerStore } from "@/features/player";
+import { playerStatusText } from "@/features/player";
 import { errorMessage } from "@/lib/format";
 
 import { libraryRootFromPlaybackPath } from "../playbackRoot";
@@ -92,23 +93,29 @@ function LibraryWorkspaceContent() {
   const currentFile = usePlayerStore((state) => state.currentFile);
   const playbackStatus = usePlayerStore((state) => state.status);
 
+  // The panel frame already titles this tab; the workspace keeps only its
+  // description and the live current-media line (no second heading or
+  // duplicate landmark label).
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-auto text-xs">
-      <section className="shrink-0 border-b border-border px-3 py-3">
-        <p className="text-sm font-medium">影视库</p>
-        <p className="mt-1 text-muted-foreground">
+      <div className="shrink-0 border-b border-border px-3 py-3">
+        <p className="text-muted-foreground">
           浏览系列、阅读进度，并从真实媒体条目继续播放。
         </p>
         {currentFile ? (
-          <p className="mt-2 truncate text-[11px] text-muted-foreground">
-            当前媒体：{currentFile} · {playbackStatus === "Error" ? "打开失败" : playbackStatus}
+          <p
+            className="mt-2 truncate text-[length:var(--text-ui-label)] leading-[var(--text-ui-label--line-height)] text-muted-foreground"
+            title={currentFile}
+          >
+            当前媒体：{currentFile} ·{" "}
+            {playerStatusText(playbackStatus, { hasMedia: true })}
           </p>
         ) : (
-          <p className="mt-2 text-[11px] text-muted-foreground">
+          <p className="mt-2 text-[length:var(--text-ui-label)] leading-[var(--text-ui-label--line-height)] text-muted-foreground">
             尚未打开媒体；可从播放区打开本地文件或在线资源。
           </p>
         )}
-      </section>
+      </div>
       <SeriesReadingSection />
     </div>
   );

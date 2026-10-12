@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { usePlayerStore } from "@/features/player";
+import { playerStatusText } from "@/features/player";
 import { useProgressStore } from "@dawnsight/player-ui";
+import { Badge } from "@dawnsight/ui/badge";
 import { Button } from "@dawnsight/ui/button";
 import { cn } from "@dawnsight/ui/utils";
 
@@ -23,17 +25,19 @@ function episodeLabel(episode: EpisodeFile): string {
 
 function StatusChip({ status }: { status: ReadingStatus }) {
   return (
-    <span
+    <Badge
+      variant="secondary"
       className={cn(
-        "shrink-0 rounded px-1.5 py-0.5 text-[10px]",
-        status === "done" &&
-          "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+        "border-transparent",
+        // Light theme needs the page foreground on the success tint to reach
+        // 4.5:1 for 11px text; dark keeps the green text (measured 5.36:1).
+        // Tokens only, no hard-coded colors, no global token change.
+        status === "done" && "bg-success/15 text-foreground dark:text-success",
         status === "reading" && "bg-accent text-accent-foreground",
-        status === "not-started" && "bg-muted text-muted-foreground",
       )}
     >
       {READING_STATUS_LABEL[status]}
-    </span>
+    </Badge>
   );
 }
 
@@ -68,8 +72,36 @@ export function SeriesReadingSection() {
   });
 
   const series = seriesQuery.data ?? null;
-  if (!currentFile || remote || !series || series.episodes.length === 0) {
+  if (!currentFile || remote) {
     return null;
+  }
+  if (!series || series.episodes.length === 0) {
+    // The retry is part of the query contract: it is only offered while the
+    // query is allowed to run. A stale error under a disabled state
+    // (Error/Idle/Loading, remote, no file) stays silent instead of letting
+    // a manual refetch bypass the enabled gate. The cached list above keeps
+    // its own openPath retry untouched.
+    if (!seriesQuery.isError || !queryEnabled) {
+      return null;
+    }
+    return (
+      <section className="shrink-0 space-y-2 border-b border-border px-3 py-2">
+        <p className="text-sm font-medium">继续阅读</p>
+        <p className="text-xs text-muted-foreground">
+          剧集信息加载失败，暂无可显示的缓存。
+        </p>
+        <div>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => void seriesQuery.refetch()}
+          >
+            重试
+          </Button>
+        </div>
+      </section>
+    );
   }
 
   const statusOf = (path: string) =>
@@ -118,7 +150,12 @@ export function SeriesReadingSection() {
                 size="sm"
                 variant="ghost"
                 onClick={() => open(episode.path)}
-                title={current ? "正在播放" : `打开${episodeLabel(episode)}`}
+                title={
+                  current
+                    ? `当前项 · ${playerStatusText(status, { hasMedia: true })}`
+                    : `打开${episodeLabel(episode)}`
+                }
+                aria-current={current ? "true" : undefined}
                 className={cn(
                   "h-auto min-w-0 flex-1 truncate rounded px-1.5 py-1 text-left text-xs",
                   current
@@ -133,7 +170,7 @@ export function SeriesReadingSection() {
                 type="button"
                 size="sm"
                 variant="ghost"
-                className="h-auto shrink-0 rounded px-1.5 py-0.5 text-[10px] text-muted-foreground opacity-70 hover:bg-muted hover:text-foreground group-hover:opacity-100"
+                className="h-auto shrink-0 rounded px-1.5 py-0.5 text-[length:var(--text-ui-label)] leading-[var(--text-ui-label--line-height)] text-muted-foreground opacity-70 hover:bg-muted hover:text-foreground group-hover:opacity-100"
                 title={state === "done" ? "撤销完成" : "标记完成"}
                 onClick={() =>
                   state === "done"

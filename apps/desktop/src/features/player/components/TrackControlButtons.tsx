@@ -87,8 +87,8 @@ export function TrackControlButtons({
   const audioButton = (
     <Button
       type="button"
-      variant={compact ? "outline" : "outline"}
-      size={compact ? "sm" : "sm"}
+      variant="outline"
+      size="sm"
       className={cn(btnClass, compact && "max-w-[6rem]")}
       disabled={audioTracks.length === 0}
       onClick={cinema ? toggleAudioInline : undefined}

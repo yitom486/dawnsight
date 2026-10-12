@@ -7,6 +7,7 @@ import { usePlaybackChromeReveal } from "../hooks/usePlaybackChromeReveal";
 import { ensureSurfaceBounds } from "../surfaceBridge";
 import { useUiStore } from "../uiStore";
 import { SeekBar } from "./SeekBar";
+import { StatusLine } from "./StatusLine";
 import { TrackControlButtons } from "./TrackControlButtons";
 import { TransportControls } from "./TransportControls";
 import { VolumeControl } from "./VolumeControl";
@@ -95,14 +96,15 @@ export function PlayerBar() {
   }
 
   return (
-    <div className="relative z-20 shrink-0 border-t border-border/70 bg-player-chrome px-4 pb-3 pt-2.5">
+    <div className="relative z-20 shrink-0 border-t border-border/70 bg-player-chrome px-[var(--space-ui-4)] pb-[var(--space-ui-3)] pt-[var(--space-ui-2)]">
       <div className="flex flex-col gap-2">
         <SeekBar />
         <div className="flex items-center justify-between gap-3">
           <TransportControls />
+          <StatusLine />
           <VolumeControl className="w-32" />
         </div>
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-[length:var(--text-ui-label)] leading-[var(--text-ui-label--line-height)] text-muted-foreground">
           空格 播放/暂停 · 单击画面 播停 · 双击全屏 · ←→ 5 秒 · ↑↓ 音量 · M 静音 · F / Esc 全屏
         </p>
       </div>

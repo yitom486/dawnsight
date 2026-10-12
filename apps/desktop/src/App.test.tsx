@@ -7,15 +7,21 @@ import {
 } from "./App";
 
 describe("App workspace layout", () => {
-  it("keeps online resources inside Settings instead of the top-level rail", () => {
+  // 用户授权的新职责合同：在线媒体阅读在工作区；打开链接/下载/解析/
+  // 登录配置仍在设置。在线资源（设置分类名）不进顶层导航。
+  it("mounts online media in the rail while resolver work stays in Settings", () => {
     expect(WORKSPACE_RAIL_ITEMS.map((item) => item.id)).toEqual([
       "playlist",
       "transcript",
       "notes",
       "chapters",
       "library",
+      "online",
       "settings",
     ]);
+    expect(WORKSPACE_RAIL_ITEMS.map((item) => item.label)).toContain(
+      "在线媒体",
+    );
     expect(WORKSPACE_RAIL_ITEMS.map((item) => item.label)).not.toContain(
       "在线资源",
     );

@@ -8,29 +8,54 @@ import { Button } from "@dawnsight/ui/button";
 import { Input } from "@dawnsight/ui/input";
 import { ytdlResolveKey } from "@dawnsight/query-keys";
 import { OnlineSourceSettings } from "@/features/ytdl/components/OnlineSourceSettings";
-import { usePlayerStore } from "@/features/player";
+import { playerStatusText, usePlayerStore } from "@/features/player";
+import { errorMessage, formatPlayerError } from "@/lib/format";
 import { getCachedYtdlResolve } from "../api";
 
 export type OnlineSourcePanelView = "workspace" | "settings";
 
+export type OnlineSourcePanelProps = {
+  view?: OnlineSourcePanelView;
+  /**
+   * Composition-layer callback to the existing online settings category.
+   * Only the app shell knows the settings navigation; the feature never
+   * imports settings or owns cross-domain navigation state.
+   */
+  onOpenSettings?: () => void;
+};
+
 export function OnlineSourcePanel({
   view = "workspace",
-}: {
-  view?: OnlineSourcePanelView;
-}) {
+  onOpenSettings,
+}: OnlineSourcePanelProps) {
   return view === "settings" ? (
     <OnlineSettingsContent />
   ) : (
-    <OnlineWorkspaceContent />
+    <OnlineWorkspaceContent onOpenSettings={onOpenSettings} />
   );
 }
 
-function OnlineWorkspaceContent() {
+/** Host part of a trusted webpage URL; signed stream params never surface. */
+function sourceHost(webpageUrl?: string | null): string | null {
+  if (!webpageUrl) return null;
+  try {
+    const host = new URL(webpageUrl).hostname.replace(/^www\./, "");
+    return host || null;
+  } catch {
+    return null;
+  }
+}
+
+function OnlineWorkspaceContent({
+  onOpenSettings,
+}: {
+  onOpenSettings?: () => void;
+}) {
   const busy = usePlayerStore((s) => s.busy);
-  const statusMessage = usePlayerStore((s) => s.statusMessage);
   const status = usePlayerStore((s) => s.status);
   const currentFile = usePlayerStore((s) => s.currentFile);
   const sourceKind = usePlayerStore((s) => s.sourceKind);
+  const error = usePlayerStore((s) => s.error);
 
   const playingRemote =
     sourceKind === "remote" && Boolean(currentFile) && status !== "Error";
@@ -41,28 +66,99 @@ function OnlineWorkspaceContent() {
     staleTime: Infinity,
   });
 
+  const isRemote = sourceKind === "remote" && currentFile != null;
+  const failed = status === "Error";
+  const cached = mediaQuery.data ?? null;
+  const statusText = playerStatusText(status, { hasMedia: currentFile != null });
+
+  // Title prefers the cached trusted title; never fabricate one and never
+  // pour the raw input URL (with its signed params) into the heading.
+  const title =
+    cached?.title?.trim() && cached.title.trim().length > 0
+      ? cached.title.trim()
+      : "在线视频";
+  const extractor = cached?.extractor?.trim() || null;
+  const host = sourceHost(cached?.webpageUrl ?? (isRemote ? currentFile : null));
+  const sourceText =
+    extractor && host && extractor !== host
+      ? `${extractor} · ${host}`
+      : (extractor ?? host ?? "在线");
+  const countsText = cached
+    ? ` · ${cached.chapters.length} 个章节 · ${cached.subtitles.length} 条字幕`
+    : null;
+  const pendingText =
+    !cached && !failed
+      ? busy || mediaQuery.isPending
+        ? "正在读取在线媒体信息…"
+        : "暂无缓存信息"
+      : null;
+
   return (
-    <section className="flex min-h-0 flex-1 flex-col overflow-y-auto p-3 text-xs">
-      <h2 className="text-sm font-medium">在线资源</h2>
-      <p className="mt-1 text-muted-foreground">
+    <section className="flex min-h-0 flex-1 flex-col overflow-y-auto px-3 py-3 text-xs">
+      <p className="text-muted-foreground">
         在线 URL、下载和解析配置已集中到设置；此处只显示当前真实在线媒体状态。
       </p>
-      {playingRemote ? (
-        <div className="mt-3 space-y-1 rounded-md border border-border/70 bg-muted/20 p-3 text-muted-foreground">
-          <p className="truncate">当前在线源：{currentFile}</p>
-          {mediaQuery.data ? (
-            <p>
-              {mediaQuery.data.title ?? "在线视频"} · {mediaQuery.data.chapters.length} 个章节 · {mediaQuery.data.subtitles.length} 条字幕轨道
+      {isRemote ? (
+        <div className="mt-3 space-y-1.5">
+          <p
+            className="truncate text-[length:var(--text-ui-body)] leading-[var(--text-ui-body--line-height)] font-medium text-foreground"
+            title={title}
+          >
+            {title}
+          </p>
+          <p
+            className="truncate text-[length:var(--text-ui-meta)] leading-[var(--text-ui-meta--line-height)] text-muted-foreground"
+            title={sourceText}
+          >
+            来源：{sourceText}
+          </p>
+          <p className="text-[length:var(--text-ui-meta)] leading-[var(--text-ui-meta--line-height)] text-muted-foreground">
+            {statusText}
+            {countsText}
+          </p>
+          {failed && error ? (
+            <p className="text-[length:var(--text-ui-meta)] leading-[var(--text-ui-meta--line-height)] text-destructive">
+              {formatPlayerError(error)}
             </p>
-          ) : (
-            <p>{busy ? "正在读取在线媒体信息…" : statusMessage ?? "在线媒体已打开"}</p>
-          )}
+          ) : null}
+          {!failed && !cached ? (
+            mediaQuery.isError ? (
+              <p className="text-[length:var(--text-ui-meta)] leading-[var(--text-ui-meta--line-height)] text-destructive">
+                {errorMessage(mediaQuery.error)}
+              </p>
+            ) : (
+              <p className="text-[length:var(--text-ui-meta)] leading-[var(--text-ui-meta--line-height)] text-muted-foreground">
+                {pendingText}
+              </p>
+            )
+          ) : null}
+        </div>
+      ) : currentFile ? (
+        <div className="mt-3 space-y-1.5">
+          <p
+            className="truncate text-[length:var(--text-ui-body)] leading-[var(--text-ui-body--line-height)] font-medium text-foreground"
+            title={currentFile}
+          >
+            当前为本地媒体：{currentFile}
+          </p>
+          <p className="text-[length:var(--text-ui-meta)] leading-[var(--text-ui-meta--line-height)] text-muted-foreground">
+            {statusText}
+          </p>
         </div>
       ) : (
-        <p className="mt-3 text-muted-foreground">
-          尚未打开在线媒体；请在设置的「在线资源」中输入 URL。
-        </p>
+        <p className="mt-3 text-muted-foreground">尚未打开在线媒体。</p>
       )}
+      <div className="mt-3 border-t border-border pt-3">
+        {onOpenSettings ? (
+          <Button type="button" size="sm" variant="outline" onClick={onOpenSettings}>
+            打开在线资源设置
+          </Button>
+        ) : (
+          <p className="text-[length:var(--text-ui-meta)] leading-[var(--text-ui-meta--line-height)] text-muted-foreground">
+            在线 URL 与登录配置请前往设置「在线资源」。
+          </p>
+        )}
+      </div>
     </section>
   );
 }

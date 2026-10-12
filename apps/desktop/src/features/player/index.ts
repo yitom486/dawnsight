@@ -13,4 +13,8 @@ export { VideoSurface } from "./components/VideoSurface";
 export { PlayerBar } from "./components/PlayerBar";
 export { TrackMenus } from "./components/TrackMenus";
 export { PlaylistPanel } from "./components/PlaylistPanel";
+export {
+  playerStatusText,
+  type PlayerStatusContext,
+} from "./components/playerStatusText";
 export { ResumeChip } from "./components/ResumeChip";

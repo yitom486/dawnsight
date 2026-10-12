@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import { TriangleAlert } from "lucide-react";
 
 import { Button } from "@dawnsight/ui/button";
 import { formatRenderError } from "@/lib/formatRenderError";
@@ -52,24 +53,24 @@ export class PanelErrorBoundary extends Component<PanelErrorBoundaryProps, State
         <div
           className={
             this.props.className ??
-            "flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-4 py-8 text-center"
+            "flex min-h-0 flex-1 flex-col items-center justify-center gap-[var(--space-ui-3)] px-[var(--space-ui-4)] py-[var(--space-ui-6)] text-center"
           }
           role="alert"
         >
-          <p className="text-sm font-medium text-foreground">{copy.title}</p>
-          <p className="max-w-sm text-xs leading-relaxed text-foreground/90">
+          <TriangleAlert
+            className="size-4 text-destructive"
+            aria-hidden="true"
+          />
+          <p className="text-[length:var(--text-ui-title)] leading-[var(--text-ui-title--line-height)] font-semibold text-foreground">
+            {copy.title}
+          </p>
+          <p className="max-w-sm text-[length:var(--text-ui-meta)] leading-[var(--text-ui-meta--line-height)] text-foreground/90">
             {copy.message}
           </p>
-          <p className="max-w-sm text-[11px] leading-relaxed text-muted-foreground">
+          <p className="max-w-sm text-[length:var(--text-ui-label)] leading-[var(--text-ui-label--line-height)] text-muted-foreground">
             {this.props.hint ?? copy.hint}
           </p>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="mt-1 h-auto px-3 py-1.5 text-xs"
-            onClick={this.retry}
-          >
+          <Button type="button" size="sm" variant="outline" onClick={this.retry}>
             重试
           </Button>
         </div>

@@ -17,8 +17,9 @@
 + *      │    bounds，libmpv HWND 自动跟随，无需 Rust 侧改动)
   *
   * Never put upward-opening menus or center dialogs on PlayerBar — HWND always
-  * paints above WebView. Online resource settings live under Settings.
-  */
+  * paints above WebView. Online media reading lives in the workspace rail;
+ * URL open / download / resolve / login configuration stays under Settings.
+ */
 
 import { useEffect, useState } from "react";
 
@@ -56,10 +57,12 @@ import {
   VideoSurface,
 } from "@/features/player";
 import { TranscriptPanel } from "@/features/transcript";
+import { OnlineSourcePanel } from "@/features/ytdl";
 import { TooltipProvider } from "@dawnsight/ui/tooltip";
 import { cn } from "@dawnsight/ui/utils";
 import {
   FileText,
+  Globe,
   Layers3,
   Library,
   ListVideo,
@@ -73,6 +76,7 @@ export const WORKSPACE_RAIL_ITEMS: readonly WorkspaceRailItem[] = [
   { id: "notes", label: "笔记", icon: StickyNote },
   { id: "chapters", label: "章节", icon: Layers3 },
   { id: "library", label: "媒体库", icon: Library },
+  { id: "online", label: "在线媒体", icon: Globe },
   { id: "settings", label: "设置", icon: Settings },
 ];
 
@@ -90,7 +94,13 @@ export function shouldRenderPlayerWorkspace(
   return !isSettingsWorkspace(fullscreen, sidebarTab);
 }
 
-function SidebarTabPanel({ tab }: { tab: SidebarTab }) {
+function SidebarTabPanel({
+  tab,
+  onOpenOnlineSettings,
+}: {
+  tab: SidebarTab;
+  onOpenOnlineSettings: () => void;
+}) {
   switch (tab) {
     case "playlist":
       return <PlaylistPanel />;
@@ -121,7 +131,7 @@ function SidebarTabPanel({ tab }: { tab: SidebarTab }) {
     case "library":
       return <MediaLibraryPanel />;
     case "online":
-      return null;
+      return <OnlineSourcePanel onOpenSettings={onOpenOnlineSettings} />;
     case "settings":
       return null;
     default:
@@ -156,6 +166,13 @@ export default function App() {
   useEffect(() => {
     if (settingsWorkspace) closeChat();
   }, [closeChat, settingsWorkspace]);
+
+  // Composition-layer only: jump to the existing online settings category.
+  // Closing the chat follows the existing settings-workspace rule above.
+  const openOnlineSettings = () => {
+    setSettingsCategory("online");
+    setSidebarTab("settings");
+  };
 
   return (
     <TooltipProvider delay={400}>
@@ -223,7 +240,10 @@ export default function App() {
                   panelLabel={activeTab?.label ?? "面板"}
                   className="flex min-h-0 flex-1 flex-col overflow-hidden"
                 >
-                  <SidebarTabPanel tab={sidebarTab} />
+                  <SidebarTabPanel
+                    tab={sidebarTab}
+                    onOpenOnlineSettings={openOnlineSettings}
+                  />
                 </PanelErrorBoundary>
               </WorkspacePanelFrame>
             ) : null}

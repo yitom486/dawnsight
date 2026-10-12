@@ -93,17 +93,17 @@ export function SettingsWorkspaceFrame({
     >
       <nav
         aria-label="设置分类"
-        className="flex w-64 shrink-0 flex-col border-r border-border bg-surface-elevated px-3 py-5 max-[760px]:w-16 max-[760px]:px-2"
+        className="flex w-64 shrink-0 flex-col border-r border-border bg-surface-elevated px-[var(--space-ui-3)] py-[var(--space-ui-6)] max-[760px]:w-16 max-[760px]:px-[var(--space-ui-2)]"
       >
-        <div className="px-3 pb-5 max-[760px]:px-0 max-[760px]:text-center">
-          <h1 className="text-xl font-semibold tracking-tight max-[760px]:text-sm">
+        <div className="px-[var(--space-ui-3)] pb-[var(--space-ui-6)] max-[760px]:px-0 max-[760px]:text-center">
+          <h1 className="text-[length:var(--text-ui-page)] leading-[var(--text-ui-page--line-height)] font-semibold max-[760px]:text-[length:var(--text-ui-title)] max-[760px]:leading-[var(--text-ui-title--line-height)]">
             设置
           </h1>
-          <p className="mt-1 text-xs text-muted-foreground max-[760px]:sr-only">
+          <p className="mt-[var(--space-ui-1)] text-[length:var(--text-ui-meta)] leading-[var(--text-ui-meta--line-height)] text-muted-foreground max-[760px]:sr-only">
             播放、字幕与 AI 工作流
           </p>
         </div>
-        <ul className="flex list-none flex-col gap-1 p-0">
+        <ul className="flex list-none flex-col gap-[var(--space-ui-1)] p-0">
           {SETTINGS_CATEGORIES.map((category) => {
             const selected = activeCategory === category.id;
             const Icon = category.icon;
@@ -113,9 +113,9 @@ export function SettingsWorkspaceFrame({
                   type="button"
                   variant="ghost"
                   className={cn(
-                    "h-auto min-h-14 w-full justify-start gap-3 rounded-lg border-l-2 px-3 py-2 text-left max-[760px]:justify-center max-[760px]:gap-0 max-[760px]:px-1",
+                    "h-auto min-h-14 w-full justify-start gap-[var(--space-ui-3)] rounded-[var(--radius-ui-control)] border-l-2 px-[var(--space-ui-3)] py-[var(--space-ui-2)] text-left transition-[background-color,color,border-color] duration-[var(--duration-ui-feedback)] motion-reduce:transition-none max-[760px]:justify-center max-[760px]:gap-0 max-[760px]:px-[var(--space-ui-1)]",
                     selected
-                      ? "border-ai bg-ai-muted text-ai hover:bg-ai-muted"
+                      ? "border-foreground/60 bg-surface-subtle text-foreground hover:bg-surface-subtle"
                       : "border-transparent text-muted-foreground hover:bg-surface-subtle hover:text-foreground",
                   )}
                   aria-label={category.label}
@@ -126,10 +126,10 @@ export function SettingsWorkspaceFrame({
                 >
                   <Icon className="size-5 shrink-0" />
                   <span className="min-w-0 max-[760px]:sr-only">
-                    <span className="block truncate text-sm font-medium">
+                    <span className="block truncate text-[length:var(--text-ui-body)] leading-[var(--text-ui-body--line-height)] font-medium">
                       {category.label}
                     </span>
-                    <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">
+                    <span className="mt-0.5 block truncate text-[length:var(--text-ui-meta)] leading-[var(--text-ui-meta--line-height)] text-muted-foreground">
                       {category.description}
                     </span>
                   </span>
@@ -139,7 +139,7 @@ export function SettingsWorkspaceFrame({
           })}
         </ul>
       </nav>
-      <div className="min-h-0 min-w-0 flex-1 overflow-auto bg-surface px-5 py-6 max-[760px]:px-3 max-[760px]:py-4">
+      <div className="min-h-0 min-w-0 flex-1 overflow-auto bg-surface px-[var(--space-ui-6)] py-[var(--space-ui-6)] max-[760px]:px-[var(--space-ui-3)] max-[760px]:py-[var(--space-ui-4)]">
         {content}
       </div>
     </section>

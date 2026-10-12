@@ -40,8 +40,9 @@ export function PlaylistPanel() {
                 size="sm"
                 variant="ghost"
                 disabled={busy}
+                aria-current={active ? "true" : undefined}
                 className={cn(
-                  "h-auto w-full justify-start gap-0 rounded-md px-2 py-1.5 text-left text-sm font-normal transition-colors",
+                  "h-auto w-full justify-start gap-0 whitespace-normal rounded-md px-2 py-1.5 text-left text-[length:var(--text-ui-body)] leading-[var(--text-ui-body--line-height)] font-normal transition-colors",
                   active
                     ? "bg-accent font-medium text-accent-foreground"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -56,10 +57,10 @@ export function PlaylistPanel() {
                   });
                 }}
               >
-                <span className="mr-2 tabular-nums text-[11px] opacity-60">
+                <span className="mr-2 shrink-0 tabular-nums text-[length:var(--text-ui-label)] leading-[var(--text-ui-label--line-height)] opacity-60">
                   {index + 1}
                 </span>
-                <span className="break-all">{fileName(path)}</span>
+                <span className="min-w-0 break-all">{fileName(path)}</span>
               </Button>
             </li>
           );

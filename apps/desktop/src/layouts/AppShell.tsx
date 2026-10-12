@@ -163,7 +163,7 @@ export function AboutButton() {
               }}
             >
               <div
-                className="relative flex flex-col gap-4 border border-border bg-card text-foreground max-w-md w-full rounded-2xl p-6 shadow-2xl"
+                className="relative flex flex-col gap-4 border border-border bg-card text-foreground max-w-md w-full rounded-[var(--radius-ui-container)] p-6 shadow-lg"
                 onClick={(e) => e.stopPropagation()}
               >
                 <button
@@ -175,11 +175,11 @@ export function AboutButton() {
                   <X className="size-4" />
                 </button>
 
-                <div className="flex items-center gap-3.5 pr-6">
+                <div className="flex items-center gap-[var(--space-ui-4)] pr-6">
                   <img
                     src={dawnsightLogo}
                     alt="Dawnsight Logo"
-                    className="size-11 rounded-xl border border-ai/40 object-cover shadow-sm pointer-events-none shrink-0"
+                    className="size-11 rounded-xl border border-border object-cover shadow-sm pointer-events-none shrink-0"
                   />
                   <div className="flex flex-col text-left min-w-0">
                     <div className="flex items-center gap-2">
@@ -189,11 +189,11 @@ export function AboutButton() {
                       >
                         Dawnsight
                       </h2>
-                      <span className="rounded-full bg-ai/10 border border-ai/30 px-2 py-0.5 text-[11px] font-medium text-ai">
+                      <span className="rounded-full bg-ai/10 border border-ai/30 px-2 py-0.5 text-[length:var(--text-ui-label)] leading-[var(--text-ui-label--line-height)] font-medium text-ai">
                         AI Video Reader
                       </span>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    <p className="text-[length:var(--text-ui-meta)] leading-[var(--text-ui-meta--line-height)] text-muted-foreground mt-0.5">
                       版本 {version}
                     </p>
                   </div>
@@ -248,7 +248,6 @@ export function AppShell({ children }: AppShellProps) {
     return parts[parts.length - 1] || s.currentFile;
   });
   const fileFormat = fileLabel?.match(/\.([^.]+)$/)?.[1]?.toUpperCase() ?? null;
-  const status = usePlayerStore((s) => s.status);
   const playlist = usePlayerStore((s) => s.playlist);
   const playlistIndex = usePlayerStore((s) => s.playlistIndex);
 
@@ -316,23 +315,22 @@ export function AppShell({ children }: AppShellProps) {
               </p>
             </div>
           </div>
-          <div aria-hidden="true" className="h-4 w-px shrink-0 bg-border/80" />
+          <div aria-hidden="true" className="hidden h-4 w-px shrink-0 bg-border/80 min-[1100px]:block" />
           <div
-            className="flex min-w-0 flex-1 items-center justify-center gap-2 px-3 text-xs text-muted-foreground cursor-default"
+            className="flex min-w-0 flex-1 items-center justify-center gap-[var(--space-ui-2)] px-3 cursor-default"
             data-tauri-drag-region
           >
-            <span className="truncate" title={fileLabel ?? undefined} data-tauri-drag-region>
+            <span className="truncate text-[length:var(--text-ui-body)] leading-[var(--text-ui-body--line-height)] font-medium text-foreground" title={fileLabel ?? undefined} data-tauri-drag-region>
               {fileLabel ?? "未打开文件"}
             </span>
             {fileFormat ? (
-              <span className="shrink-0 rounded border border-border/80 bg-muted px-1.5 py-0.5 text-[10px] font-medium tracking-wide text-muted-foreground">
+              <span className="shrink-0 rounded border border-border/80 bg-muted px-1.5 py-0.5 text-[length:var(--text-ui-label)] leading-[var(--text-ui-label--line-height)] font-medium tracking-wide text-muted-foreground">
                 {fileFormat}
               </span>
             ) : null}
-            {status && fileLabel ? <span className="shrink-0 opacity-70">· {status}</span> : null}
             {playlist.length > 1 && playlistIndex >= 0 ? (
-              <span className="shrink-0 opacity-70">
-                · {playlistIndex + 1}/{playlist.length}
+              <span className="shrink-0 text-[length:var(--text-ui-meta)] leading-[var(--text-ui-meta--line-height)] text-muted-foreground tabular-nums">
+                {playlistIndex + 1}/{playlist.length}
               </span>
             ) : null}
           </div>

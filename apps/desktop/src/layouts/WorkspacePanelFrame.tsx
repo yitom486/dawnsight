@@ -34,19 +34,19 @@ export function WorkspacePanelFrame({
         className,
       )}
     >
-      <header className="flex min-h-10 shrink-0 items-center justify-between gap-2 border-b border-border px-3 py-2">
-        <div className="flex min-w-0 items-center gap-1.5">
-          {icon ? <span className="shrink-0 text-ai">{icon}</span> : null}
+      <header className="flex min-h-10 shrink-0 items-center justify-between gap-[var(--space-ui-2)] border-b border-border px-[var(--space-ui-3)] py-[var(--space-ui-3)]">
+        <div className="flex min-w-0 items-center gap-[var(--space-ui-2)]">
+          {icon ? <span className="shrink-0 text-muted-foreground">{icon}</span> : null}
           <div className="min-w-0">
-            <p className="truncate text-xs font-medium">{title}</p>
+            <p className="truncate text-[length:var(--text-ui-title)] leading-[var(--text-ui-title--line-height)] font-semibold">{title}</p>
             {subtitle ? (
-              <p className="truncate text-[10px] text-muted-foreground">
+              <p className="truncate text-[length:var(--text-ui-meta)] leading-[var(--text-ui-meta--line-height)] text-muted-foreground">
                 {subtitle}
               </p>
             ) : null}
           </div>
         </div>
-        {actions ? <div className="flex shrink-0 items-center gap-1">{actions}</div> : null}
+        {actions ? <div className="flex shrink-0 items-center gap-[var(--space-ui-1)]">{actions}</div> : null}
       </header>
       <div className={cn("flex min-h-0 flex-1 flex-col overflow-hidden", contentClassName)}>
         {children}

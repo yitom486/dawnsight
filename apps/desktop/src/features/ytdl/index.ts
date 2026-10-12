@@ -22,6 +22,6 @@ export {
   setYtdlCookies,
   testYtdlCookies,
 } from "./api";
-export { OnlineSourcePanel } from "./components/OnlineSourcePanel";
+export { OnlineSourcePanel, type OnlineSourcePanelProps } from "./components/OnlineSourcePanel";
 export { OnlineResourceSettingsPanel } from "./components/OnlineResourceSettingsPanel";
 export { OnlineSourceSettings } from "./components/OnlineSourceSettings";
