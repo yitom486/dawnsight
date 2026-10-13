@@ -390,18 +390,25 @@ function LibrarySettingsContent() {
   const playbackRoot = libraryRootFromPlaybackPath(currentFile);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto p-3 text-xs">
+    <div className="flex min-h-0 flex-1 flex-col gap-3 text-xs">
       <SeriesReadingSection />
       <section className="space-y-2">
         <div className="flex items-center justify-between gap-2">
           <p className="font-medium">媒体库守护</p>
           <span className="text-muted-foreground">
-            {statusQuery.data?.running ? "运行中" : "未启动"}
+            {statusQuery.data
+              ? statusQuery.data.running ? "运行中" : "未启动"
+              : statusQuery.isError ? "状态未知" : "正在读取状态…"}
           </span>
         </div>
+        {statusQuery.isError && !statusQuery.data ? (
+          <p role="alert" className="break-words text-destructive">
+            {errorMessage(statusQuery.error)}
+          </p>
+        ) : null}
         <div className="space-y-1 text-muted-foreground">
           {roots.length ? (
-            roots.map((root) => <p key={root} className="truncate">{root}</p>)
+            roots.map((root) => <p key={root} className="break-words">{root}</p>)
           ) : rootsFollowPlayback && !playbackRoot ? (
             <p>打开视频后将自动使用其所在目录</p>
           ) : (
@@ -412,16 +419,21 @@ function LibrarySettingsContent() {
           ) : roots.length ? (
             <p>已固定为手动选择的目录；换视频不会自动更改。</p>
           ) : null}
-          {statusQuery.data?.lastScanAtMs ? <p>上次成功扫描：{formatScanTime(statusQuery.data.lastScanAtMs)} · 已索引 {statusQuery.data.indexedFiles} 个文件</p> : null}
+          {statusQuery.data?.lastScanAtMs ? <p className="tabular-nums">上次成功扫描：{formatScanTime(statusQuery.data.lastScanAtMs)} · 已索引 {statusQuery.data.indexedFiles} 个文件</p> : null}
         </div>
         <div className="flex flex-wrap gap-2">
           <Button size="sm" variant="outline" onClick={async () => {
-            const selected = await open({ directory: true, multiple: true });
-            if (!selected) return;
-            patchSettings({
-              roots: Array.isArray(selected) ? selected : [selected],
-              rootsFollowPlayback: false,
-            });
+            try {
+              const selected = await open({ directory: true, multiple: true });
+              if (!selected) return;
+              setError(null);
+              patchSettings({
+                roots: Array.isArray(selected) ? selected : [selected],
+                rootsFollowPlayback: false,
+              });
+            } catch (err) {
+              setError(errorMessage(err));
+            }
           }}>选择目录</Button>
           {!rootsFollowPlayback ? (
             <Button
@@ -465,9 +477,9 @@ function LibrarySettingsContent() {
         {statusQuery.data?.lastScanError ? (
           <Alert
             variant="destructive"
-            className="space-y-2 rounded-md border-destructive/50 bg-destructive/10 p-2 text-destructive"
+            className="space-y-2 rounded-md border-destructive/50 p-2 text-destructive"
           >
-            <p>上一次扫描失败：{statusQuery.data.lastScanError.message}</p>
+            <p className="break-words">上一次扫描失败：{errorMessage(statusQuery.data.lastScanError)}</p>
             <p className="text-muted-foreground">
               守护服务会在下个扫描周期自动重试；你也可以立即重试。
             </p>
@@ -884,13 +896,13 @@ function ScanProgressCard({ event, busy }: { event: LibraryScanEvent; busy: bool
     return (
       <Alert
         variant="destructive"
-        className="rounded-md border-destructive/50 bg-destructive/10 p-2 text-destructive"
+        className="rounded-md border-destructive/50 p-2 text-destructive"
       >
-        首次扫描失败：{event.payload.message}
+        <p className="break-words">首次扫描失败：{errorMessage(event.payload)}</p>
       </Alert>
     );
   }
-  if (event.type === "Finished") return <div className="rounded-md border border-emerald-500/40 bg-emerald-500/10 p-2 text-emerald-500">首次扫描完成：已索引 {event.payload.indexedFiles} 个文件，发现 {event.payload.pendingGroups} 个待匹配分组。</div>;
+  if (event.type === "Finished") return <div className="flex items-start gap-2 rounded-md border border-success/40 p-2 text-foreground"><span aria-hidden="true" className="mt-1.5 size-1.5 shrink-0 rounded-full bg-success" />首次扫描完成：已索引 {event.payload.indexedFiles} 个文件，发现 {event.payload.pendingGroups} 个待匹配分组。</div>;
   const rootCount = event.payload.rootCount;
   const rootsCompleted = event.type === "Progress" ? event.payload.rootsCompleted : 0;
   const indexedFiles = event.type === "Progress" ? event.payload.indexedFiles : 0;
@@ -903,7 +915,7 @@ function ScanProgressCard({ event, busy }: { event: LibraryScanEvent; busy: bool
       role="status"
     >
       <p>{busy ? "正在首次扫描媒体目录…" : "正在准备扫描…"}</p>
-      <p>
+      <p className="tabular-nums">
         目录进度：{rootsCompleted} / {rootCount} · 已发现 {indexedFiles} 个视频文件
       </p>
       <Progress
