@@ -475,10 +475,7 @@ export function TranscriptPanel({
       await queryClient.invalidateQueries({ queryKey: ["asrStatus"] });
       setInstallProgress("转写组件已就绪，可生成字幕");
     } catch (error) {
-      const message =
-        typeof error === "object" && error && "message" in error
-          ? String((error as { message: string }).message)
-          : String(error);
+      const message = errorMessage(error);
       setInstallError(message);
       setInstallProgress(null);
     } finally {
@@ -526,10 +523,7 @@ export function TranscriptPanel({
         exported ? "已保存外挂字幕并切换到该轨" : null,
       );
     } catch (error) {
-      const message =
-        typeof error === "object" && error && "message" in error
-          ? String((error as { message: string }).message)
-          : String(error);
+      const message = errorMessage(error);
       setAsrError(message);
       setAsrProgress(null);
     } finally {
@@ -586,10 +580,7 @@ export function TranscriptPanel({
           : "校对完成，请在字幕轨中手动选择",
       );
     } catch (error) {
-      const message =
-        typeof error === "object" && error && "message" in error
-          ? String((error as { message: string }).message)
-          : String(error);
+      const message = errorMessage(error);
       setProofreadError(message);
       setProofreadProgress(null);
     } finally {
@@ -652,10 +643,7 @@ export function TranscriptPanel({
           : "翻译完成，请在字幕轨中手动选择",
       );
     } catch (error) {
-      const message =
-        typeof error === "object" && error && "message" in error
-          ? String((error as { message: string }).message)
-          : String(error);
+      const message = errorMessage(error);
       setTranslateError(message);
       setTranslateProgress(null);
     } finally {
@@ -729,7 +717,7 @@ export function TranscriptPanel({
     <section
       className={
         workshopOnly
-          ? "flex min-h-0 flex-1 flex-col overflow-y-auto"
+          ? "flex min-h-0 flex-1 flex-col"
           : "flex min-h-0 flex-1 flex-col overflow-hidden"
       }
     >
@@ -884,7 +872,7 @@ export function TranscriptPanel({
               type="button"
               size="sm"
               variant="ghost"
-              className="h-auto rounded-none px-0 py-0 text-xs text-muted-foreground underline"
+              className="h-7 rounded-none px-2 py-0 text-xs text-muted-foreground underline"
               onClick={() => setAsrTranscript(null)}
             >
               回到字幕文稿
@@ -893,7 +881,7 @@ export function TranscriptPanel({
         </div>
         {asrScope === "chapter" ? (
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-[length:var(--text-ui-label)] leading-[var(--text-ui-label--line-height)] text-muted-foreground">
+            <p className="break-words text-[length:var(--text-ui-label)] leading-[var(--text-ui-label--line-height)] text-muted-foreground">
               {activeChapter
                 ? `当前章节：${activeChapter.title?.trim() || `第 ${activeChapter.id} 章`}（${formatTime(activeChapter.startMs)}${
                     activeChapter.endMs != null
@@ -907,7 +895,7 @@ export function TranscriptPanel({
                 type="button"
                 size="sm"
                 variant="ghost"
-                className="h-6 px-2 text-[length:var(--text-ui-label)] leading-[var(--text-ui-label--line-height)]"
+                className="h-7 px-2 text-[length:var(--text-ui-label)] leading-[var(--text-ui-label--line-height)]"
                 onClick={() => {
                   const title =
                     activeChapter.title?.trim() ||
@@ -1131,7 +1119,7 @@ export function TranscriptPanel({
             {proofreadError ?? proofreadProgress}
           </p>
         ) : null}
-        <p className="text-[length:var(--text-ui-label)] leading-snug text-muted-foreground">
+        <p className="break-words text-[length:var(--text-ui-label)] leading-snug text-muted-foreground">
           翻译走字幕工坊专用模型与隔离会话，不会写入 AI 对话历史；主聊天 Agent
           也不能制作/写入外挂字幕。
           {workshopModels.modelId.trim()
@@ -1145,11 +1133,16 @@ export function TranscriptPanel({
         {asrProgress ? (
           <p className="text-xs text-muted-foreground">{asrProgress}</p>
         ) : null}
+        {asrError || installError ? (
+          <p className="break-words text-xs text-destructive" role="alert">
+            {asrError ?? installError}
+          </p>
+        ) : null}
         {translateProgress ? (
           <p className="text-xs text-muted-foreground">{translateProgress}</p>
         ) : null}
         {translateError || proofreadError ? (
-          <p className="text-xs text-destructive" role="alert">
+          <p className="break-words text-xs text-destructive" role="alert">
             {translateError ?? proofreadError}
           </p>
         ) : null}
@@ -1164,7 +1157,7 @@ export function TranscriptPanel({
           />
         ) : null}
         {!asrAvailable && asrStatusQuery.data ? (
-          <p className="text-[length:var(--text-ui-label)] leading-snug text-muted-foreground">
+          <p className="break-words text-[length:var(--text-ui-label)] leading-snug text-muted-foreground">
             {asrStatusQuery.data.message}
             {installSupported
               ? "。选择上方模型后点「一键下载」即可（无需手动找文件）。"
