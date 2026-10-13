@@ -173,11 +173,7 @@ export function OnlineSubtitleSection({
       const result = await validateSubtitleProviderKey("subdl", keyInput);
       setKeyMessage(result.verified ? "SubDL Key 有效，可保存使用" : result.message);
     } catch (err) {
-      setKeyMessage(
-        typeof err === "object" && err && "message" in err
-          ? String((err as { message: string }).message)
-          : String(err),
-      );
+      setKeyMessage(errorMessage(err));
     } finally {
       setCheckBusy(false);
     }
@@ -237,7 +233,14 @@ export function OnlineSubtitleSection({
       <div className="flex flex-wrap items-end gap-2">
         <label className="flex min-w-[10rem] flex-1 flex-col gap-1 text-xs">
           <span className="text-muted-foreground">
-            SubDL Key{subdl?.hasKey ? "（已配置）" : "（未配置）"}
+            SubDL Key
+            {subdl?.hasKey
+              ? "（已配置）"
+              : statusQuery.data
+                ? "（未配置）"
+                : statusQuery.isError
+                  ? "（检查失败）"
+                  : "（检查中…）"}
           </span>
           <Input
             type="password"
@@ -245,7 +248,6 @@ export function OnlineSubtitleSection({
             value={keyInput}
             disabled={busy}
             placeholder="粘贴 Key 后保存"
-            aria-label="SubDL API key"
             onChange={(e) => setKeyInput(e.target.value)}
           />
         </label>
@@ -269,7 +271,10 @@ export function OnlineSubtitleSection({
         </Button>
       </div>
       {keyMessage ? (
-        <p className="text-[length:var(--text-ui-label)] leading-[var(--text-ui-label--line-height)] text-muted-foreground">{keyMessage}</p>
+        <p className="break-words text-[length:var(--text-ui-label)] leading-[var(--text-ui-label--line-height)] text-muted-foreground">{keyMessage}</p>
+      ) : null}
+      {statusQuery.isError && !statusQuery.data ? (
+        <p className="break-words text-[length:var(--text-ui-label)] leading-snug text-destructive">{errorMessage(statusQuery.error)}</p>
       ) : null}
 
       <div className="flex flex-wrap items-end gap-2 border-t border-border/70 pt-[var(--space-ui-4)]">
@@ -279,7 +284,6 @@ export function OnlineSubtitleSection({
             className="h-8 w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-50"
             value={title}
             disabled={busy}
-            aria-label="Title to search subtitles for"
             onChange={(e) => setTitle(e.target.value)}
           />
         </label>
@@ -290,7 +294,6 @@ export function OnlineSubtitleSection({
             value={season}
             disabled={busy}
             inputMode="numeric"
-            aria-label="Season number"
             onChange={(e) => setSeason(e.target.value)}
           />
         </label>
@@ -301,7 +304,6 @@ export function OnlineSubtitleSection({
             value={episode}
             disabled={busy}
             inputMode="numeric"
-            aria-label="Episode number"
             onChange={(e) => setEpisode(e.target.value)}
           />
         </label>
@@ -312,7 +314,6 @@ export function OnlineSubtitleSection({
             className="w-full"
             value={targetLang}
             disabled={busy}
-            aria-label="Preferred subtitle language"
             onChange={(e) => setTargetLang(e.target.value)}
           >
             {LANG_PRESETS.map((lang) => (
@@ -338,7 +339,7 @@ export function OnlineSubtitleSection({
       </p>
 
       {error ? (
-        <p className="text-xs text-muted-foreground">{error}</p>
+        <p className="break-words text-xs text-muted-foreground" role="alert">{error}</p>
       ) : null}
 
       {candidates && candidates.length > 0 ? (
@@ -354,7 +355,7 @@ export function OnlineSubtitleSection({
               <span className="shrink-0 rounded bg-secondary px-1.5 py-0.5 font-medium">
                 {candidate.language}
               </span>
-              <span className="min-w-0 flex-1 truncate" title={candidate.releaseName}>
+              <span className="min-w-0 flex-1 break-words" title={candidate.releaseName}>
                 {candidate.releaseName || candidate.format}
                 <span className="ml-1 text-muted-foreground">
                   · {formatSize(candidate.sizeBytes)}
@@ -365,7 +366,7 @@ export function OnlineSubtitleSection({
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="h-6 shrink-0 px-2 text-[length:var(--text-ui-label)] leading-[var(--text-ui-label--line-height)]"
+                className="h-7 shrink-0 px-2 text-[length:var(--text-ui-label)] leading-[var(--text-ui-label--line-height)]"
                 disabled={busy}
                 onClick={() => void handleDownload(candidate, index)}
               >

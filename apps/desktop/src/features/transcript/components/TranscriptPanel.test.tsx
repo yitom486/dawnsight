@@ -511,7 +511,7 @@ describe("TranscriptPanel downloaded subtitles", () => {
     await waitFor(() => {
       expect(screen.getByText("搜索字幕")).toBeInTheDocument();
     });
-    fireEvent.change(screen.getByLabelText("SubDL API key"), {
+    fireEvent.change(screen.getByLabelText(/SubDL Key/), {
       target: { value: "test-key" },
     });
     fireEvent.click(screen.getByText("检测"));
@@ -587,11 +587,11 @@ describe("TranscriptPanel downloaded subtitles", () => {
     renderWorkshopPanel();
     await waitFor(() => {
       expect(
-        screen.getByLabelText("Title to search subtitles for"),
+        screen.getByLabelText("片名"),
       ).toHaveValue("Our Beloved Summer 2021");
     });
-    expect(screen.getByLabelText("Episode number")).toHaveValue("1");
-    expect(screen.getByLabelText("Season number")).toHaveValue("");
+    expect(screen.getByLabelText("集")).toHaveValue("1");
+    expect(screen.getByLabelText("季")).toHaveValue("");
   });
 
   it("unsticks a translation whose backend died without settling", async () => {
