@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { open } from "@tauri-apps/plugin-dialog";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 
 import { Alert } from "@dawnsight/ui/alert";
 import { Button } from "@dawnsight/ui/button";
@@ -728,9 +728,19 @@ function LibrarySettingsContent() {
       </details>
 
       {error ? <p className="break-words text-destructive" role="alert">{error}{" "}<Button type="button" size="sm" variant="ghost" className="h-7 rounded-none px-2 py-0 text-xs text-destructive underline" aria-label="关闭错误提示" onClick={() => setError(null)}>关闭</Button></p> : null}
-      {matchedGroups.length > 0 ? (
+      {matchedQuery.isLoading && !matchedQuery.data ? (
         <section className="min-h-0 space-y-2">
-          <p className="font-medium">已匹配分组（{matchedGroups.length}）</p>
+          <p className="font-medium tabular-nums">已匹配分组</p>
+          <p className="text-muted-foreground">正在读取已匹配分组…</p>
+        </section>
+      ) : matchedQuery.isError && !matchedQuery.data ? (
+        <section className="min-h-0 space-y-2">
+          <p className="font-medium tabular-nums">已匹配分组</p>
+          <p className="break-words text-[11px] text-destructive">{errorMessage(matchedQuery.error)}</p>
+        </section>
+      ) : matchedGroups.length > 0 ? (
+        <section className="min-h-0 space-y-2">
+          <p className="font-medium tabular-nums">已匹配分组（{matchedGroups.length}）</p>
           <p className="text-muted-foreground">
             完成 TMDb 匹配后，可分别刷新 TMDb 与维基元数据；TMDb 含演员/创作者/分集，维基含英文摘要与主要角色小传。需已保存 TMDb Token 且联网。
           </p>
@@ -821,7 +831,16 @@ function LibrarySettingsContent() {
         </section>
       ) : null}
       <section className="min-h-0 space-y-2">
-        <p className="font-medium">待匹配分组（{pendingQuery.data?.length ?? 0}）</p>
+        <p className="font-medium tabular-nums">待匹配分组{pendingQuery.data ? `（${pendingQuery.data.length}）` : ""}</p>
+        {!statusQuery.data?.running ? (
+          <p className="text-muted-foreground">启动媒体库扫描后，这里会列出待匹配分组。</p>
+        ) : pendingQuery.isLoading && !pendingQuery.data ? (
+          <p className="text-muted-foreground">正在读取待匹配分组…</p>
+        ) : pendingQuery.isError && !pendingQuery.data ? (
+          <p className="break-words text-[11px] text-destructive">{errorMessage(pendingQuery.error)}</p>
+        ) : (pendingQuery.data ?? []).length === 0 ? (
+          <p className="text-muted-foreground">暂无待匹配分组。</p>
+        ) : null}
         {(pendingQuery.data ?? []).map((pending) => (
           <PendingGroupCard
             key={`${pending.root}:${pending.group.key}`}
@@ -1031,13 +1050,13 @@ function MatchedGroupCard({
 
   return (
     <div className="space-y-2 rounded-md border border-border p-2">
-      <p className="font-medium">{group.displayName}</p>
+      <p className="break-words text-[length:var(--text-ui-body)] font-medium text-foreground">{group.displayName}</p>
       <p className="text-muted-foreground">
         {group.files.length} 个文件 · TMDb 已匹配
       </p>
       <div className="space-y-1 text-xs">
         {tmdbStatus && tmdbStatus.updatedAtMs > 0 ? (
-          <p className="text-muted-foreground">
+          <p className="break-words text-muted-foreground">
             TMDb：{tmdbStatus.title ?? group.displayName}
             {tmdbStatus.castCount > 0 ? ` · ${tmdbStatus.castCount} 位演员` : ""}
             {tmdbStatus.creatorsCount > 0 ? ` · ${tmdbStatus.creatorsCount} 位创作者` : ""}
@@ -1050,8 +1069,9 @@ function MatchedGroupCard({
             {formatWikiUpdatedAt(tmdbStatus.updatedAtMs)}
           </p>
         ) : (
-          <p className="text-amber-600 dark:text-amber-400">
-            TMDb 元数据较旧或缺少演员/创作者，建议刷新。
+          <p className="flex min-w-0 items-start gap-1.5 text-foreground">
+            <span aria-hidden="true" className="mt-1.5 size-1.5 shrink-0 rounded-full bg-warning" />
+            <span>TMDb 元数据较旧或缺少演员/创作者，建议刷新。</span>
           </p>
         )}
         <Button
@@ -1070,19 +1090,21 @@ function MatchedGroupCard({
       </div>
       {existing ? (
         <div className="space-y-1 text-xs">
-          <p className="text-emerald-600 dark:text-emerald-400">
-            已补充：{existing.pageTitle} · 更新于{" "}
-            {formatWikiUpdatedAt(Number(existing.updatedAtMs))}
+          <p className="flex min-w-0 items-start gap-1.5 text-foreground">
+            <span aria-hidden="true" className="mt-1.5 size-1.5 shrink-0 rounded-full bg-success" />
+            <span className="min-w-0 break-words">已补充：{existing.pageTitle} · 更新于{" "}
+            {formatWikiUpdatedAt(Number(existing.updatedAtMs))}</span>
           </p>
           {isStale ? (
-            <p className="text-amber-600 dark:text-amber-400">
-              已超过 {staleDaysLabel(staleAfterMs)} 天未刷新，建议更新维基内容。
+            <p className="flex min-w-0 items-start gap-1.5 text-foreground">
+              <span aria-hidden="true" className="mt-1.5 size-1.5 shrink-0 rounded-full bg-warning" />
+              <span>已超过 {staleDaysLabel(staleAfterMs)} 天未刷新，建议更新维基内容。</span>
             </p>
           ) : null}
         </div>
       ) : null}
       {notice ? (
-        <p className="text-xs text-emerald-600 dark:text-emerald-400">{notice}</p>
+        <p className="flex min-w-0 items-start gap-1.5 text-xs text-foreground"><span aria-hidden="true" className="mt-1.5 size-1.5 shrink-0 rounded-full bg-success" /><span className="min-w-0 break-words">{notice}</span></p>
       ) : null}
       <div className="flex flex-wrap gap-1">
         {existing ? (
@@ -1123,8 +1145,9 @@ function MatchedGroupCard({
       {showPreviewPanel && preview ? (
         <div className="space-y-1 rounded bg-muted/40 p-2 text-xs">
           {preview.conflict ? (
-            <p className="text-amber-600 dark:text-amber-400">
-              Wikidata 与搜索结果不一致，请选择正确页面。
+            <p className="flex min-w-0 items-start gap-1.5 text-foreground">
+              <span aria-hidden="true" className="mt-1.5 size-1.5 shrink-0 rounded-full bg-warning" />
+              <span>Wikidata 与搜索结果不一致，请选择正确页面。</span>
             </p>
           ) : null}
           {preview.zhwikiReference ? (
@@ -1135,11 +1158,11 @@ function MatchedGroupCard({
                   ? " · 与英文页面对齐"
                   : " · 未与当前英文页面对齐"}
               </p>
-              <p className="truncate font-medium">
+              <p className="break-words font-medium">
                 {preview.zhwikiReference.pageTitle}
               </p>
               {preview.zhwikiReference.extract ? (
-                <p className="line-clamp-3 text-muted-foreground">
+                <p className="break-words text-muted-foreground">
                   {preview.zhwikiReference.extract}
                 </p>
               ) : null}
@@ -1156,9 +1179,9 @@ function MatchedGroupCard({
                 className="flex items-start justify-between gap-2"
               >
                 <div className="min-w-0">
-                  <p className="truncate font-medium">{candidate.pageTitle}</p>
+                  <p className="break-words font-medium">{candidate.pageTitle}</p>
                   {candidate.extract ? (
-                    <p className="line-clamp-2 text-muted-foreground">
+                    <p className="break-words text-muted-foreground">
                       {candidate.extract}
                     </p>
                   ) : null}
@@ -1229,6 +1252,10 @@ function PendingGroupCard({ pending, title, preview, disabled, directDisabled, o
   const [direct, setDirect] = useState<TmdbCandidate[] | null>(null);
   const [withCast, setWithCast] = useState(true);
   const [withEpisodes, setWithEpisodes] = useState(true);
+  // Checkbox ids must be unique per card: Base UI locates each control
+  // label through the passed id, so static ids collide across cards.
+  // Business labels stay identical.
+  const fieldId = useId();
   const isBusy = busy !== null;
   const first = preview?.candidates[0] ?? null;
 
@@ -1262,7 +1289,7 @@ function PendingGroupCard({ pending, title, preview, disabled, directDisabled, o
     run("apply", () => doConfirm(candidate, fields, head), candidate.tmdbId);
 
   return <div className="space-y-2 rounded-md border border-border p-2">
-    <p className="font-medium">{pending.group.displayName}</p>
+    <p className="break-words text-[length:var(--text-ui-body)] font-medium text-foreground">{pending.group.displayName}</p>
     <p className="text-muted-foreground">{pending.group.files.length} 个文件 · {pending.group.kind === "series" ? "剧集候选" : "电影候选"}</p>
     <div className="flex gap-1"><Input aria-label="媒体匹配标题" className="h-7 min-w-0 flex-1 rounded border border-border bg-background px-2 text-sm" value={title} placeholder="输入作品名后一键匹配" disabled={isBusy} onChange={(e) => onTitle(e.target.value)} /><Button size="sm" disabled={!title.trim() || directDisabled || isBusy} onClick={() => {
       setDirect(null);
@@ -1277,47 +1304,37 @@ function PendingGroupCard({ pending, title, preview, disabled, directDisabled, o
         await doConfirm(outcome.candidate, FULL_TMDB_FIELDS, "一键匹配成功");
       });
     }}>{busy === "auto" ? "匹配中…" : "一键匹配"}</Button></div>
-    <div className="flex items-center gap-2"><Button size="sm" variant="outline" disabled={!title.trim() || directDisabled || isBusy} onClick={() => { setDirect(null); void run("search", async () => { setDirect(await onSearchTitle(title)); }); }}>{busy === "search" ? "查询中…" : "手动选"}</Button><Button size="sm" variant="outline" disabled={disabled || isBusy} onClick={() => void run("preview", onPreview)}>{busy === "preview" ? "识别中…" : "智能识别"}</Button><Button type="button" size="sm" variant="ghost" className="h-auto rounded-none px-0 py-0 text-muted-foreground underline" disabled={!title.trim() || isBusy} onClick={() => void run("save", async () => { await onSaveTitle(title); setNotice("标题已保存（未联网）"); })}>{busy === "save" ? "保存中…" : "仅存标题不上网"}</Button></div>
+    <div className="flex flex-wrap items-center gap-2"><Button size="sm" variant="outline" disabled={!title.trim() || directDisabled || isBusy} onClick={() => { setDirect(null); void run("search", async () => { setDirect(await onSearchTitle(title)); }); }}>{busy === "search" ? "查询中…" : "手动选"}</Button><Button size="sm" variant="outline" disabled={disabled || isBusy} onClick={() => void run("preview", onPreview)}>{busy === "preview" ? "识别中…" : "智能识别"}</Button><Button type="button" size="sm" variant="ghost" className="h-7 rounded-none px-2 py-0 text-xs text-muted-foreground underline" disabled={!title.trim() || isBusy} onClick={() => void run("save", async () => { await onSaveTitle(title); setNotice("标题已保存（未联网）"); })}>{busy === "save" ? "保存中…" : "仅存标题不上网"}</Button></div>
     {direct ? <div className="space-y-1 rounded bg-muted/40 p-2">
       <p className="text-muted-foreground">只把你输入的标题发给 TMDb；勾选要拉取的字段后确认。</p>
       <div className="flex flex-wrap gap-2 text-muted-foreground">
         <SharedField orientation="horizontal" className="w-fit items-center gap-1">
-          <Checkbox id="library-match-basic-fields" checked disabled />
-          <FieldLabel htmlFor="library-match-basic-fields" className="w-fit text-xs text-muted-foreground">
+          <FieldLabel className="w-fit items-center gap-1 text-xs text-muted-foreground">
+            <Checkbox id={`${fieldId}-basic`} checked disabled />
             基本信息（含简介，必需）
           </FieldLabel>
         </SharedField>
         <SharedField orientation="horizontal" className="w-fit items-center gap-1">
-          <Checkbox
-            id="library-match-cast"
-            checked={withCast}
-            disabled={isBusy}
-            onCheckedChange={(checked) => setWithCast(checked === true)}
-          />
-          <FieldLabel htmlFor="library-match-cast" className="w-fit text-xs text-muted-foreground">
+          <FieldLabel className="w-fit items-center gap-1 text-xs text-muted-foreground">
+            <Checkbox id={`${fieldId}-cast`} checked={withCast} disabled={isBusy} onCheckedChange={(checked) => setWithCast(checked === true)} />
             演员阵容
           </FieldLabel>
         </SharedField>
         <SharedField orientation="horizontal" className="w-fit items-center gap-1">
-          <Checkbox
-            id="library-match-episodes"
-            checked={withEpisodes}
-            disabled={isBusy}
-            onCheckedChange={(checked) => setWithEpisodes(checked === true)}
-          />
-          <FieldLabel htmlFor="library-match-episodes" className="w-fit text-xs text-muted-foreground">
+          <FieldLabel className="w-fit items-center gap-1 text-xs text-muted-foreground">
+            <Checkbox id={`${fieldId}-episodes`} checked={withEpisodes} disabled={isBusy} onCheckedChange={(checked) => setWithEpisodes(checked === true)} />
             分集信息
           </FieldLabel>
         </SharedField>
       </div>
       {direct.length === 0 ? <p className="text-muted-foreground">TMDb 没有返回候选，换个标题再试。</p> : null}
-      {direct.map((candidate) => <div key={`${candidate.mediaType}:${candidate.tmdbId}`} className="flex items-center justify-between gap-2"><span className="min-w-0 truncate">[{candidate.mediaType === "tv" ? "剧集" : "电影"}] {candidate.title}{candidate.year ? ` (${candidate.year})` : ""}</span><Button size="sm" variant="outline" disabled={directDisabled || isBusy} onClick={() => void confirmCandidate(candidate, { basic: true, cast: withCast, episodes: withEpisodes }, "已确认")}>{busy === "apply" && applyingId === candidate.tmdbId ? "写入中…" : "确认拉取"}</Button></div>)}
+      {direct.map((candidate) => <div key={`${candidate.mediaType}:${candidate.tmdbId}`} className="flex items-center justify-between gap-2"><span className="min-w-0 flex-1 break-words">[{candidate.mediaType === "tv" ? "剧集" : "电影"}] {candidate.title}{candidate.year ? ` (${candidate.year})` : ""}</span><Button size="sm" variant="outline" disabled={directDisabled || isBusy} onClick={() => void confirmCandidate(candidate, { basic: true, cast: withCast, episodes: withEpisodes }, "已确认")}>{busy === "apply" && applyingId === candidate.tmdbId ? "写入中…" : "确认拉取"}</Button></div>)}
     </div> : null}
     {preview ? <div className="space-y-1 rounded bg-muted/40 p-2"><p>识别：{preview.intent.title} · {preview.intent.mediaType}</p>
-      {first ? <Button size="sm" disabled={disabled || isBusy} onClick={() => void confirmCandidate(first, FULL_TMDB_FIELDS, "已确认")}>{busy === "apply" && applyingId === first.tmdbId ? "确认中…" : `确认首选：${first.title}${first.year ? ` (${first.year})` : ""}`}</Button> : null}
-      {preview.candidates.map((candidate) => <div key={candidate.tmdbId} className="flex items-center justify-between gap-2"><span className="min-w-0 truncate">{candidate.title}{candidate.year ? ` (${candidate.year})` : ""}</span><Button size="sm" variant="outline" disabled={disabled || isBusy} onClick={() => void confirmCandidate(candidate, FULL_TMDB_FIELDS, "已确认")}>{busy === "apply" && applyingId === candidate.tmdbId ? "确认中…" : "确认"}</Button></div>)}
+      {first ? <Button size="sm" className="h-auto min-h-7 max-w-full whitespace-normal break-words text-left" disabled={disabled || isBusy} onClick={() => void confirmCandidate(first, FULL_TMDB_FIELDS, "已确认")}>{busy === "apply" && applyingId === first.tmdbId ? "确认中…" : `确认首选：${first.title}${first.year ? ` (${first.year})` : ""}`}</Button> : null}
+      {preview.candidates.map((candidate) => <div key={candidate.tmdbId} className="flex items-center justify-between gap-2"><span className="min-w-0 flex-1 break-words">{candidate.title}{candidate.year ? ` (${candidate.year})` : ""}</span><Button size="sm" variant="outline" disabled={disabled || isBusy} onClick={() => void confirmCandidate(candidate, FULL_TMDB_FIELDS, "已确认")}>{busy === "apply" && applyingId === candidate.tmdbId ? "确认中…" : "确认"}</Button></div>)}
     </div> : null}
-    {notice ? <p className="text-xs text-emerald-600 dark:text-emerald-400">{notice}</p> : null}
+    {notice ? <p className="flex min-w-0 items-start gap-1.5 text-xs text-foreground"><span aria-hidden="true" className="mt-1.5 size-1.5 shrink-0 rounded-full bg-success" /><span className="min-w-0 break-words">{notice}</span></p> : null}
   </div>;
 }
 
