@@ -58,12 +58,12 @@ function CopyAnswerButton({ text }: { text: string }) {
 
   if (!text.trim()) return null;
   return (
-    <span className="mt-2 inline-flex flex-wrap items-center gap-2">
+    <span className="inline-flex flex-wrap items-center gap-2">
       <Button
         type="button"
         size="sm"
         variant="ghost"
-        className="h-auto rounded-none px-0 py-0 text-[11px] font-normal text-muted-foreground hover:bg-transparent hover:text-foreground"
+        className="h-7 rounded-none px-1 py-0 text-[11px] font-normal text-muted-foreground hover:bg-transparent hover:text-foreground"
         aria-label="复制回答"
         onClick={() => {
           void (async () => {
@@ -102,7 +102,7 @@ function SaveAnswerNote({ turn }: { turn: ChatTurn }) {
   if (turn.status !== "done" || !turn.answer.trim()) return null;
   if (saved) {
     return (
-      <p className="mt-2 text-[11px] text-success">
+      <p className="text-[11px] text-success">
         已保存为批注
       </p>
     );
@@ -113,7 +113,7 @@ function SaveAnswerNote({ turn }: { turn: ChatTurn }) {
         type="button"
         size="sm"
         variant="ghost"
-        className="mt-2 h-auto rounded-none px-0 py-0 text-[11px] font-normal text-muted-foreground hover:bg-transparent hover:text-foreground"
+        className="h-7 rounded-none px-1 py-0 text-[11px] font-normal text-muted-foreground hover:bg-transparent hover:text-foreground"
         onClick={() => setConfirming(true)}
       >
         存为批注
@@ -147,7 +147,7 @@ function ConfirmSaveNote({  turn,
   const anchorMs = turn.anchorMs ?? store.currentTimeMs;
 
   return (
-    <span className="mt-2 inline-flex flex-wrap items-center gap-1 text-[11px]">
+    <span className="inline-flex flex-wrap items-center gap-1 text-[11px]">
       <span className="text-muted-foreground">
         保存到 {formatTime(anchorMs)} 的批注？
       </span>
@@ -155,7 +155,7 @@ function ConfirmSaveNote({  turn,
         type="button"
         size="sm"
         variant="ghost"
-        className="h-auto rounded-none px-0 py-0 font-medium text-info hover:bg-transparent hover:text-info-foreground disabled:opacity-50"
+        className="h-7 rounded-none px-1 py-0 font-medium text-info hover:bg-transparent hover:text-info-foreground disabled:opacity-50"
         disabled={busy}
         onClick={() => {
           void (async () => {
@@ -192,7 +192,7 @@ function ConfirmSaveNote({  turn,
         type="button"
         size="sm"
         variant="ghost"
-        className="h-auto rounded-none px-0 py-0 text-[11px] font-normal text-muted-foreground hover:bg-transparent hover:text-foreground"
+        className="h-7 rounded-none px-1 py-0 text-[11px] font-normal text-muted-foreground hover:bg-transparent hover:text-foreground"
         disabled={busy}
         onClick={onCancel}
       >
@@ -282,7 +282,7 @@ export const ChatTurnView = memo(function ChatTurnView({
         {visibleActivities.length > 0 ? (
           <Collapsible open={showActivityFeed} onOpenChange={setToolsOpen}>
             {presentationMode === "development" && !showActivityFeed ? (
-              <CollapsibleTrigger className="mb-2 text-[11px] text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <CollapsibleTrigger className="mb-2 inline-flex min-h-7 flex-wrap items-center gap-x-2 gap-y-1 py-0.5 text-[11px] text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 {toolCount > 0
                   ? `查看本轮调试记录（${toolCount} 个工具）`
                   : "查看本轮调试记录"}
@@ -307,7 +307,7 @@ export const ChatTurnView = memo(function ChatTurnView({
 
         {doneSummary ? (
           <Collapsible open={toolsOpen} onOpenChange={setToolsOpen}>
-            <CollapsibleTrigger className="mb-2 inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <CollapsibleTrigger className="mb-2 inline-flex min-h-7 flex-wrap items-center gap-x-2 gap-y-1 py-0.5 text-[11px] text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               {doneSummary}
               <span aria-hidden="true">{toolsOpen ? "收起" : "展开"}</span>
             </CollapsibleTrigger>
@@ -324,9 +324,8 @@ export const ChatTurnView = memo(function ChatTurnView({
 
         <div
           className={cn(
-            "w-full rounded-lg px-3 py-2 text-sm break-words",
-            !isError && "bg-muted/40 text-foreground",
-            isError && "bg-destructive/10 text-destructive whitespace-pre-wrap",
+            "w-full px-0 py-1 text-sm break-words text-foreground",
+            isError && "rounded-lg bg-destructive/10 px-3 py-2 text-destructive whitespace-pre-wrap",
             isStreaming && !isError && "chat-reply-streaming",
           )}
           data-turn-id={turn.id}
@@ -365,11 +364,12 @@ export const ChatTurnView = memo(function ChatTurnView({
           </p>
         ) : null}
 
-        <SaveAnswerNote turn={turn} />
-        {!isError && turn.status === "done" ? (
-          <CopyAnswerButton text={copyableAnswerText} />
-        ) : null}
-
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+          <SaveAnswerNote turn={turn} />
+          {!isError && turn.status === "done" ? (
+            <CopyAnswerButton text={copyableAnswerText} />
+          ) : null}
+        </div>
         {turn.annotationProposalSaved ? (
           <div className="mt-2 rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-[12px] text-success-foreground">
             批注已写入笔记库

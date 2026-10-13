@@ -1,5 +1,7 @@
 import { Suspense, lazy, type ReactNode } from "react";
 
+import { cn } from "@dawnsight/ui/utils";
+
 const ChatMarkdownInner = lazy(() =>
   import("./ChatMarkdown").then((module) => ({
     default: module.ChatMarkdown,
@@ -28,7 +30,14 @@ export function ChatMarkdownLazy({
     <Suspense
       fallback={
         fallback ?? (
-          <span className="whitespace-pre-wrap break-words">{content}</span>
+          <span
+            className={cn(
+              "whitespace-pre-wrap break-words text-sm leading-5",
+              className,
+            )}
+          >
+            {content}
+          </span>
         )
       }
     >

@@ -45,7 +45,7 @@ export type ChatComposerBarHandle = {
 };
 
 const compactSelectClassName =
-  "max-w-[9.5rem] [&_[data-slot=native-select]]:h-7 [&_[data-slot=native-select]]:truncate [&_[data-slot=native-select]]:bg-background [&_[data-slot=native-select]]:px-2 [&_[data-slot=native-select]]:text-[11px] [&_[data-slot=native-select]]:focus-visible:ring-1";
+  "max-w-[9.5rem] [&_[data-slot=native-select]]:h-7 [&_[data-slot=native-select]]:truncate [&_[data-slot=native-select]]:bg-background [&_[data-slot=native-select]]:px-2 [&_[data-slot=native-select]]:text-[length:var(--text-ui-label)] [&_[data-slot=native-select]]:focus-visible:ring-1";
 
 /**
  * 参数化 Agent（cursor）的一个 select 维度。值绑定 agent 下发的 current，
@@ -161,7 +161,7 @@ export const ChatComposerBar = forwardRef<ChatComposerBarHandle, Props>(
         {queue.length > 0 ? (
           <div className="mb-2 rounded-md border border-border/70 bg-muted/30 px-2 py-1.5">
             <div className="mb-1 flex items-center justify-between gap-2">
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-[length:var(--text-ui-label)] text-muted-foreground">
                 排队 {queue.length} 条 · 当前回合结束后自动发送
               </p>
               {onClearQueue ? (
@@ -169,7 +169,7 @@ export const ChatComposerBar = forwardRef<ChatComposerBarHandle, Props>(
                   type="button"
                   size="sm"
                   variant="ghost"
-                  className="h-auto rounded-none px-0 py-0 text-[10px] font-normal text-muted-foreground hover:bg-transparent hover:text-foreground"
+                  className="h-7 shrink-0 rounded-none px-1 py-0 text-[length:var(--text-ui-label)] font-normal text-muted-foreground hover:bg-transparent hover:text-foreground"
                   onClick={onClearQueue}
                 >
                   清空
@@ -180,7 +180,7 @@ export const ChatComposerBar = forwardRef<ChatComposerBarHandle, Props>(
               {queue.map((item, index) => (
                 <li
                   key={item.id}
-                  className="flex items-center gap-2 text-[11px] text-foreground"
+                  className="flex items-center gap-2 text-[length:var(--text-ui-label)] text-foreground"
                 >
                   <span className="shrink-0 text-muted-foreground">
                     {index + 1}.
@@ -195,7 +195,7 @@ export const ChatComposerBar = forwardRef<ChatComposerBarHandle, Props>(
                       type="button"
                       size="sm"
                       variant="ghost"
-                      className="h-auto shrink-0 rounded-none px-0 py-0 text-[10px] font-normal text-muted-foreground hover:bg-transparent hover:text-destructive"
+                      className="h-7 shrink-0 rounded-none px-1 py-0 text-[length:var(--text-ui-label)] font-normal text-muted-foreground hover:bg-transparent hover:text-destructive"
                       aria-label="移除排队"
                       onClick={() => onRemoveQueued(item.id)}
                     >
@@ -229,7 +229,7 @@ export const ChatComposerBar = forwardRef<ChatComposerBarHandle, Props>(
                       size="sm"
                       variant="ghost"
                       aria-label="移除图片"
-                      className="absolute -right-1.5 -top-1.5 flex size-4 items-center justify-center rounded-full bg-muted p-0 text-[10px] font-normal leading-none text-muted-foreground hover:bg-muted hover:text-destructive"
+                      className="absolute -right-1.5 -top-1.5 flex size-7 items-center justify-center rounded-full bg-muted p-0 text-[length:var(--text-ui-label)] font-normal leading-none text-muted-foreground hover:bg-muted hover:text-destructive"
                       onClick={() => onRemoveAttachment(attachment.id)}
                     >
                       ×
@@ -264,7 +264,10 @@ export const ChatComposerBar = forwardRef<ChatComposerBarHandle, Props>(
               onPasteImages(files);
             }}
             onKeyDown={(e) => {
-              if (e.key !== "Enter" || e.shiftKey) return;
+              if (
+                e.key !== "Enter" || e.shiftKey || e.defaultPrevented ||
+                e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229
+              ) return;
               e.preventDefault();
               if ((e.ctrlKey || e.metaKey) && canBargeIn) {
                 onBargeIn?.();
@@ -274,7 +277,7 @@ export const ChatComposerBar = forwardRef<ChatComposerBarHandle, Props>(
             }}
           />
 
-          <div className="flex items-center gap-1.5 border-t border-border/70 px-2 py-1.5">
+          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 border-t border-border/70 px-2 py-1.5">
             <NativeSelect
               size="sm"
               className={cn(compactSelectClassName, "max-w-[7.5rem]")}
@@ -336,7 +339,7 @@ export const ChatComposerBar = forwardRef<ChatComposerBarHandle, Props>(
                 {cursor.dims.fastToggle &&
                 cursor.dims.fastToggle.kind.kind === "boolean" ? (
                   <Label
-                    className="flex shrink-0 cursor-pointer items-center gap-1 px-1 text-[11px] text-muted-foreground hover:text-foreground"
+                    className="flex shrink-0 cursor-pointer items-center gap-1 px-1 text-[length:var(--text-ui-label)] text-muted-foreground hover:text-foreground"
                     title={cursor.dims.fastToggle.description ?? "Fast 模式"}
                   >
                     <Checkbox
@@ -390,7 +393,7 @@ export const ChatComposerBar = forwardRef<ChatComposerBarHandle, Props>(
                   </NativeSelect>
                 ) : (
                   <Input
-                    className="h-7 min-w-[7rem] max-w-[9.5rem] rounded-md px-2 text-[11px]"
+                    className="h-7 min-w-[7rem] max-w-[9.5rem] rounded-md px-2 text-[length:var(--text-ui-label)]"
                     value={modelId}
                     disabled={controlsDisabled}
                     placeholder="模型 ID"
@@ -437,7 +440,7 @@ export const ChatComposerBar = forwardRef<ChatComposerBarHandle, Props>(
                   title="取消当前回合（队列保留）"
                   onClick={() => onCancel?.()}
                 >
-                  <span className="text-[11px]">取消</span>
+                  <span className="text-[length:var(--text-ui-label)]">取消</span>
                 </Button>
               ) : null}
               {busy && onBargeIn ? (
@@ -445,7 +448,7 @@ export const ChatComposerBar = forwardRef<ChatComposerBarHandle, Props>(
                   type="button"
                   size="sm"
                   variant="outline"
-                  className="h-8 gap-1 px-2 text-[11px]"
+                  className="h-8 gap-1 px-2 text-[length:var(--text-ui-label)]"
                   disabled={!canBargeIn}
                   aria-label="插队发送"
                   title="打断当前回合并优先发送（Ctrl+Enter）"
@@ -479,11 +482,11 @@ export const ChatComposerBar = forwardRef<ChatComposerBarHandle, Props>(
         </div>
 
         {controlError ?? cursor.controlError ? (
-          <p className="mt-1 text-[10px] leading-relaxed text-destructive">
+          <p className="mt-1 text-[length:var(--text-ui-label)] leading-relaxed text-destructive">
             {controlError ?? cursor.controlError}
           </p>
         ) : cursor.applying ? (
-          <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">
+          <p className="mt-1 text-[length:var(--text-ui-label)] leading-relaxed text-muted-foreground">
             正在应用 Agent 配置…（cursor 切换模型需要几秒，请稍候）
           </p>
         ) : null}

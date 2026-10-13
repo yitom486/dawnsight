@@ -482,7 +482,7 @@ describe("ChatTurnView", () => {
         })}
       />,
     );
-    const assistant = container.querySelector(".bg-muted\\/40");
+    const assistant = container.querySelector('[data-turn-id="t1"]');
     expect(assistant).toHaveClass("w-full");
     expect(await screen.findByText("流式片段")).toBeInTheDocument();
     expect(container.textContent).toContain("▍");
@@ -499,7 +499,7 @@ describe("ChatTurnView", () => {
         })}
       />,
     );
-    const assistant = container.querySelector(".bg-muted\\/40");
+    const assistant = container.querySelector('[data-turn-id="t2"]');
     expect(assistant).toHaveClass("w-full");
     expect(await screen.findByText("最终答案")).toBeInTheDocument();
     expect(container.textContent).not.toContain("▍");
@@ -711,5 +711,179 @@ describe("ChatTurnView save answer as note", () => {
       makeTurn({ id: "t10", answer: "片段", status: "streaming" }),
     );
     expect(screen.queryByText("存为批注")).not.toBeInTheDocument();
+  });
+
+  it("cancels the confirm without writing", async () => {
+    renderDoneTurn(
+      makeTurn({
+        id: "t11",
+        userText: "解释这一段",
+        answer: "答案正文",
+        status: "done",
+        showActivities: false,
+      }),
+    );
+    fireEvent.click(screen.getByText("存为批注"));
+    await screen.findByText(/保存到 .* 的批注？/);
+    fireEvent.click(screen.getByText("取消"));
+    expect(
+      vi.mocked(invoke).mock.calls.filter(([cmd]) => cmd === "notes_create"),
+    ).toHaveLength(0);
+    expect(screen.queryByText("已保存为批注")).not.toBeInTheDocument();
+  });
+
+  it("rejects repeated saves while pending", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "notes_create") return gate;
+      return Promise.resolve(null);
+    });
+    renderDoneTurn(
+      makeTurn({
+        id: "t12",
+        userText: "解释这一段",
+        answer: "答案正文",
+        status: "done",
+        showActivities: false,
+      }),
+    );
+    fireEvent.click(screen.getByText("存为批注"));
+    fireEvent.click(await screen.findByText("保存"));
+    await screen.findByText("保存中…");
+    fireEvent.click(screen.getByText("保存中…"));
+    expect(
+      vi.mocked(invoke).mock.calls.filter(([cmd]) => cmd === "notes_create"),
+    ).toHaveLength(1);
+    release();
+    await screen.findByText("已保存为批注");
+  });
+
+  it("asks for media first when nothing is open", async () => {
+    usePlayerStore.setState({ currentFile: null });
+    renderDoneTurn(
+      makeTurn({
+        id: "t13",
+        userText: "解释这一段",
+        answer: "答案正文",
+        status: "done",
+        showActivities: false,
+      }),
+    );
+    fireEvent.click(screen.getByText("存为批注"));
+    fireEvent.click(await screen.findByText("保存"));
+    await screen.findByText("请先打开视频");
+    expect(
+      vi.mocked(invoke).mock.calls.filter(([cmd]) => cmd === "notes_create"),
+    ).toHaveLength(0);
+  });
+});
+
+describe("ChatTurnView answer operations", () => {
+  function renderTurn(turn: ChatTurn) {
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    return render(
+      <QueryClientProvider client={client}>
+        <ChatTurnView turn={turn} />
+      </QueryClientProvider>,
+    );
+  }
+
+  function stubClipboard(impl: () => Promise<void>) {
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText: vi.fn(impl) },
+      configurable: true,
+    });
+  }
+
+  it("shows save and copy as two separate actions", async () => {
+    renderTurn(
+      makeTurn({
+        id: "ops-1",
+        userText: "q",
+        answer: "答案正文",
+        status: "done",
+        showActivities: false,
+      }),
+    );
+    expect(await screen.findByText("存为批注")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "复制回答" })).toBeInTheDocument();
+  });
+
+  it("copies the visible text and confirms", async () => {
+    const writeText = vi.fn(() => Promise.resolve());
+    stubClipboard(writeText);
+    renderTurn(
+      makeTurn({
+        id: "ops-2",
+        userText: "q",
+        answer: "答案正文",
+        status: "done",
+        showActivities: false,
+      }),
+    );
+    fireEvent.click(await screen.findByRole("button", { name: "复制回答" }));
+    await screen.findByText("已复制");
+    expect(writeText).toHaveBeenCalledWith("答案正文");
+  });
+
+  it("shows denial without technical details", async () => {
+    stubClipboard(() => Promise.reject(new DOMException("denied")));
+    renderTurn(
+      makeTurn({
+        id: "ops-3",
+        userText: "q",
+        answer: "答案正文",
+        status: "done",
+        showActivities: false,
+      }),
+    );
+    fireEvent.click(await screen.findByRole("button", { name: "复制回答" }));
+    await screen.findByText("复制失败，请重试");
+  });
+
+  it("hides copy on error turns and empty answers", () => {
+    renderTurn(
+      makeTurn({ id: "ops-4", answer: "失败了", status: "error" }),
+    );
+    expect(screen.queryByRole("button", { name: "复制回答" })).not.toBeInTheDocument();
+    cleanup();
+    renderTurn(
+      makeTurn({ id: "ops-5", userText: "q", answer: "   ", status: "done" }),
+    );
+    expect(screen.queryByRole("button", { name: "复制回答" })).not.toBeInTheDocument();
+    expect(screen.queryByText("存为批注")).not.toBeInTheDocument();
+  });
+
+  it("toggles the release summary open and closed", async () => {
+    const { applyAcpEventToTurn, createTurn } = await import(
+      "@dawnsight/chat-ui/chatTurns"
+    );
+    const sequence = { n: 0 };
+    let turn = createTurn(sequence, "查一下");
+    turn = applyAcpEventToTurn(
+      turn,
+      { type: "toolCall", toolCallId: "c1", title: "dawnsight_get_transcript_window", status: "running" },
+      "verbose",
+    );
+    turn = applyAcpEventToTurn(turn, { type: "toolCallUpdate", toolCallId: "c1", status: "completed" }, "verbose");
+    turn = applyAcpEventToTurn(turn, { type: "finished", text: "查到了。" }, "verbose");
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    render(
+      <QueryClientProvider client={client}>
+        <ChatTurnView turn={turn} presentationMode="release" />
+      </QueryClientProvider>,
+    );
+    const trigger = await screen.findByText(/已完成 1 步操作/);
+    fireEvent.click(trigger.closest("button") as Element);
+    expect(await screen.findByText("收起")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("收起").closest("button") as Element);
+    expect(await screen.findByText(/已完成 1 步操作/)).toBeInTheDocument();
   });
 });

@@ -28,9 +28,9 @@ export function formatConversationTime(updatedAtMs: number): string {
 }
 
 /**
- * 历史对话 = Agent 侧 `session/list` 原样呈现。本地不存账：
- * 无删除（原生无 delete 方法，假删不如不删）、无本地/Agent 双行制、
- * 无存档态——列表里出现的即原生存在的线程。
+ * 展示上层传入的历史行，不自行判定会话是否存在或可恢复。删除按钮直通 onDelete
+ *（本组件不做二次确认、不记账、不恢复）；无本地/Agent 双行制、无存档态——
+ * 跨 scope 隔离、存在性校验与恢复策略由上层保证。
  */
 export function ChatHistorySheet({
   open,
@@ -47,11 +47,10 @@ export function ChatHistorySheet({
   if (!open) return null;
 
   const emptyCount = rows.filter((row) => row.isEmptyCandidate).length;
-  if (!open) return null;
 
   return (
     <div className="border-b border-border bg-popover shadow-sm">
-      <div className="flex items-center justify-between gap-2 px-1 py-1.5">
+      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 px-1 py-1.5">
         <div className="inline-flex min-w-0 items-center gap-1.5 text-[11px] font-medium">
           <History className="size-3.5 shrink-0" />
           <span className="truncate">历史对话</span>
@@ -61,7 +60,7 @@ export function ChatHistorySheet({
             <Button
               size="sm"
               variant="ghost"
-              className="h-7 px-2 text-[10px] text-muted-foreground hover:text-destructive"
+              className="h-7 px-2 text-[length:var(--text-ui-label)] text-muted-foreground hover:text-destructive"
               disabled={loading || switchBlocked}
               onClick={onPurgeEmpty}
             >
@@ -71,7 +70,7 @@ export function ChatHistorySheet({
           <Button
             size="sm"
             variant="ghost"
-            className="h-7 px-2 text-[10px]"
+            className="h-7 px-2 text-[length:var(--text-ui-label)]"
             disabled={loading}
             onClick={onRefresh}
           >
@@ -83,7 +82,7 @@ export function ChatHistorySheet({
           <Button
             size="sm"
             variant="ghost"
-            className="h-7 px-2 text-[10px]"
+            className="h-7 px-2 text-[length:var(--text-ui-label)]"
             onClick={onClose}
           >
             关闭
@@ -117,20 +116,24 @@ export function ChatHistorySheet({
                     size="sm"
                     variant="ghost"
                     className={cn(
-                      "h-auto min-w-0 flex-1 flex-col items-stretch justify-start gap-0 rounded-none px-0 py-0 text-left font-normal hover:bg-transparent focus-visible:ring-offset-0",
+                      "h-auto min-h-7 min-w-0 flex-1 flex-col items-stretch justify-start gap-0 whitespace-normal rounded-none px-0 py-0 text-left font-normal hover:bg-transparent focus-visible:ring-offset-0",
                       disabled && "cursor-not-allowed opacity-70",
                     )}
                     disabled={disabled}
+                    aria-current={row.sessionId === activeSessionId ? true : undefined}
                     onClick={() => onSelect(row.sessionId)}
                   >
-                    <p className="truncate text-[11px] font-medium text-foreground">
+                    <p className="break-words text-[length:var(--text-ui-body)] font-medium text-foreground">
                       {row.title}
+                      {row.sessionId === activeSessionId ? (
+                        <span className="font-normal text-muted-foreground">（当前）</span>
+                      ) : null}
                     </p>
-                    <p className="mt-0.5 text-[10px] text-muted-foreground">
+                    <p className="mt-0.5 break-words text-[length:var(--text-ui-label)] text-muted-foreground">
                       {time ? time : `对话 ${row.sessionId.slice(0, 8)}`}
                     </p>
                     {disabled ? (
-                      <p className="mt-1 text-[10px] leading-4 text-muted-foreground">
+                      <p className="mt-1 text-[length:var(--text-ui-label)] leading-4 text-muted-foreground">
                         正在回答，请稍后再切换对话
                       </p>
                     ) : null}

@@ -155,17 +155,17 @@ function WatchFeedSlotCard({
       data-watch-feed-item-id={item.id}
     >
       <Collapsible open={expanded} onOpenChange={setExpanded}>
-        <CollapsibleTrigger className="flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset">
+        <CollapsibleTrigger className="flex min-h-12 w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset">
           <Sparkles className="size-3.5 shrink-0 text-primary" aria-hidden />
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-xs font-medium text-foreground">
+            <span className="block break-words text-[length:var(--text-ui-body)] font-medium text-foreground">
               {slotLabel(slot)}
             </span>
-            <span className="block truncate text-[10px] text-muted-foreground">
+            <span className="block break-words text-[length:var(--text-ui-label)] text-muted-foreground">
               {slotHint(slot)}
             </span>
           </span>
-          <span className="shrink-0 text-[10px] text-muted-foreground">
+          <span className="shrink-0 text-[length:var(--text-ui-label)] text-muted-foreground">
             {spoilerLevelLabel(item.spoilerLevel)}
           </span>
           <ChevronDown
@@ -178,16 +178,16 @@ function WatchFeedSlotCard({
 
         {expanded ? (
           <CollapsibleContent className="max-h-48 overflow-y-auto border-t border-border/70 px-3 py-2 text-xs">
-            <div className="mb-1.5 flex items-center gap-1.5 text-[10px] text-muted-foreground">
-              <Clock3 className="size-3" aria-hidden />
-              <span>{formatItemRange(item)}</span>
+            <div className="mb-1.5 flex items-center gap-1.5 text-[length:var(--text-ui-label)] text-muted-foreground">
+              <Clock3 className="size-3 shrink-0" aria-hidden />
+              <span className="min-w-0 flex-1 break-words">{formatItemRange(item)}</span>
             </div>
             <PersistedWatchFeedContent
               item={item}
               onAssistantAction={onAssistantAction}
             />
             {item.screenshotRefs.length > 0 || item.coverRef ? (
-              <p className="mt-2 border-t border-border/70 pt-2 text-[10px] text-muted-foreground">
+              <p className="mt-2 border-t border-border/70 pt-2 text-[length:var(--text-ui-label)] text-muted-foreground">
                 {item.coverRef ? "含章节封面引用" : null}
                 {item.screenshotRefs.length > 0
                   ? `${item.coverRef ? " · " : ""}含 ${item.screenshotRefs.length} 个画面引用`
@@ -227,7 +227,7 @@ function PersistedWatchFeedContent({
   }
 
   if (shortcut?.fallbackText) {
-    return <p className="text-xs leading-relaxed text-muted-foreground">{shortcut.fallbackText}</p>;
+    return <p className="text-sm leading-5 text-muted-foreground">{shortcut.fallbackText}</p>;
   }
 
   if (structured?.blocks.length) {
@@ -333,16 +333,21 @@ function WatchFeedPositionStatus({
   currentChapterTitle: string | null;
   futureItemCount: number;
 }) {
+  // NOTE: intentionally NOT role="status". This line re-renders on every
+  // playback tick, and a live region could announce frequently during
+  // viewing. The loading line above keeps role="status" (transient).
+  // Screen-reader acceptance itself is still unverified (U7).
   return (
     <div
-      className="flex flex-wrap items-center gap-x-2 gap-y-1 px-1 pb-1 text-[10px] text-muted-foreground"
+      className="flex flex-wrap items-center gap-x-2 gap-y-1 px-1 pb-1 text-[length:var(--text-ui-label)] text-muted-foreground"
       data-watch-feed-position={currentTimeMs}
-      role="status"
     >
       <span>当前播放 · {formatTime(currentTimeMs)}</span>
-      {currentChapterTitle ? <span>· {currentChapterTitle}</span> : null}
+      {currentChapterTitle ? (
+        <span className="min-w-0 break-words">· {currentChapterTitle}</span>
+      ) : null}
       {futureItemCount > 0 ? (
-        <span>· {futureItemCount} 条后续内容将在播放到对应位置后显示</span>
+        <span className="min-w-0 break-words">· {futureItemCount} 条后续内容将在播放到对应位置后显示</span>
       ) : null}
     </div>
   );
@@ -359,7 +364,7 @@ function WatchFeedQueryStatus({
 }) {
   if (isLoading) {
     return (
-      <p className="px-1 py-1 text-[11px] text-muted-foreground" role="status">
+      <p className="px-1 py-1 text-[length:var(--text-ui-label)] text-muted-foreground" role="status">
         正在读取已保存的观剧流…
       </p>
     );
@@ -367,7 +372,7 @@ function WatchFeedQueryStatus({
 
   if (isError) {
     return (
-      <p className="rounded-lg border border-border bg-muted/20 px-3 py-2 text-[11px] text-muted-foreground">
+      <p className="rounded-lg border border-border bg-muted/20 px-3 py-2 text-[length:var(--text-ui-label)] text-muted-foreground">
         本地观剧流暂时不可用，聊天仍可继续使用。
       </p>
     );
@@ -379,7 +384,7 @@ function WatchFeedQueryStatus({
 
 function FutureWatchFeedNotice() {
   return (
-    <div className="rounded-lg border border-dashed border-border px-3 py-4 text-center text-[11px] text-muted-foreground">
+    <div className="rounded-lg border border-dashed border-border px-3 py-4 text-center text-[length:var(--text-ui-label)] text-muted-foreground">
       观剧流已同步到当前进度，后续内容将在播放到对应位置后显示。
     </div>
   );
@@ -389,8 +394,8 @@ function EmptyWatchFeed() {
   return (
     <div className="rounded-lg border border-dashed border-border px-3 py-4 text-center">
       <Sparkles className="mx-auto size-4 text-muted-foreground" aria-hidden />
-      <p className="mt-2 text-xs font-medium text-foreground">AI 观剧流已就绪</p>
-      <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+      <p className="mt-2 text-[length:var(--text-ui-body)] font-medium text-foreground">暂无观剧记录</p>
+      <p className="mt-1 text-[length:var(--text-ui-label)] leading-relaxed text-muted-foreground">
         播放到有分析结果的内容后，当前上下文会显示在这里。
       </p>
     </div>
