@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Channel } from "@tauri-apps/api/core";
 
@@ -32,6 +33,7 @@ function recommendsCookieFile(message: string | undefined): boolean {
 }
 
 export function OnlineSourceSettings() {
+  const [actionError, setActionError] = useState<unknown>(null);
   const queryClient = useQueryClient();
   const statusQuery = useQuery({
     queryKey: ["ytdl-status"],
@@ -78,6 +80,17 @@ export function OnlineSourceSettings() {
   const busy =
     saveCookies.isPending || install.isPending || testCookies.isPending;
 
+  // Mutation errors remain in Query; also handle failures before a mutation
+  // (for example the native file picker) without an unhandled rejection.
+  const runAction = async (action: () => Promise<unknown>) => {
+    setActionError(null);
+    try {
+      await action();
+    } catch (error) {
+      setActionError(error);
+    }
+  };
+
   const persist = (input: {
     mode: CookieMode;
     browser?: CookieBrowser;
@@ -96,33 +109,38 @@ export function OnlineSourceSettings() {
     });
 
   const setMode = (mode: CookieMode) => {
-    void persist({
-      mode,
-      filePath: mode === "file" ? cookie?.filePath ?? null : null,
-      browserProfile: mode === "browser" ? cookie?.browserProfile ?? null : null,
-    });
+    void runAction(() =>
+      persist({
+        mode,
+        filePath: mode === "file" ? cookie?.filePath ?? null : null,
+        browserProfile: mode === "browser" ? cookie?.browserProfile ?? null : null,
+      }),
+    );
   };
 
   const setBrowser = (browser: CookieBrowser) => {
-    void persist({
-      mode: "browser",
-      browser,
-      browserProfile: null,
-      filePath: null,
-    }).then(() => {
-      void queryClient.invalidateQueries({
+    void runAction(async () => {
+      await persist({
+        mode: "browser",
+        browser,
+        browserProfile: null,
+        filePath: null,
+      });
+      await queryClient.invalidateQueries({
         queryKey: ["ytdl-browser-profiles", browser],
       });
     });
   };
 
   const setProfile = (browserProfile: string) => {
-    void persist({
-      mode: "browser",
-      browser: selectedBrowser,
-      browserProfile,
-      filePath: null,
-    });
+    void runAction(() =>
+      persist({
+        mode: "browser",
+        browser: selectedBrowser,
+        browserProfile,
+        filePath: null,
+      }),
+    );
   };
 
   const importFile = async () => {
@@ -139,18 +157,23 @@ export function OnlineSourceSettings() {
   const profiles = profilesQuery.data ?? [];
 
   return (
-    <div className="mt-3 space-y-2 rounded-md border border-border/70 bg-muted/30 p-3 text-left text-xs">
+    <div className="space-y-2 text-left text-xs">
       <p className="font-medium text-foreground">在线解析 / 登录态</p>
-      <p className="text-muted-foreground">
-        {ytdl?.message ?? "正在检查解析组件…"}
+      <p className="break-words text-muted-foreground">
+        {ytdl?.message ?? (statusQuery.isError ? null :  "正在检查解析组件…")}
       </p>
+      {statusQuery.isError && !ytdl ? (
+        <p className="break-words text-[11px] text-destructive">
+          {errorMessage(statusQuery.error)}
+        </p>
+      ) : null}
       {ytdl?.installSupported ? (
         <Button
           type="button"
           size="sm"
           variant="secondary"
           disabled={busy}
-          onClick={() => void install.mutateAsync()}
+          onClick={() => void runAction(() => install.mutateAsync())}
         >
           {install.isPending
             ? ytdl.cliReady
@@ -162,12 +185,17 @@ export function OnlineSourceSettings() {
         </Button>
       ) : null}
 
-      <p className="pt-1 text-muted-foreground">
-        {cookie?.message ??
-          "登录态仅本机使用，不会交给 AI。公开视频可不导入。"}
+      <p className="break-words pt-1 text-muted-foreground">
+        {cookie?.message ?? (cookieQuery.isError ? null :
+          "登录态仅本机使用，不会交给 AI。公开视频可不导入。")}
       </p>
+      {cookieQuery.isError && !cookie ? (
+        <p className="break-words text-[11px] text-destructive">
+          {errorMessage(cookieQuery.error)}
+        </p>
+      ) : null}
 
-      <div className="space-y-2 rounded-md border border-border bg-background/60 px-3 py-2 text-[11px] leading-relaxed">
+      <div className="space-y-2 px-0 py-1 text-[11px] leading-relaxed">
         <p className="font-medium text-foreground">
           Chrome 无法直读时：三步导入 cookies.txt
         </p>
@@ -183,7 +211,7 @@ export function OnlineSourceSettings() {
           type="button"
           size="sm"
           disabled={busy}
-          onClick={() => void importFile()}
+          onClick={() => void runAction(importFile)}
         >
           {fileMode ? "重新导入 cookies.txt" : "导入 cookies.txt（推荐）"}
         </Button>
@@ -199,6 +227,7 @@ export function OnlineSourceSettings() {
               type="button"
               size="sm"
               variant={cookie?.mode === "none" ? "default" : "outline"}
+              aria-pressed={cookie?.mode === "none"}
               disabled={busy}
               onClick={() => setMode("none")}
             >
@@ -214,6 +243,7 @@ export function OnlineSourceSettings() {
                     ? "default"
                     : "outline"
                 }
+                aria-pressed={cookie?.mode === "browser" && cookie.browser === b.id}
                 disabled={busy}
                 onClick={() => setBrowser(b.id)}
               >
@@ -227,6 +257,10 @@ export function OnlineSourceSettings() {
               <p className="text-[11px] text-muted-foreground">选择配置档案</p>
               {profilesQuery.isLoading ? (
                 <p className="text-muted-foreground">正在扫描本机配置档案…</p>
+              ) : profilesQuery.isError && profiles.length === 0 ? (
+                <p className="break-words text-[11px] text-destructive">
+                  {errorMessage(profilesQuery.error)}
+                </p>
               ) : profiles.length === 0 ? (
                 <p className="text-muted-foreground">
                   未找到可用配置档案，请改用上方导入 cookies.txt。
@@ -236,6 +270,7 @@ export function OnlineSourceSettings() {
                   {profiles.map((profile) => (
                     <Button
                       key={profile.id}
+                      className="max-w-full min-w-0 whitespace-normal break-words text-left"
                       type="button"
                       size="sm"
                       variant={
@@ -243,6 +278,7 @@ export function OnlineSourceSettings() {
                           ? "default"
                           : "outline"
                       }
+                      aria-pressed={cookie?.browserProfile === profile.id}
                       disabled={busy}
                       onClick={() => setProfile(profile.id)}
                     >
@@ -263,17 +299,24 @@ export function OnlineSourceSettings() {
             size="sm"
             variant="secondary"
             disabled={busy || !ytdl?.cliReady}
-            onClick={() => void testCookies.mutateAsync()}
+            onClick={() => void runAction(() => testCookies.mutateAsync())}
           >
             {testCookies.isPending ? "测试中…" : "测试登录态是否可读"}
           </Button>
           {testCookies.data ? (
             <span
               className={
-                testCookies.data.ok ? "text-emerald-500" : "text-destructive"
+                testCookies.data.ok ? "inline-flex min-w-0 max-w-full items-center gap-1.5 text-[11px] font-medium text-foreground" : "break-words text-destructive"
               }
             >
-              {testCookies.data.message}
+              {testCookies.data.ok ? (
+                <>
+                  <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-success" />
+                  <span className="min-w-0 break-words">{testCookies.data.message}</span>
+                </>
+              ) : (
+                testCookies.data.message
+              )}
             </span>
           ) : null}
         </div>
@@ -282,16 +325,17 @@ export function OnlineSourceSettings() {
       {testCookies.data &&
       !testCookies.data.ok &&
       recommendsCookieFile(testCookies.data.message) ? (
-        <p className="text-[11px] text-amber-600 dark:text-amber-400">
+        <p className="break-words text-[11px] text-foreground">
+          <span aria-hidden="true" className="mr-1 inline-block size-1.5 rounded-full bg-warning" />
           浏览器直读失败时，请按上方三步导入 cookies.txt（不要期待 Google
           一键授权）。
         </p>
       ) : null}
 
-      {(saveCookies.error || install.error || testCookies.error) && (
-        <p className="text-destructive">
+      {(actionError || saveCookies.error || install.error || testCookies.error) && (
+        <p role="alert" className="break-words text-destructive">
           {errorMessage(
-            saveCookies.error ?? install.error ?? testCookies.error,
+            actionError ?? saveCookies.error ?? install.error ?? testCookies.error,
           )}
         </p>
       )}
