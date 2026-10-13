@@ -1,6 +1,6 @@
 /** Online URL open + cookie settings — lives in sidebar (never over HWND). */
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { Alert } from "@dawnsight/ui/alert";
@@ -172,6 +172,8 @@ function OnlineSettingsContent() {
   const currentFile = usePlayerStore((s) => s.currentFile);
   const sourceKind = usePlayerStore((s) => s.sourceKind);
   const [url, setUrl] = useState("");
+  const urlInputId = useId();
+  const urlHelpId = useId();
 
   const canSubmit =
     /^https?:\/\//i.test(url.trim()) && url.trim().length > 10;
@@ -196,15 +198,19 @@ function OnlineSettingsContent() {
   });
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-3">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
       <div className="space-y-2">
         <h2 className="text-sm font-medium">打开在线视频</h2>
-        <p className="text-xs text-muted-foreground">
+        <label htmlFor={urlInputId} className="block text-sm font-medium">
+          在线视频 URL
+        </label>
+        <p id={urlHelpId} className="text-xs text-muted-foreground">
           粘贴完整链接后点「打开链接」。公开视频通常可直接播；若提示需要登录，请用下方「导入
           cookies.txt」（不是 Google 一键授权）。
         </p>
         <Input
-          aria-label="在线视频 URL"
+          id={urlInputId}
+          aria-describedby={urlHelpId}
           type="url"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
@@ -212,6 +218,7 @@ function OnlineSettingsContent() {
           className="h-auto w-full rounded-md px-3 py-2 text-sm"
           disabled={busy}
           onKeyDown={(e) => {
+            if (e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229) return;
             if (e.key === "Enter") {
               e.preventDefault();
               void submit();
@@ -236,10 +243,10 @@ function OnlineSettingsContent() {
         {openFailed ? (
           <Alert
             variant="destructive"
-            className="rounded-md border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+            className="rounded-md border-destructive/40 px-3 py-2 text-xs text-destructive"
           >
             <p className="font-medium">未能打开在线视频</p>
-            <p className="mt-1 leading-relaxed">{error?.message}</p>
+            <p className="mt-1 break-words leading-relaxed">{formatPlayerError(error)}</p>
             <p className="mt-1 text-muted-foreground">
               若提示登录或登录态失败：用浏览器扩展导出 cookies.txt → 下方导入 →
               测试可读 → 再打开链接。失败时左侧可能仍显示上一段画面。
@@ -247,8 +254,8 @@ function OnlineSettingsContent() {
           </Alert>
         ) : null}
         {playingRemote ? (
-          <div className="space-y-1 text-[11px] text-muted-foreground">
-            <p>当前在线源：{currentFile}</p>
+          <div className="space-y-1 break-words text-[11px] text-muted-foreground">
+            <p>当前在线源：{sourceHost(currentFile) ?? "在线视频"}</p>
             {mediaQuery.data ? (
               <p>
                 {mediaQuery.data.title ?? "在线视频"} ·{" "}
