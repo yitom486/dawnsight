@@ -27,6 +27,9 @@ type Props = {
 /**
  * 观影打卡卡片：Note → 暗色胶片风 PNG。canvas 渲染 + 保存对话框落盘；
  * 无截帧时优雅退化为纯文字卡片。
+ *
+ * 非模态面板内预览：普通流占据笔记工作区空间，不挂 body portal、
+ * 不盖全窗口 backdrop；关闭只走明确的返回动作。
  */
 export function RecapCardDialog({ note, mediaPath, open, onClose }: Props) {
   const [ratio, setRatio] = useState<RecapCardRatio>("3:4");
@@ -35,6 +38,7 @@ export function RecapCardDialog({ note, mediaPath, open, onClose }: Props) {
   const [busy, setBusy] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const frameImageRef = useRef<HTMLImageElement | null>(null);
+  const backRef = useRef<HTMLButtonElement | null>(null);
   const [frameReady, setFrameReady] = useState(0);
 
   const mediaTitle = mediaTitleOf(mediaPath);
@@ -61,6 +65,15 @@ export function RecapCardDialog({ note, mediaPath, open, onClose }: Props) {
       cancelled = true;
     };
   }, [frameQuery.data, open]);
+
+  // Opening comes from an explicit user action (the note's card button):
+  // land focus on the return action once. Re-renders (ratio, frame load,
+  // export result) must not move focus again.
+  useEffect(() => {
+    if (open) {
+      backRef.current?.focus();
+    }
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -106,50 +119,89 @@ export function RecapCardDialog({ note, mediaPath, open, onClose }: Props) {
 
   const size = RECAP_CARD_SIZE[ratio];
   return (
-    <div
-      role="dialog"
-      aria-label="打卡卡片"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-surface-overlay/70 p-4"
-      onClick={onClose}
+    <section
+      aria-label="打卡卡片预览"
+      // Scoped Escape: only this preview's own unconsumed keypress returns.
+      // Synthetic/isComposing/229 and SELECT targets are skipped; nothing
+      // document-global is installed. Consumed Escape stops here so the chat
+      // dock's own window handler does not fire on the same keypress.
+      onKeyDown={(event) => {
+        if (event.key !== "Escape") return;
+        const native = event.nativeEvent as KeyboardEvent;
+        if (
+          event.defaultPrevented ||
+          native.isComposing ||
+          native.keyCode === 229 ||
+          (event.target as HTMLElement | null)?.tagName === "SELECT"
+        ) {
+          return;
+        }
+        event.stopPropagation();
+        onClose();
+      }}
+      className="flex min-h-0 flex-1 flex-col gap-2 p-3"
     >
-      <div
-        className="flex max-h-full flex-col items-center gap-3 overflow-auto rounded-lg border border-border bg-background p-4"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <p className="text-xs font-medium text-muted-foreground">打卡卡片预览</p>
-        <canvas
-          ref={canvasRef}
-          className="max-h-[60vh] w-auto rounded-md border border-border"
-          style={{ aspectRatio: `${size.width} / ${size.height}` }}
-        />
-        <div className="flex items-center gap-2">
-          <NativeSelect
-            aria-label="打卡卡片比例"
-            size="sm"
-            className="w-[4.5rem]"
-            value={ratio}
-            onChange={(event) => setRatio(event.target.value as RecapCardRatio)}
-          >
-            <NativeSelectOption value="3:4">3:4</NativeSelectOption>
-            <NativeSelectOption value="9:16">9:16</NativeSelectOption>
-          </NativeSelect>
-          <Button size="sm" disabled={busy} onClick={() => void exportCard()}>
-            {busy ? "导出中…" : "导出 PNG"}
-          </Button>
-          <Button size="sm" variant="outline" onClick={onClose}>
-            关闭
-          </Button>
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-xs font-medium text-foreground">打卡卡片预览</p>
+          <p className="truncate text-[11px] text-muted-foreground">
+            {mediaTitle} · {formatTime(note.positionMs)}
+          </p>
         </div>
-        {savedPath ? (
-          <p className="text-[11px] text-muted-foreground">已保存至 {savedPath}</p>
-        ) : null}
-        {error ? <p className="text-xs text-destructive">{error}</p> : null}
       </div>
-    </div>
+      <canvas
+        ref={canvasRef}
+        className="max-h-[60vh] w-auto max-w-full self-center rounded-md border border-border"
+        style={{ aspectRatio: `${size.width} / ${size.height}` }}
+      />
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          ref={backRef}
+          size="sm"
+          variant="outline"
+          className="h-7 px-2 text-[11px]"
+          onClick={onClose}
+        >
+          返回笔记
+        </Button>
+        <NativeSelect
+          aria-label="打卡卡片比例"
+          size="sm"
+          className="w-[4.5rem]"
+          value={ratio}
+          onChange={(event) => setRatio(event.target.value as RecapCardRatio)}
+        >
+          <NativeSelectOption value="3:4">3:4</NativeSelectOption>
+          <NativeSelectOption value="9:16">9:16</NativeSelectOption>
+        </NativeSelect>
+        <Button
+          size="sm"
+          className="h-7 px-2 text-[11px]"
+          disabled={busy}
+          onClick={() => void exportCard()}
+        >
+          {busy ? "导出中…" : "导出 PNG"}
+        </Button>
+      </div>
+      {savedPath ? (
+        <p className="text-[11px] text-muted-foreground">已保存至 {savedPath}</p>
+      ) : null}
+      {error ? <p className="text-xs text-destructive">{error}</p> : null}
+    </section>
   );
 }
 
 function mediaTitleOf(mediaPath: string): string {
+  // A stream URL is a source identity, not a filename: query credentials
+  // must never become the visible title or be drawn into an exported card.
+  if (/^https?:/i.test(mediaPath)) {
+    try {
+      const host = new URL(mediaPath).hostname.replace(/^www\./, "");
+      return host ? `在线视频 · ${host}` : "在线视频";
+    } catch {
+      return "在线视频";
+    }
+  }
   const normalized = mediaPath.replace(/\\/g, "/");
   const baseName = normalized.slice(normalized.lastIndexOf("/") + 1);
   const stem = baseName.replace(/\.[a-z0-9]{2,5}$/i, "");

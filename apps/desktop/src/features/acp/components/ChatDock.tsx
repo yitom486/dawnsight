@@ -24,6 +24,7 @@ export function ChatDock() {
   useEffect(() => {
     if (!chatOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.isComposing || event.keyCode === 229) return;
       if (event.key === "Escape") closeChat();
     };
     window.addEventListener("keydown", onKeyDown);

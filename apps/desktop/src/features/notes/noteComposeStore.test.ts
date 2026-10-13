@@ -31,4 +31,14 @@ describe("useNoteComposeStore", () => {
     expect(state.selectedIndices).toEqual([1, 2, 3]);
     expect(state.anchorCueIndex).toBe(2);
   });
+
+  it("setAnchorCueIndex toggles the anchor without touching picks", () => {
+    useNoteComposeStore.getState().setAnchorCueIndex(1);
+    expect(useNoteComposeStore.getState().anchorCueIndex).toBe(1);
+    expect(useNoteComposeStore.getState().selectedIndices).toEqual([1, 2, 3]);
+    useNoteComposeStore.getState().setAnchorCueIndex(1);
+    expect(useNoteComposeStore.getState().anchorCueIndex).toBe(1);
+    useNoteComposeStore.getState().setAnchorCueIndex(null);
+    expect(useNoteComposeStore.getState().anchorCueIndex).toBeNull();
+  });
 });

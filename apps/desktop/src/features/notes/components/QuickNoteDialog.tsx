@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@dawnsight/ui/button";
 import { Checkbox } from "@dawnsight/ui/checkbox";
@@ -30,6 +30,8 @@ type Props = {
   onOpenChange: (open: boolean) => void;
   onSaved?: () => void;
   anchorRef: React.RefObject<HTMLElement | null>;
+  /** Real toolbar trigger button for focus return (the anchor is a div). */
+  triggerRef?: React.RefObject<HTMLButtonElement | null>;
   className?: string;
 };
 
@@ -43,6 +45,7 @@ export function QuickNoteDialog({
   onOpenChange,
   onSaved,
   anchorRef,
+  triggerRef,
   className,
 }: Props) {
   const queryClient = useQueryClient();
@@ -98,11 +101,53 @@ export function QuickNoteDialog({
       const target = event.target as Node;
       if (panelRef.current?.contains(target)) return;
       if (anchorRef.current?.contains(target)) return;
+      // Outside dismiss: leave focus where the user put it.
       onOpenChange(false);
     };
     document.addEventListener("mousedown", onPointerDown);
     return () => document.removeEventListener("mousedown", onPointerDown);
   }, [anchorRef, onOpenChange, open]);
+
+  // Focus return stays inside the dialog's explicit close actions. Only a
+  // live, enabled trigger takes focus — never the wrapper div, and never a
+  // removed/disabled one.
+  const focusTrigger = useCallback(() => {
+    const el = triggerRef?.current;
+    if (
+      el && document.contains(el) && !el.disabled &&
+      !el.closest('[hidden], [inert], [aria-hidden="true"]') &&
+      getComputedStyle(el).display !== "none" &&
+      getComputedStyle(el).visibility !== "hidden"
+    ) {
+      el.focus();
+    }
+  }, [triggerRef]);
+
+  const closeWithFocusReturn = useCallback(() => {
+    onOpenChange(false);
+    focusTrigger();
+  }, [onOpenChange, focusTrigger]);
+
+  useEffect(() => {
+    if (!open) return;
+    // The nonmodal panel owns Escape only from itself or its real trigger.
+    // Listening on document also covers opening without moving focus in.
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (
+        event.key !== "Escape" || event.defaultPrevented ||
+        event.isComposing || event.keyCode === 229
+      ) return;
+      const panel = panelRef.current;
+      if (!panel || panel.closest('[hidden], [inert], [aria-hidden="true"]')) return;
+      const path = event.composedPath();
+      const trigger = triggerRef?.current;
+      if (!path.includes(panel) && (!trigger || !path.includes(trigger))) return;
+      event.stopPropagation();
+      closeWithFocusReturn();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [open, closeWithFocusReturn, triggerRef]);
 
   const fillAroundPlayback = () => {
     const indices = indicesAroundPlayback(cues, positionMs, QUOTE_CONTEXT);
@@ -173,7 +218,7 @@ export function QuickNoteDialog({
           variant="ghost"
           className="size-6 shrink-0"
           aria-label="关闭"
-          onClick={() => onOpenChange(false)}
+          onClick={() => closeWithFocusReturn()}
         >
           <X className="size-3.5" />
         </Button>
@@ -209,7 +254,7 @@ export function QuickNoteDialog({
       {includeQuotes && canAttachQuotes ? (
         <div className="mb-2 space-y-1.5 rounded-md border border-border/60 p-2">
           <div className="flex items-center justify-between gap-2">
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-[11px] text-muted-foreground">
               勾选台词；Shift 连选；不勾选则自动最近 3 句
             </p>
           </div>
@@ -218,7 +263,7 @@ export function QuickNoteDialog({
               type="button"
               size="sm"
               variant="outline"
-              className="h-6 px-2 text-[10px]"
+              className="h-6 px-2 text-[11px]"
               onClick={fillAroundPlayback}
             >
               填入±3句
@@ -227,7 +272,7 @@ export function QuickNoteDialog({
               type="button"
               size="sm"
               variant="ghost"
-              className="h-6 px-2 text-[10px]"
+              className="h-6 px-2 text-[11px]"
               onClick={clearQuoteSelection}
             >
               清空
@@ -244,7 +289,7 @@ export function QuickNoteDialog({
                   <label
                     key={cue.index}
                     className={cn(
-                      "flex items-start gap-1.5 rounded px-1 py-0.5 text-[10px] hover:bg-muted/50",
+                      "flex items-start gap-1.5 rounded px-1 py-0.5 text-[11px] hover:bg-muted/50",
                       checked && "bg-muted/30",
                     )}
                   >
@@ -252,13 +297,17 @@ export function QuickNoteDialog({
                       type="checkbox"
                       className="mt-0.5"
                       checked={checked}
-                      onClick={(event) => {
-                        event.preventDefault();
-                        toggleAtListIndex(cues, listIndex, event.shiftKey);
-                      }}
-                      onChange={() => {}}
+                      // Store-driven onChange (same U4b2 fix): cancelling the
+                      // click default leaves the box unchecked in browsers.
+                      onChange={(event) =>
+                        toggleAtListIndex(
+                          cues,
+                          listIndex,
+                          (event.nativeEvent as MouseEvent).shiftKey,
+                        )
+                      }
                     />
-                    <span className="min-w-0 flex-1 leading-snug">
+                    <span className="min-w-0 flex-1 break-words leading-snug">
                       {formatCueLabel(cue)}
                     </span>
                     {checked ? (
@@ -267,12 +316,14 @@ export function QuickNoteDialog({
                         size="sm"
                         variant="ghost"
                         className={cn(
-                          "h-auto shrink-0 rounded px-1 py-0 text-[9px]",
+                          "h-6 min-w-6 shrink-0 rounded px-1.5 text-[11px]",
                           isAnchor
                             ? "bg-primary text-primary-foreground"
                             : "text-muted-foreground hover:bg-muted",
                         )}
-                        title="标为锚点句"
+                        title={isAnchor ? "取消锚点句" : "标为锚点句"}
+                        aria-label={isAnchor ? "取消锚点句" : "标为锚点句"}
+                        aria-pressed={isAnchor}
                         onClick={(event) => {
                           event.preventDefault();
                           setAnchorCueIndex(
@@ -301,7 +352,7 @@ export function QuickNoteDialog({
           size="sm"
           variant="outline"
           disabled={saveMutation.isPending}
-          onClick={() => onOpenChange(false)}
+          onClick={() => closeWithFocusReturn()}
         >
           取消
         </Button>

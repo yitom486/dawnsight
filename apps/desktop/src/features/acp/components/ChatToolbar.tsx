@@ -69,13 +69,14 @@ export function ChatToolbar({
   onReconnect,
 }: Props) {
   const quickNoteAnchorRef = useRef<HTMLDivElement>(null);
+  const quickNoteButtonRef = useRef<HTMLButtonElement>(null);
   const canSwitchAgent =
     onSwitchProfile && (profiles?.length ?? 0) > 1 && activeProfileId;
 
   return (
     <ChatColumn className="shrink-0 space-y-1 border-b border-border py-2">
       <div className="relative">
-      <div className="flex items-start gap-2">
+      <div className="flex flex-wrap items-start gap-2">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             {canSwitchAgent ? (
@@ -86,10 +87,10 @@ export function ChatToolbar({
                       type="button"
                       size="sm"
                       variant="ghost"
-                      className="h-6 max-w-[11rem] cursor-pointer truncate rounded-md border border-transparent bg-transparent px-1 text-[12px] font-medium text-foreground outline-none hover:bg-transparent hover:border-border focus-visible:border-border focus-visible:ring-0 disabled:cursor-default disabled:opacity-60"
+                      className="h-7 max-w-[11rem] cursor-pointer truncate rounded-md border border-transparent bg-transparent px-1 text-[12px] font-medium text-foreground outline-none hover:bg-transparent hover:border-border focus-visible:border-border focus-visible:ring-0 disabled:cursor-default disabled:opacity-60"
                       disabled={busy || switchDisabled}
                       aria-label="切换 Agent"
-                      title="切换 Agent（各家会话记忆独立保留）"
+                      title={`切换 Agent：${agentLabel}（各家会话记忆独立保留）`}
                     >
                       <span className="min-w-0 flex-1 truncate text-left">
                         {agentLabel}
@@ -125,7 +126,7 @@ export function ChatToolbar({
                               : "bg-muted-foreground/50",
                           )}
                         />
-                        <span className="min-w-0 flex-1 truncate">
+                        <span className="min-w-0 flex-1 truncate" title={profile.name}>
                           {profile.name}
                         </span>
                         {isActive ? (
@@ -137,23 +138,20 @@ export function ChatToolbar({
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <span className="text-[12px] font-medium text-foreground">
+              <span className="min-w-0 flex-1 break-words text-[12px] font-medium text-foreground">
                 {agentLabel}
               </span>
             )}
             <Badge
               variant="secondary"
               className={cn(
-                "h-auto min-w-0 gap-1 rounded-full px-2 py-0.5 text-[10px]",
-                connectionState === "connected" &&
-                  "bg-success/15 text-success",
-                connectionState === "connecting" &&
-                  "bg-warning/15 text-warning",
-                connectionState === "error" &&
-                  "bg-destructive/15 text-destructive",
+                "h-auto min-w-0 gap-1 rounded-full px-2 py-0.5 text-[length:var(--text-ui-label)]",
+                connectionState === "connected" && "bg-success/15",
+                connectionState === "connecting" && "bg-warning/15",
+                connectionState === "error" && "bg-destructive/15",
                 (connectionState === "idle" ||
                   connectionState === "unavailable") &&
-                  "bg-muted text-muted-foreground",
+                  "bg-muted",
               )}
             >
               <span
@@ -171,7 +169,7 @@ export function ChatToolbar({
             </Badge>
           </div>
           {chatTitle ? (
-            <p className="mt-1 truncate text-[11px] text-muted-foreground">
+            <p className="mt-1 break-words text-[length:var(--text-ui-label)] text-muted-foreground">
               {chatTitle}
             </p>
           ) : null}
@@ -181,6 +179,7 @@ export function ChatToolbar({
           {onQuickNoteOpenChange ? (
             <div ref={quickNoteAnchorRef}>
               <Button
+                ref={quickNoteButtonRef}
                 size="icon"
                 variant="ghost"
                 className="size-7"
@@ -206,7 +205,7 @@ export function ChatToolbar({
             >
               <History className="size-3.5" />
               {historyCount > 0 ? (
-                <span className="absolute -right-0.5 -top-0.5 flex size-3.5 items-center justify-center rounded-full bg-primary text-[8px] text-primary-foreground">
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-0.5 text-[length:var(--text-ui-label)] leading-none text-primary-foreground">
                   {historyCount > 9 ? "9+" : historyCount}
                 </span>
               ) : null}
@@ -228,7 +227,7 @@ export function ChatToolbar({
               <Button
                 size="sm"
                 variant="outline"
-                className="h-7 px-2 text-[11px]"
+                className="h-7 px-2 text-[length:var(--text-ui-label)]"
                 disabled={busy || loading}
                 onClick={onReconnect}
               >
@@ -245,14 +244,15 @@ export function ChatToolbar({
           onOpenChange={onQuickNoteOpenChange}
           onSaved={onQuickNoteSaved}
           anchorRef={quickNoteAnchorRef}
+          triggerRef={quickNoteButtonRef}
         />
       ) : null}
       </div>
 
       {statusError ? (
-        <p className="truncate text-[10px] text-destructive">{statusError}</p>
+        <p className="break-words text-[length:var(--text-ui-label)] text-destructive">{statusError}</p>
       ) : statusLine ? (
-        <p className="truncate text-[10px] text-muted-foreground">{statusLine}</p>
+        <p className="break-words text-[length:var(--text-ui-label)] text-muted-foreground">{statusLine}</p>
       ) : null}
     </ChatColumn>
   );

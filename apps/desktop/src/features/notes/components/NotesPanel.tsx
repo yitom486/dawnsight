@@ -77,6 +77,14 @@ export function NotesPanel() {
   const [error, setError] = useState<string | null>(null);
   const [includeFrame, setIncludeFrame] = useState(false);
   const [recapCardNoteId, setRecapCardNoteId] = useState<string | null>(null);
+  const openRecapMediaRef = useRef<string | null>(null);
+  const recapTriggerRefs = useRef(new Map<string, HTMLButtonElement>());
+  const recapReturnIdRef = useRef<string | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const openDeleteMediaRef = useRef<string | null>(null);
+  const deleteTriggerRefs = useRef(new Map<string, HTMLButtonElement>());
+  const deleteCancelRef = useRef<HTMLButtonElement | null>(null);
+  const savedHeadingRef = useRef<HTMLParagraphElement | null>(null);
   const activeCueRef = useRef<HTMLLabelElement | null>(null);
 
   const body = useNoteComposeStore((s) => s.body);
@@ -112,8 +120,101 @@ export function NotesPanel() {
     enabled: Boolean(mediaPath),
   });
 
+  const notes = notesQuery.data;
+
   const recapCardNote =
-    notesQuery.data?.find((note) => note.id === recapCardNoteId) ?? null;
+    notes?.find((note) => note.id === recapCardNoteId) ?? null;
+
+  const focusRecapFallback = (list: { id: string }[]) => {
+    const fallbackId = list
+      .map((note) => note.id)
+      .find((id) => recapTriggerRefs.current.has(id));
+    if (fallbackId) {
+      recapTriggerRefs.current.get(fallbackId)?.focus();
+    } else {
+      savedHeadingRef.current?.focus();
+    }
+  };
+
+  const closeRecap = () => {
+    setRecapCardNoteId(null);
+  };
+
+  // Return focus runs after the list remounts (the origin row is unmounted
+  // while previewing, so no live element can be kept). It covers explicit
+  // return, media switches, and vanished notes with one fallback shape.
+  useEffect(() => {
+    if (recapCardNoteId) return;
+    const id = recapReturnIdRef.current;
+    recapReturnIdRef.current = null;
+    if (!id) return;
+    const origin = recapTriggerRefs.current.get(id);
+    if (origin && document.contains(origin) && !origin.disabled) {
+      origin.focus();
+    } else {
+      focusRecapFallback(notes ?? []);
+    }
+  }, [recapCardNoteId, notes]);
+
+  // Preview staleness mirrors the delete-confirm scope rule: a media switch
+  // (including to no media) closes immediately without waiting for the next
+  // query; on the same media a present list missing the note closes too.
+  // Background loads/failures with the row still present never steal focus.
+  useEffect(() => {
+    if (!recapCardNoteId) return;
+    if (mediaPath !== openRecapMediaRef.current) {
+      setRecapCardNoteId(null);
+      return;
+    }
+    if (notes !== undefined && !notes.some((note) => note.id === recapCardNoteId)) {
+      setRecapCardNoteId(null);
+    }
+  }, [recapCardNoteId, notes, mediaPath]);
+
+  const openRecap = (id: string) => {
+    // Explicit UI mutex with the inline delete confirm; the delete
+    // mutation/scope policy itself is untouched.
+    setPendingDeleteId(null);
+    openRecapMediaRef.current = mediaPath;
+    recapReturnIdRef.current = id;
+    setRecapCardNoteId(id);
+  };
+
+  const cancelDelete = (id: string) => {
+    setPendingDeleteId(null);
+    deleteTriggerRefs.current.get(id)?.focus();
+  };
+
+  // Focus the safe action when a confirm region opens.
+  useEffect(() => {
+    if (pendingDeleteId) {
+      deleteCancelRef.current?.focus();
+    }
+  }, [pendingDeleteId]);
+
+  // The pending confirm belongs to one media + one row. Media scope is
+  // checked first and never waits for the query: a switch (including to no
+  // media) clears the state even while the next list is loading or failed.
+  // Only on the same media do we consult returned data for a vanished row.
+  useEffect(() => {
+    if (!pendingDeleteId) return;
+    if (mediaPath !== openDeleteMediaRef.current) {
+      setPendingDeleteId(null);
+      savedHeadingRef.current?.focus();
+      return;
+    }
+    if (notes !== undefined && !notes.some((note) => note.id === pendingDeleteId)) {
+      setPendingDeleteId(null);
+      const fallbackId = notes
+        .map((note) => note.id)
+        .find((id) => deleteTriggerRefs.current.has(id));
+      if (fallbackId) {
+        deleteTriggerRefs.current.get(fallbackId)?.focus();
+      } else {
+        savedHeadingRef.current?.focus();
+      }
+    }
+  }, [pendingDeleteId, notes, mediaPath]);
 
   useEffect(() => {
     if (mediaPath) {
@@ -204,9 +305,13 @@ export function NotesPanel() {
 
   if (!mediaPath) {
     return (
-      <div className="p-3 text-xs text-muted-foreground">
+      <p
+        ref={savedHeadingRef}
+        tabIndex={-1}
+        className="p-3 text-xs text-muted-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
+      >
         打开视频后可记录带时间戳的笔记。
-      </div>
+      </p>
     );
   }
 
@@ -214,7 +319,19 @@ export function NotesPanel() {
   const composing = body.trim().length > 0 || selectedQuoteIndices.length > 0;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2 p-3">
+    // Root may scroll as a last resort at extreme short heights; it stays
+    // inside the sidebar frame (never page-level, never over the HWND).
+    // The saved list below remains the primary scroll owner.
+    <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-3">
+      {recapCardNote ? (
+        <RecapCardDialog
+          note={recapCardNote}
+          mediaPath={mediaPath ?? ""}
+          open
+          onClose={closeRecap}
+        />
+      ) : (
+        <>
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs text-muted-foreground">
           当前 {formatTime(positionMs)}
@@ -292,8 +409,12 @@ export function NotesPanel() {
         {includeQuotes && canAttachQuotes ? (
           <div className="mt-2 space-y-2 rounded-md border border-border/60 p-2">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[11px] text-muted-foreground">引用方式</span>
-              <div className="flex rounded-md border border-border p-0.5 text-[11px]">
+              <span id="notes-quote-mode-label" className="text-[11px] text-muted-foreground">引用方式</span>
+              <div
+                role="group"
+                aria-labelledby="notes-quote-mode-label"
+                className="flex rounded-md border border-border p-0.5 text-[11px]"
+              >
                 <Button
                   type="button"
                   size="sm"
@@ -374,13 +495,19 @@ export function NotesPanel() {
                             type="checkbox"
                             className="mt-0.5"
                             checked={checked}
-                            onClick={(event) => {
-                              event.preventDefault();
-                              toggleAtListIndex(cues, index, event.shiftKey);
-                            }}
-                            onChange={() => {}}
+                            // Controlled by the store via onChange (no
+                            // preventDefault): cancelling the click default
+                            // leaves the box visually unchecked in real
+                            // browsers even though the pick is saved.
+                            onChange={(event) =>
+                              toggleAtListIndex(
+                                cues,
+                                index,
+                                (event.nativeEvent as MouseEvent).shiftKey,
+                              )
+                            }
                           />
-                          <span className="min-w-0 flex-1 leading-snug">
+                          <span className="min-w-0 flex-1 break-words leading-snug">
                             {formatCueLabel(cue)}
                           </span>
                           {checked ? (
@@ -389,12 +516,14 @@ export function NotesPanel() {
                               size="sm"
                               variant="ghost"
                               className={cn(
-                                "h-auto shrink-0 rounded px-1 py-0 text-[10px]",
+                                "h-6 min-w-6 shrink-0 rounded px-1.5 text-[11px]",
                                 isAnchor
                                   ? "bg-primary text-primary-foreground"
                                   : "text-muted-foreground hover:bg-muted",
                               )}
-                              title="标为锚点句"
+                              title={isAnchor ? "取消锚点句" : "标为锚点句"}
+                              aria-label={isAnchor ? "取消锚点句" : "标为锚点句"}
+                              aria-pressed={isAnchor}
                               onClick={(event) => {
                                 event.preventDefault();
                                 setAnchorCueIndex(
@@ -426,6 +555,7 @@ export function NotesPanel() {
                     <p
                       key={`${quote.index}-${quote.startMs}`}
                       className={cn(
+                        "break-words",
                         quote.anchor && "font-medium text-foreground",
                       )}
                     >
@@ -474,9 +604,20 @@ export function NotesPanel() {
 
       {error ? <p className="text-xs text-destructive">{error}</p> : null}
 
-      <p className="text-[11px] font-medium text-muted-foreground">已保存</p>
-      <div className="min-h-0 flex-1 space-y-1 overflow-auto">
-        {(notesQuery.data ?? []).map((note) => (
+      <p
+        ref={savedHeadingRef}
+        tabIndex={-1}
+        className="text-[11px] font-medium text-muted-foreground focus:outline-none"
+      >
+        已保存
+      </p>
+      {/* Saved list owns its scroll; min-h keeps a real viewport at short heights. */}
+      <div className="min-h-[5rem] flex-1 space-y-1 overflow-auto">
+        {(notes ?? []).map((note) => {
+          const confirming = pendingDeleteId === note.id;
+          const deleting =
+            deleteMutation.isPending && deleteMutation.variables === note.id;
+          return (
           <div
             key={note.id}
             className="flex flex-col gap-1 rounded-md border border-border px-2 py-1.5 text-xs"
@@ -491,34 +632,110 @@ export function NotesPanel() {
               >
                 {formatTime(note.positionMs)}
               </Button>
-              <p className="min-w-0 flex-1 whitespace-pre-wrap">{note.body}</p>
+              <p className="min-w-0 flex-1 whitespace-pre-wrap break-words">{note.body}</p>
               <Button
                 type="button"
                 size="sm"
                 variant="ghost"
-                className="h-auto shrink-0 rounded-none px-0 py-0 text-xs font-normal text-muted-foreground hover:bg-transparent hover:text-primary"
+                ref={(el) => {
+                  if (el) {
+                    recapTriggerRefs.current.set(note.id, el);
+                  } else {
+                    recapTriggerRefs.current.delete(note.id);
+                  }
+                }}
+                className="h-7 shrink-0 px-2 text-[11px] font-normal text-muted-foreground hover:bg-transparent hover:text-primary"
                 title="生成打卡卡片"
-                onClick={() => setRecapCardNoteId(note.id)}
+                onClick={() => openRecap(note.id)}
               >
-                卡
+                打卡卡片
               </Button>
               <Button
                 type="button"
                 size="sm"
                 variant="ghost"
-                className="h-auto shrink-0 rounded-none px-0 py-0 text-xs font-normal text-muted-foreground hover:bg-transparent hover:text-destructive"
-                aria-label="删除批注"
-                onClick={() => deleteMutation.mutate(note.id)}
+                ref={(el) => {
+                  if (el) {
+                    deleteTriggerRefs.current.set(note.id, el);
+                  } else {
+                    deleteTriggerRefs.current.delete(note.id);
+                  }
+                }}
+                className="h-7 shrink-0 px-2 text-[11px] font-normal text-muted-foreground hover:bg-transparent hover:text-destructive"
+                title="删除这条批注"
+                aria-expanded={confirming}
+                disabled={deleteMutation.isPending}
+                onClick={() => {
+                  if (deleteMutation.isPending) return;
+                  if (confirming) {
+                    cancelDelete(note.id);
+                  } else {
+                    openDeleteMediaRef.current = mediaPath;
+                    setPendingDeleteId(note.id);
+                  }
+                }}
               >
-                删
+                删除
               </Button>
             </div>
+            {confirming ? (
+              <div
+                role="group"
+                aria-label={`确认删除 ${formatTime(note.positionMs)} 的批注`}
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") {
+                    event.stopPropagation();
+                    cancelDelete(note.id);
+                  }
+                }}
+                className="rounded border border-destructive/40 bg-destructive/5 p-2"
+              >
+                <p className="mb-1.5 text-[11px] text-muted-foreground">
+                  删除后无法恢复。确认删除这条批注吗？
+                </p>
+                <div className="flex gap-1.5">
+                  <Button
+                    ref={deleteCancelRef}
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 px-2 text-[11px]"
+                    disabled={deleting}
+                    onClick={() => cancelDelete(note.id)}
+                  >
+                    取消
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 border-destructive/50 px-2 text-[11px] text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    disabled={deleting}
+                    onClick={() => {
+                      if (deleteMutation.isPending) return;
+                      // Stale scope (media switched) or vanished row: never
+                      // fire the delete for a confirm that is no longer valid.
+                      if (mediaPath !== openDeleteMediaRef.current) return;
+                      if (
+                        notes !== undefined &&
+                        !notes.some((entry) => entry.id === note.id)
+                      ) {
+                        return;
+                      }
+                      deleteMutation.mutate(note.id);
+                    }}
+                  >
+                    {deleting ? "删除中…" : "确认删除"}
+                  </Button>
+                </div>
+              </div>
+            ) : null}
             {note.quotes?.length ? (
               <div className="border-l-2 border-muted pl-2 text-[11px] text-muted-foreground">
                 {note.quotes.map((quote) => (
                   <p
                     key={`${note.id}-${quote.index}`}
-                    className={cn(quote.anchor && "font-medium text-foreground")}
+                    className={cn("break-words", quote.anchor && "font-medium text-foreground")}
                   >
                     {quote.text}
                   </p>
@@ -537,7 +754,8 @@ export function NotesPanel() {
               </div>
             ) : null}
           </div>
-        ))}
+          );
+        })}
         {notesQuery.data?.length === 0 ? (
           <p className="text-muted-foreground">暂无批注</p>
         ) : null}
@@ -548,15 +766,8 @@ export function NotesPanel() {
           已保存至 {exportSavedPath}
         </p>
       ) : null}
-
-      {recapCardNote ? (
-        <RecapCardDialog
-          note={recapCardNote}
-          mediaPath={mediaPath ?? ""}
-          open
-          onClose={() => setRecapCardNoteId(null)}
-        />
-      ) : null}
+        </>
+      )}
     </div>
   );
 }

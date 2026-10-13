@@ -49,6 +49,7 @@ export function AnnotationProposalCard({
       await dismissAnnotationProposal(workspace);
     },
     onSuccess: async () => {
+      setError(null);
       await queryClient.invalidateQueries({
         queryKey: notesKey(proposal.mediaPath),
       });
@@ -96,7 +97,10 @@ export function AnnotationProposalCard({
             {proposal.quotes.map((quote) => (
               <p
                 key={quote.index}
-                className={quote.anchor ? "font-medium text-foreground" : undefined}
+                className={cn(
+                  "break-words",
+                  quote.anchor ? "font-medium text-foreground" : undefined,
+                )}
               >
                 {formatTime(quote.startMs)} {quote.text}
               </p>
