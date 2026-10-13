@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@dawnsight/ui/button";
 import { Input } from "@dawnsight/ui/input";
 import { NativeSelect, NativeSelectOption } from "@dawnsight/ui/native-select";
+import { errorMessage } from "@/lib/format";
 
 import { LANG_PRESETS } from "../../../../../../packages/transcript-ui/src/cueSelectors";
 import {
@@ -158,11 +159,7 @@ export function OnlineSubtitleSection({
       setKeyInput("");
       setKeyMessage("已保存（仅存本机）");
     } catch (err) {
-      setKeyMessage(
-        typeof err === "object" && err && "message" in err
-          ? String((err as { message: string }).message)
-          : String(err),
-      );
+      setKeyMessage(errorMessage(err));
     } finally {
       setKeyBusy(false);
     }
@@ -205,11 +202,7 @@ export function OnlineSubtitleSection({
       if (found.length === 0) setError("没有找到可用字幕，换个片名或语言试试");
     } catch (err) {
       setCandidates(null);
-      setError(
-        typeof err === "object" && err && "message" in err
-          ? String((err as { message: string }).message)
-          : String(err),
-      );
+      setError(errorMessage(err));
     } finally {
       setSearchBusy(false);
     }
@@ -229,11 +222,7 @@ export function OnlineSubtitleSection({
       );
       onDownloaded(result.choiceId);
     } catch (err) {
-      setError(
-        typeof err === "object" && err && "message" in err
-          ? String((err as { message: string }).message)
-          : String(err),
-      );
+      setError(errorMessage(err));
     } finally {
       setDownloadingKey(null);
     }
@@ -242,7 +231,7 @@ export function OnlineSubtitleSection({
   const busy = disabled || searchBusy || downloadingKey !== null || keyBusy || checkBusy;
 
   return (
-    <div className="flex flex-col gap-2 rounded-md border border-border/70 bg-muted/20 p-2">
+    <div className="flex flex-col gap-[var(--space-ui-4)]">
       <p className="text-xs font-medium">在线字幕（仅存本机缓存，不写视频目录）</p>
 
       <div className="flex flex-wrap items-end gap-2">
@@ -280,10 +269,10 @@ export function OnlineSubtitleSection({
         </Button>
       </div>
       {keyMessage ? (
-        <p className="text-[11px] text-muted-foreground">{keyMessage}</p>
+        <p className="text-[length:var(--text-ui-label)] leading-[var(--text-ui-label--line-height)] text-muted-foreground">{keyMessage}</p>
       ) : null}
 
-      <div className="flex flex-wrap items-end gap-2">
+      <div className="flex flex-wrap items-end gap-2 border-t border-border/70 pt-[var(--space-ui-4)]">
         <label className="flex min-w-[10rem] flex-[2] flex-col gap-1 text-xs">
           <span className="text-muted-foreground">片名</span>
           <Input
@@ -343,7 +332,7 @@ export function OnlineSubtitleSection({
           {searchBusy ? "搜索中…" : "搜索字幕"}
         </Button>
       </div>
-      <p className="text-[11px] leading-snug text-muted-foreground">
+      <p className="text-[length:var(--text-ui-label)] leading-snug text-muted-foreground">
         排序：{prefer.join(" → ")}
         {originalLang ? "（含音轨原语）" : ""}；下载需手动点每条结果。
       </p>
@@ -376,7 +365,7 @@ export function OnlineSubtitleSection({
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="h-6 shrink-0 px-2 text-[11px]"
+                className="h-6 shrink-0 px-2 text-[length:var(--text-ui-label)] leading-[var(--text-ui-label--line-height)]"
                 disabled={busy}
                 onClick={() => void handleDownload(candidate, index)}
               >

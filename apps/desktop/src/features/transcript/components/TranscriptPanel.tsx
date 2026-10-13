@@ -16,7 +16,7 @@ import { resolveModelSelection } from "@dawnsight/chat-ui/modelConfig";
 import type { AsrRange } from "@/features/asr";
 import { useMediaInfoQuery } from "@/features/media";
 import type { Transcript } from "@/features/transcript";
-import { formatTime } from "@/lib/format";
+import { errorMessage, formatTime } from "@/lib/format";
 import { useNoteComposeStore } from "@/features/notes/noteComposeStore";
 import { usePlayerStore } from "@/features/player";
 import { applySubtitleChoice } from "@/features/player/hooks/useTrackControls";
@@ -707,6 +707,8 @@ export function TranscriptPanel({
   const catalog = asrStatusQuery.data?.catalog ?? [];
   const canTranslate = Boolean(choiceId && selected?.supported);
   const busy = asrBusy || translateBusy || installBusy || proofreadBusy;
+  // Failure copy prefers fixed business text: raw bridge/struct internals
+  // (Tauri errors, details) never reach the UI. Priority order is unchanged.
   const errorText = asrError
     ? asrError
     : installError
@@ -716,21 +718,21 @@ export function TranscriptPanel({
       : proofreadError
         ? proofreadError
       : transcriptQuery.isError && !asrTranscript && !transcriptQuery.isFetching
-        ? String(
-            (transcriptQuery.error as { message?: string }).message ??
-              transcriptQuery.error,
-          )
+        ? errorMessage(transcriptQuery.error)
         : choicesQuery.isError
-          ? String(
-              (choicesQuery.error as { message?: string }).message ??
-                choicesQuery.error,
-            )
+          ? errorMessage(choicesQuery.error)
           : selected && !selected.supported && !asrTranscript
             ? "已在画面显示位图字幕；文稿可点 ASR，或在播放条换文本轨"
             : null;
 
   return (
-    <section className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+    <section
+      className={
+        workshopOnly
+          ? "flex min-h-0 flex-1 flex-col overflow-y-auto"
+          : "flex min-h-0 flex-1 flex-col overflow-hidden"
+      }
+    >
       <div className="flex shrink-0 flex-col gap-2 border-b border-border px-3 py-2">
         {!workshopOnly ? (
           <>
@@ -774,9 +776,8 @@ export function TranscriptPanel({
           </div>
         </div>
 
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-[length:var(--text-ui-label)] leading-[var(--text-ui-label--line-height)] text-muted-foreground">
           音轨/字幕请用右侧边栏切换
-          {selected ? ` · 当前：${selected.label}` : ""}
         </p>
 
         <label className="flex flex-col gap-1 text-xs">
@@ -812,7 +813,7 @@ export function TranscriptPanel({
         ) : null}
 
         {workshopOnly ? (
-          <>
+          <div className="flex flex-col gap-[var(--space-ui-6)]">
         {mediaReady && !isRemotePath ? (
           <OnlineSubtitleSection
             mediaPath={path as string}
@@ -892,7 +893,7 @@ export function TranscriptPanel({
         </div>
         {asrScope === "chapter" ? (
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-[length:var(--text-ui-label)] leading-[var(--text-ui-label--line-height)] text-muted-foreground">
               {activeChapter
                 ? `当前章节：${activeChapter.title?.trim() || `第 ${activeChapter.id} 章`}（${formatTime(activeChapter.startMs)}${
                     activeChapter.endMs != null
@@ -906,7 +907,7 @@ export function TranscriptPanel({
                 type="button"
                 size="sm"
                 variant="ghost"
-                className="h-6 px-2 text-[11px]"
+                className="h-6 px-2 text-[length:var(--text-ui-label)] leading-[var(--text-ui-label--line-height)]"
                 onClick={() => {
                   const title =
                     activeChapter.title?.trim() ||
@@ -930,7 +931,7 @@ export function TranscriptPanel({
         ) : null}
 
         {installSupported ? (
-          <div className="flex flex-wrap items-end gap-2 rounded-md border border-border/70 bg-muted/20 p-2">
+          <div className="flex flex-wrap items-end gap-2 border-t border-border/70 pt-[var(--space-ui-4)]">
             <label className="flex min-w-[9rem] flex-1 flex-col gap-1 text-xs">
               <span className="text-muted-foreground">
                 {asrAvailable ? "下载更多模型" : "一键安装转写"}
@@ -987,7 +988,7 @@ export function TranscriptPanel({
           </div>
         ) : null}
 
-        <div className="flex flex-wrap items-end gap-2 rounded-md border border-border/70 bg-muted/20 p-2">
+        <div className="flex flex-wrap items-end gap-2 border-t border-border/70 pt-[var(--space-ui-4)]">
           <label className="flex min-w-[7rem] flex-1 flex-col gap-1 text-xs">
             <span className="text-muted-foreground">翻译目标语言</span>
             <NativeSelect
@@ -1126,11 +1127,11 @@ export function TranscriptPanel({
           </Field>
         </div>
         {proofreadProgress || proofreadError ? (
-          <p className="text-[11px] leading-snug text-muted-foreground">
+          <p className="text-[length:var(--text-ui-label)] leading-snug text-muted-foreground">
             {proofreadError ?? proofreadProgress}
           </p>
         ) : null}
-        <p className="text-[11px] leading-snug text-muted-foreground">
+        <p className="text-[length:var(--text-ui-label)] leading-snug text-muted-foreground">
           翻译走字幕工坊专用模型与隔离会话，不会写入 AI 对话历史；主聊天 Agent
           也不能制作/写入外挂字幕。
           {workshopModels.modelId.trim()
@@ -1163,14 +1164,14 @@ export function TranscriptPanel({
           />
         ) : null}
         {!asrAvailable && asrStatusQuery.data ? (
-          <p className="text-[11px] leading-snug text-muted-foreground">
+          <p className="text-[length:var(--text-ui-label)] leading-snug text-muted-foreground">
             {asrStatusQuery.data.message}
             {installSupported
               ? "。选择上方模型后点「一键下载」即可（无需手动找文件）。"
               : ""}
           </p>
         ) : null}
-          </>
+          </div>
         ) : null}
       </div>
 
@@ -1187,7 +1188,7 @@ export function TranscriptPanel({
           文稿已收起{transcript ? `（${transcript.cues.length} 句）` : ""} · 点击展开
         </Button>
       ) : (
-      <ScrollArea className="min-h-96 shrink-0 flex-1">
+      <ScrollArea className="min-h-0 flex-1">
         <div
           className={`px-2 py-2 ${showStale ? "opacity-50" : ""}`}
           onWheel={() => setBrowsing(true)}
@@ -1219,7 +1220,9 @@ export function TranscriptPanel({
           ) : null}
 
           {errorText && !transcript ? (
-            <p className="px-2 text-sm text-muted-foreground">{errorText}</p>
+            <p className="px-2 text-sm text-muted-foreground" role="alert">
+              {errorText}
+            </p>
           ) : null}
 
           {!errorText &&
@@ -1246,8 +1249,9 @@ export function TranscriptPanel({
                       type="button"
                       size="sm"
                       variant="ghost"
+                      aria-current={active && !showStale ? "true" : undefined}
                       className={cn(
-                        "h-auto min-w-0 flex-1 rounded-md px-2 py-1.5 text-left text-sm font-normal transition-colors",
+                        "h-auto min-w-0 flex-1 whitespace-normal rounded-md px-2 py-1.5 text-left text-sm font-normal transition-colors",
                         active
                           ? "bg-accent font-medium text-accent-foreground"
                           : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -1259,16 +1263,26 @@ export function TranscriptPanel({
                         void seek(cue.startMs);
                       }}
                     >
-                      <span className="mr-2 tabular-nums text-[11px] opacity-70">
+                      <span className="mr-2 shrink-0 tabular-nums text-[length:var(--text-ui-label)] leading-[var(--text-ui-label--line-height)] opacity-70">
                         {formatTime(cue.startMs)}
                       </span>
-                      {cue.text}
+                      {active && !showStale ? (
+                        <span
+                          aria-hidden="true"
+                          className="mr-2 shrink-0 text-[length:var(--text-ui-label)] leading-[var(--text-ui-label--line-height)] font-medium"
+                        >
+                          当前
+                        </span>
+                      ) : null}
+                      <span className="min-w-0 flex-1 break-words">
+                        {cue.text}
+                      </span>
                     </Button>
                     <Button
                       type="button"
                       size="sm"
                       variant="ghost"
-                      className="h-auto shrink-0 px-2 py-1 text-[10px] opacity-70 group-hover:opacity-100"
+                      className="h-auto shrink-0 px-2 py-1 text-[length:var(--text-ui-label)] leading-[var(--text-ui-label--line-height)] opacity-70 group-hover:opacity-100"
                       title={`就这句提问（锚定 ${formatTime(cue.startMs)}）`}
                       disabled={!path}
                       onClick={(event) => {
@@ -1290,7 +1304,7 @@ export function TranscriptPanel({
                       type="button"
                       size="sm"
                       variant={quoted ? "secondary" : "ghost"}
-                      className="h-auto shrink-0 px-2 py-1 text-[10px] opacity-70 group-hover:opacity-100"
+                      className="h-auto shrink-0 px-2 py-1 text-[length:var(--text-ui-label)] leading-[var(--text-ui-label--line-height)] opacity-70 group-hover:opacity-100"
                       title="加入批注引用（Shift 连选一段）"
                       disabled={!path || !choiceId}
                       onClick={(event) => {

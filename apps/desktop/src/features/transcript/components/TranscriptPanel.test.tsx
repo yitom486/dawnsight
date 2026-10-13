@@ -699,3 +699,130 @@ describe("TranscriptPanel downloaded subtitles", () => {
     });
   });
 });
+
+describe("TranscriptPanel reading presentation", () => {
+  it("maps online search failures to business copy", async () => {
+    vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "subtitle_search_online")
+        return Promise.reject(
+          new TypeError("Cannot read properties of undefined (reading 'invoke')"),
+        );
+      return Promise.resolve(null);
+    });
+    usePlayerStore.setState({
+      currentFile: "C:\\v\\a.mp4",
+      status: "Paused",
+      currentTimeMs: 500,
+    });
+    renderWorkshopPanel();
+    await waitFor(() => {
+      expect(screen.getByText("搜索字幕")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("搜索字幕"));
+    await waitFor(() => {
+      expect(screen.getByText("操作失败，请重试")).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/invoke|Cannot read/)).not.toBeInTheDocument();
+  });
+
+  it("maps bridge failures to business copy with alert semantics", async () => {
+    vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "subtitle_list_choices")
+        return Promise.resolve([
+          { id: "s1", source: "Embedded", label: "中文", supported: true, streamIndex: 0 },
+        ]);
+      if (cmd === "subtitle_load_choice")
+        return Promise.reject(
+          new TypeError("Cannot read properties of undefined (reading 'invoke')"),
+        );
+      if (cmd === "media_inspect")
+        return Promise.resolve({ path: "C:\\v\\a.mp4", streams: [], chapters: [] });
+      return Promise.resolve(null);
+    });
+    renderPanel();
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("操作失败，请重试");
+    expect(alert.textContent).not.toMatch(/invoke|Cannot read/);
+  });
+
+  it("never leaks structured error details", async () => {
+    vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "subtitle_list_choices")
+        return Promise.resolve([
+          { id: "s1", source: "Embedded", label: "中文", supported: true, streamIndex: 0 },
+        ]);
+      if (cmd === "subtitle_load_choice")
+        return Promise.reject({
+          code: "ParseFailed",
+          message: "无法解析字幕",
+          details: "serde_json line 42: unexpected token",
+        });
+      if (cmd === "media_inspect")
+        return Promise.resolve({ path: "C:\\v\\a.mp4", streams: [], chapters: [] });
+      return Promise.resolve(null);
+    });
+    renderPanel();
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("无法解析字幕");
+    expect(alert.textContent).not.toMatch(/serde|ParseFailed/);
+  });
+
+  it("marks the active cue beyond color alone", async () => {
+    renderPanel();
+    await waitFor(() => {
+      expect(screen.getByText("第二句")).toBeInTheDocument();
+    });
+
+    const buttons = screen.getAllByRole("button", { name: /第[一二三]句/ });
+    expect(buttons).toHaveLength(3);
+    const active = buttons.filter(
+      (button) => button.getAttribute("aria-current") === "true",
+    );
+    // currentTimeMs 1500 -> exactly the second cue.
+    expect(active).toHaveLength(1);
+    expect(active[0]).toHaveTextContent("当前");
+    expect(active[0]).toHaveTextContent("第二句");
+  });
+
+  it("switches subtitle choices through the track store", async () => {
+    vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "subtitle_list_choices")
+        return Promise.resolve([
+          { id: "s1", source: "Embedded", label: "中文", supported: true, streamIndex: 0 },
+          { id: "s2", source: "Sidecar", label: "English", supported: true, streamIndex: null },
+        ]);
+      if (cmd === "subtitle_load_choice")
+        return Promise.resolve({ choiceId: "s1", cues: CUES });
+      if (cmd === "media_inspect")
+        return Promise.resolve({ path: "C:\\v\\a.mp4", streams: [], chapters: [] });
+      return Promise.resolve(null);
+    });
+    useTrackStore.setState({ subtitleChoiceId: "s1" });
+    renderPanel();
+    await waitFor(() => {
+      expect(screen.getByText("第一句")).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByLabelText("Subtitle track for transcript"), {
+      target: { value: "s2" },
+    });
+    await waitFor(() => {
+      expect(useTrackStore.getState().subtitleChoiceId).toBe("s2");
+    });
+  });
+
+  it("keeps the toolbar hint free of the track menus duplicate", async () => {
+    renderPanel();
+    await waitFor(() => {
+      expect(screen.getByText("第一句")).toBeInTheDocument();
+    });
+
+    expect(
+      screen.getByText("音轨/字幕请用右侧边栏切换"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/当前：/)).not.toBeInTheDocument();
+  });
+});
