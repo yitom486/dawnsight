@@ -218,7 +218,7 @@ function RealChaptersWithResegment({
     setView("real");
   }, [mediaIdentity, currentFile]);
   return (
-    <div className="min-h-0 flex flex-1 flex-col overflow-hidden">
+    <div className="min-h-0 flex flex-1 flex-col overflow-y-auto">
       {showToggle ? (
         <div className="flex gap-1 px-3 pt-2" role="tablist" aria-label="章节来源切换">
           <Button
@@ -371,35 +371,32 @@ function ResegmentProgress({
   return (
     <section
       aria-label="重分段进度"
-      className="space-y-2.5 rounded-lg border border-border/70 bg-card/60 p-2.5 shadow-sm backdrop-blur-sm"
+      className="space-y-2.5 rounded-lg border border-border/70 bg-card p-2.5 shadow-sm"
     >
-      <ol className="flex items-center justify-between gap-1 rounded-md bg-muted/40 p-1 text-[11px]">
+      <ol className="flex items-center justify-between gap-1 rounded-md bg-muted/40 p-1 text-[length:var(--text-ui-label)]">
         {steps.map((step, index) => (
           <li key={step.id} className="flex min-w-0 flex-1 items-center gap-1">
             <span
-              aria-current={step.done ? "step" : undefined}
+              aria-current={step.active || step.bad ? "step" : undefined}
               className={
                 step.bad
-                  ? "flex w-full items-center justify-center gap-1 rounded-md bg-destructive px-1.5 py-1 text-center font-medium text-destructive-foreground shadow-sm"
+                  ? "flex w-full items-center justify-center gap-1 rounded-md border border-destructive/30 bg-destructive/10 px-1.5 py-1 text-center font-medium text-foreground shadow-sm"
                   : step.active
-                    ? "relative flex w-full items-center justify-center gap-1 rounded-md border border-primary/40 bg-primary/20 px-1.5 py-1 text-center font-medium text-primary shadow-[0_0_10px_rgba(56,189,248,0.2)]"
+                    ? "flex w-full items-center justify-center gap-1 rounded-md border border-primary/40 bg-primary/20 px-1.5 py-1 text-center font-medium text-foreground"
                     : step.done
                       ? "flex w-full items-center justify-center gap-1 rounded-md bg-accent px-1.5 py-1 text-center font-normal text-foreground"
-                      : "flex w-full items-center justify-center gap-1 rounded-md bg-transparent px-1.5 py-1 text-center font-normal text-muted-foreground/60"
+                      : "flex w-full items-center justify-center gap-1 rounded-md bg-transparent px-1.5 py-1 text-center font-normal text-muted-foreground"
               }
             >
               {step.active ? (
-                <span className="relative flex h-1.5 w-1.5 shrink-0" aria-hidden="true">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
-                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
-                </span>
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />
               ) : null}
               <span className="truncate">{step.label}</span>
             </span>
             {index < steps.length - 1 ? (
               <span
                 aria-hidden="true"
-                className={`shrink-0 select-none text-[10px] ${
+                className={`shrink-0 select-none text-[length:var(--text-ui-label)] ${
                   step.done ? "text-primary/70 font-semibold" : "text-muted-foreground/40"
                 }`}
               >
@@ -411,40 +408,34 @@ function ResegmentProgress({
       </ol>
 
       {isRunning ? (
-        <div className="relative overflow-hidden rounded-md border border-primary/30 bg-primary/10 p-2.5 transition-all">
+        <div className="rounded-md border border-primary/30 bg-primary/10 p-2.5">
           <div className="flex items-start gap-2">
-            <span className="relative flex h-2.5 w-2.5 shrink-0 mt-1" aria-hidden="true">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-80" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary shadow-[0_0_8px_rgba(56,189,248,0.6)]" />
-            </span>
+            <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />
             <div className="min-w-0 flex-1 space-y-1.5">
               <div className="flex items-center justify-between gap-1.5">
-                <span className="truncate text-xs font-medium text-foreground">
+                <span className="min-w-0 break-words text-xs font-medium text-foreground">
                   {currentMessage}
                 </span>
                 {draftCount > 0 ? (
-                  <span className="shrink-0 rounded-full border border-primary/30 bg-primary/20 px-2 py-0.5 font-mono text-[10px] font-semibold text-primary">
+                  <span className="shrink-0 rounded-full border border-primary/30 bg-primary/20 px-2 py-0.5 font-mono text-[length:var(--text-ui-label)] font-semibold text-primary">
                     草稿 {draftCount} 段
                   </span>
                 ) : null}
-              </div>
-              <div className="relative h-1 w-full overflow-hidden rounded-full bg-primary/20">
-                <div className="absolute inset-y-0 w-2/5 rounded-full bg-gradient-to-r from-transparent via-primary to-transparent animate-pulse" />
               </div>
             </div>
           </div>
         </div>
       ) : (
-        <div className="flex flex-wrap items-center justify-between gap-1 text-[11px] text-muted-foreground">
-          <span>{currentMessage}</span>
+        <div className="flex flex-wrap items-center justify-between gap-1 text-[length:var(--text-ui-label)] text-muted-foreground">
+          <span className="min-w-0 break-words">{currentMessage}</span>
           <div className="flex items-center gap-1.5">
             {attemptText ? (
-              <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+              <span className="rounded bg-muted px-1.5 py-0.5 text-[length:var(--text-ui-label)] font-medium tabular-nums text-muted-foreground">
                 {attemptText}
               </span>
             ) : null}
             {draftCount > 0 ? (
-              <span className="rounded bg-accent px-1.5 py-0.5 font-mono text-[10px] text-foreground">
+              <span className="rounded bg-accent px-1.5 py-0.5 font-mono text-[length:var(--text-ui-label)] tabular-nums text-foreground">
                 草稿 {draftCount} 段
               </span>
             ) : null}
@@ -453,7 +444,7 @@ function ResegmentProgress({
       )}
 
       {isRunning && segmentation.taskStatus === "running" ? (
-        <p className="text-[11px] text-muted-foreground/80">运行中暂不支持取消，请等待本轮结束。</p>
+        <p className="text-[length:var(--text-ui-label)] text-muted-foreground/80">运行中暂不支持取消，请等待本轮结束。</p>
       ) : null}
 
       {segmentation.canCancel || segmentation.isCancelling ? (
@@ -473,7 +464,7 @@ function ResegmentProgress({
 
       {segmentation.taskStatus === "failed" && snapshot?.failureMessage ? (
         <div className="pt-0.5">
-          <span className="min-w-0 flex-1 truncate text-[11px] text-destructive">
+          <span className="block min-w-0 break-words text-[length:var(--text-ui-label)] text-destructive">
             {snapshot.failureMessage}
           </span>
         </div>
@@ -516,13 +507,13 @@ function ResegmentModelControls({ disabled }: { disabled: boolean }) {
         : [];
   return (
     <section aria-label="重分段运行时" className="space-y-1.5 rounded-md border border-border/70 p-2">
-      <p className="text-[11px] text-muted-foreground">
+      <p className="break-words text-[length:var(--text-ui-label)] text-muted-foreground">
         运行时：{activeProfileId?.trim() || "未配置"} · {models.modelId.trim() || "Agent 默认"} ·{" "}
         {models.reasoningEffort.trim() || "默认档"}
       </p>
-      <p className="text-[11px] text-muted-foreground">修改下次启动/重试生效；章节配置独立保存。</p>
+      <p className="text-[length:var(--text-ui-label)] text-muted-foreground">修改下次启动/重试生效；章节配置独立保存。</p>
       <div className="grid grid-cols-2 gap-1.5">
-        <label className="flex min-w-0 flex-col gap-1 text-[11px] text-muted-foreground">
+        <label className="flex min-w-0 flex-col gap-1 text-[length:var(--text-ui-label)] text-muted-foreground">
           <span className="truncate">运行时</span>
           <select
             aria-label="重分段运行时"
@@ -544,7 +535,7 @@ function ResegmentModelControls({ disabled }: { disabled: boolean }) {
             ))}
           </select>
         </label>
-        <label className="flex min-w-0 flex-col gap-1 text-[11px] text-muted-foreground">
+        <label className="flex min-w-0 flex-col gap-1 text-[length:var(--text-ui-label)] text-muted-foreground">
           <span className="truncate">模型</span>
           {models.hasModelOptions ? (
             <select
@@ -581,7 +572,7 @@ function ResegmentModelControls({ disabled }: { disabled: boolean }) {
             />
           )}
         </label>
-        <div className="flex min-w-0 flex-col gap-1 text-[11px] text-muted-foreground">
+        <div className="flex min-w-0 flex-col gap-1 text-[length:var(--text-ui-label)] text-muted-foreground">
           <span className="truncate">思考档</span>
           <select
             aria-label="重分段思考档"
@@ -613,9 +604,9 @@ function ResegmentModelControls({ disabled }: { disabled: boolean }) {
           </Button>
         </div>
       </div>
-      {models.controlError ? <p role="alert" className="text-[11px] text-destructive">{models.controlError}</p> : null}
-      {!models.discoverBusy && !models.controlError && models.hasModelOptions && !models.hasReasoningOptions ? <p className="text-[11px] text-muted-foreground">该模型未提供可选思考档，将使用默认设置。</p> : null}
-      {!models.discoverBusy && !models.controlError && !models.hasModelOptions ? <p className="text-[11px] text-muted-foreground">该运行时未提供模型列表，可使用默认模型。</p> : null}
+      {models.controlError ? <p role="alert" className="break-words text-[length:var(--text-ui-label)] text-destructive">{models.controlError}</p> : null}
+      {!models.discoverBusy && !models.controlError && models.hasModelOptions && !models.hasReasoningOptions ? <p className="text-[length:var(--text-ui-label)] text-muted-foreground">该模型未提供可选思考档，将使用默认设置。</p> : null}
+      {!models.discoverBusy && !models.controlError && !models.hasModelOptions ? <p className="text-[length:var(--text-ui-label)] text-muted-foreground">该运行时未提供模型列表，可使用默认模型。</p> : null}
     </section>
   );
 }
@@ -654,7 +645,7 @@ function EmptyChaptersState({
 
   return (
     <div className="min-h-0 flex-1 space-y-3 overflow-auto p-3 text-xs">
-      <div className="space-y-1 text-muted-foreground">
+      <div className="space-y-1 text-[length:var(--text-ui-body)] text-muted-foreground">
         <p>{description}</p>
         <p>点击后会创建独立章节 Agent 任务，结合字幕与按需画面生成语义章节。</p>
       </div>
@@ -684,18 +675,18 @@ function EmptyChaptersState({
         aiSegmentationStatus === "pending" ||
         aiSegmentationStatus === "validation_failure" ||
         aiSegmentationStatus === "failed") ? (
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-[length:var(--text-ui-label)] text-muted-foreground">
           尚未配置可用的 AI Agent，请先在设置中完成配置后再开始章节分析。
         </p>
       ) : null}
-      {failureMessage ? <p className="text-destructive">{failureMessage}</p> : null}
+      {failureMessage ? <p className="break-words text-destructive">{failureMessage}</p> : null}
       {validationSummary ? (
-        <p className="text-[11px] text-muted-foreground">{validationSummary}</p>
+        <p className="text-[length:var(--text-ui-label)] text-muted-foreground">{validationSummary}</p>
       ) : null}
       {(aiSegmentationStatus === "validation_failure" ||
         aiSegmentationStatus === "failed") &&
       agentConfigured ? (
-        <div className="space-y-1 text-[11px] text-muted-foreground">
+        <div className="space-y-1 text-[length:var(--text-ui-label)] text-muted-foreground">
           {typeof attemptCount === "number" && typeof maxAttempts === "number" ? (
             <p>
               已尝试 {attemptCount} / {maxAttempts} 次
@@ -713,18 +704,18 @@ function EmptyChaptersState({
         </div>
       ) : null}
       {aiSegmentationStatus === "pending" && agentConfigured ? (
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-[length:var(--text-ui-label)] text-muted-foreground">
           {progressMessage ??
             "任务已保存，章节 Agent 正在独立执行；不会写入自由聊天，也不会自动重复启动。"}
         </p>
       ) : null}
       {aiSegmentationStatus === "completed" ? (
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-[length:var(--text-ui-label)] text-muted-foreground">
           结果已通过校验并保存，章节列表将在任务投影完成后显示。
         </p>
       ) : null}
       {aiSegmentationStatus === "unavailable" && agentConfigured && errorMessage ? (
-        <p className="text-[11px] text-muted-foreground">{errorMessage}</p>
+        <p className="text-[length:var(--text-ui-label)] text-muted-foreground">{errorMessage}</p>
       ) : null}
     </div>
   );
@@ -740,7 +731,7 @@ function ChapterList({
   seek: (ms: number) => unknown;
 }) {
   return (
-    <div className="min-h-0 flex-1 space-y-1 overflow-auto p-3">
+    <div className="min-h-[5rem] flex-1 space-y-1 overflow-auto p-3">
       {chapters.map((chapter, index) => {
         const active =
           positionMs >= chapter.startMs &&
@@ -753,16 +744,20 @@ function ChapterList({
             variant="ghost"
             className={
               active
-                ? "h-auto w-full items-start gap-2 rounded-md bg-accent px-2 py-1.5 text-left text-xs font-normal hover:bg-accent"
-                : "h-auto w-full items-start gap-2 rounded-md px-2 py-1.5 text-left text-xs font-normal hover:bg-muted"
+                ? "h-auto w-full items-start gap-2 whitespace-normal rounded-md bg-accent px-2 py-1.5 text-left text-xs font-normal hover:bg-accent"
+                : "h-auto w-full items-start gap-2 whitespace-normal rounded-md px-2 py-1.5 text-left text-xs font-normal hover:bg-muted"
             }
+            aria-current={active ? "true" : undefined}
             onClick={() => void seek(chapter.startMs)}
           >
-            <span className="shrink-0 font-mono text-primary">
+            <span className="shrink-0 font-mono tabular-nums text-primary">
               {formatTime(chapter.startMs)}
             </span>
-            <span className="min-w-0 flex-1">
+            <span className="min-w-0 flex-1 break-words text-[length:var(--text-ui-body)] font-medium text-foreground">
               {chapter.title?.trim() || `章节 ${index + 1}`}
+              {active ? (
+                <span className="font-normal text-muted-foreground">（当前章节）</span>
+              ) : null}
             </span>
           </Button>
         );
@@ -789,20 +784,17 @@ function ChapterDraftList({
     chapters.find((chapter) => chapter.id === selectedChapterId) ?? chapters[0];
 
   return (
-    <div className="min-h-0 flex-1 space-y-2 overflow-auto p-3">
+    <div className="min-h-[5rem] flex-1 space-y-2 overflow-auto p-3">
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span>AI 章节草稿 · 已从任务大纲持久化</span>
-        <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-mono font-medium text-foreground">
+        <span className="rounded-full bg-accent px-2 py-0.5 font-mono text-[length:var(--text-ui-label)] font-medium text-foreground">
           {chapters.length} 章节
         </span>
       </div>
       {progressMessage ? (
-        <div className="flex items-center gap-2 rounded-md border border-primary/25 bg-primary/10 px-2.5 py-1.5 text-[11px] text-foreground">
-          <span className="relative flex h-2 w-2 shrink-0">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-          </span>
-          <span className="truncate">{progressMessage}</span>
+        <div className="flex items-center gap-2 rounded-md border border-primary/25 bg-primary/10 px-2.5 py-1.5 text-[length:var(--text-ui-label)] text-foreground">
+          <span className="h-2 w-2 shrink-0 rounded-full bg-primary" aria-hidden="true" />
+          <span className="min-w-0 flex-1 break-words">{progressMessage}</span>
         </div>
       ) : null}
       <div className="space-y-1">
@@ -817,25 +809,29 @@ function ChapterDraftList({
               variant="ghost"
               className={
                 isSelected
-                  ? "h-auto w-full items-start gap-2.5 rounded-md border border-primary/40 bg-primary/15 px-2.5 py-2 text-left text-xs font-normal shadow-sm"
+                  ? "h-auto w-full items-start gap-2.5 whitespace-normal rounded-md border border-primary/40 bg-primary/15 px-2.5 py-2 text-left text-xs font-normal shadow-sm"
                   : active
-                    ? "h-auto w-full items-start gap-2.5 rounded-md bg-accent px-2.5 py-2 text-left text-xs font-normal hover:bg-accent"
-                    : "h-auto w-full items-start gap-2.5 rounded-md border border-transparent px-2.5 py-2 text-left text-xs font-normal hover:bg-muted/80"
+                    ? "h-auto w-full items-start gap-2.5 whitespace-normal rounded-md bg-accent px-2.5 py-2 text-left text-xs font-normal hover:bg-accent"
+                    : "h-auto w-full items-start gap-2.5 whitespace-normal rounded-md border border-transparent px-2.5 py-2 text-left text-xs font-normal hover:bg-muted/80"
               }
               aria-pressed={isSelected}
+              aria-current={active ? "true" : undefined}
               onClick={() => {
                 setSelectedChapterId(chapter.id);
                 void seek(chapter.startMs);
               }}
             >
-              <span className="shrink-0 font-mono text-xs font-medium text-primary">
+              <span className="shrink-0 font-mono text-xs font-medium tabular-nums text-primary">
                 {formatTime(chapter.startMs)}
               </span>
               <span className="min-w-0 flex-1 space-y-0.5">
-                <span className="block font-medium text-foreground">
+                <span className="block break-words text-[length:var(--text-ui-body)] font-medium text-foreground">
                   {chapter.title?.trim() || `章节 ${index + 1}`}
+                  {active ? (
+                    <span className="font-normal text-muted-foreground">（当前章节）</span>
+                  ) : null}
                 </span>
-                <span className="block text-[11px] text-muted-foreground">
+                <span className="block break-words text-[length:var(--text-ui-label)] text-muted-foreground">
                   {chapterDraftStatusLabel(chapter.status)}
                 </span>
               </span>
@@ -882,15 +878,15 @@ function ChapterDetailView({
 
   return (
     <section className="space-y-3 rounded-lg border border-border bg-card p-3 text-xs">
-      <div className="flex items-start justify-between gap-3">
-        <div>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
           <h3 className="font-medium text-foreground">章节详情</h3>
-          <p className="mt-1 text-[11px] text-muted-foreground">
+          <p className="mt-1 break-words text-[length:var(--text-ui-label)] text-muted-foreground">
             {metadata.length > 0 ? metadata.join(" · ") : "来自已保存的章节内容"}
           </p>
         </div>
         {detail.coverAssetRef ? (
-          <span className="rounded-full bg-muted px-2 py-1 text-[11px] text-muted-foreground">
+          <span className="shrink-0 rounded-full bg-muted px-2 py-1 text-[length:var(--text-ui-label)] text-muted-foreground">
             {coverQuery.data ? "代表画面" : "含代表画面"}
           </span>
         ) : null}
@@ -943,7 +939,7 @@ function ChapterAssetPreview({
     <div
       role="img"
       aria-label="章节代表画面占位"
-      className="flex min-h-24 items-center justify-center rounded-md border border-dashed border-border bg-muted px-3 text-center text-[11px] text-muted-foreground"
+      className="flex min-h-24 items-center justify-center rounded-md border border-dashed border-border bg-muted px-3 text-center text-[length:var(--text-ui-label)] text-muted-foreground"
     >
       {loading ? "正在读取代表画面…" : unavailable ? "代表画面暂不可用" : "暂无代表画面"}
     </div>
@@ -962,7 +958,7 @@ function ChapterDetailSection({
   return (
     <div className="space-y-1">
       <h4 className="font-medium text-foreground">{title}</h4>
-      <p className="whitespace-pre-wrap leading-5 text-muted-foreground">{value?.trim() || empty}</p>
+      <p className="break-words whitespace-pre-wrap leading-5 text-muted-foreground">{value?.trim() || empty}</p>
     </div>
   );
 }
@@ -986,7 +982,7 @@ function ChapterDetailList({
               <span className="text-primary" aria-hidden="true">
                 ·
               </span>
-              <span>{value}</span>
+              <span className="min-w-0 flex-1 break-words">{value}</span>
             </li>
           ))}
         </ul>
