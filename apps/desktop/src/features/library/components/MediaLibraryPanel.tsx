@@ -547,7 +547,7 @@ function LibrarySettingsContent() {
                 ))}
               </NativeSelect>
             </Field>
-            <div className="space-y-1"><Button size="sm" variant="outline" disabled={!selectedAgentProfileId || discoverAgentModelsMutation.isPending} onClick={() => discoverAgentModelsMutation.mutate()}>{discoverAgentModelsMutation.isPending ? "连接中" : agentModelId ? "刷新 Agent 模型列表" : "连接 Agent 并获取模型"}</Button>{agentConnection ? <p className={agentConnection.connected ? "text-emerald-500" : "text-destructive"}>{agentConnection.message}</p> : agentModelId ? <p className="text-muted-foreground">已保存媒体匹配模型：{agentModelId}{agentReasoningEffort ? ` · ${agentReasoningEffort}` : ""}。重启后可直接智能匹配；仅在更换模型时需要刷新列表。</p> : <p className="text-muted-foreground">先连接 Agent，再选择本次媒体匹配使用的模型；不会复用或改写聊天会话。</p>}</div>
+            <div className="space-y-1"><Button size="sm" variant="outline" disabled={!selectedAgentProfileId || discoverAgentModelsMutation.isPending} onClick={() => discoverAgentModelsMutation.mutate()}>{discoverAgentModelsMutation.isPending ? "连接中" : agentModelId ? "刷新 Agent 模型列表" : "连接 Agent 并获取模型"}</Button>{agentConnection ? (agentConnection.connected ? (<p className="flex min-w-0 items-start gap-1.5 text-foreground"><span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-success" /><span className="min-w-0 break-words">{agentConnection.message}</span></p>) : (<p className="break-words text-destructive">{agentConnection.message}</p>)) : agentModelId ? <p className="break-words text-muted-foreground">已保存媒体匹配模型：{agentModelId}{agentReasoningEffort ? ` · ${agentReasoningEffort}` : ""}。重启后可直接智能匹配；仅在更换模型时需要刷新列表。</p> : <p className="text-muted-foreground">先连接 Agent，再选择本次媒体匹配使用的模型；不会复用或改写聊天会话。</p>}</div>
             {showAgentModelPicker && agentModelOptions.length ? <>
               <Field label="用于媒体匹配的模型" id="library-agent-model">
                 <NativeSelect
@@ -624,7 +624,7 @@ function LibrarySettingsContent() {
                 placeholder={credentialStatusQuery.data?.modelApiKeySaved ? "已保存到此设备" : "输入后保存到此设备"}
               />
             </Field>
-            <div className="space-y-1"><Button size="sm" variant="outline" disabled={!modelBaseUrl.trim() || (!modelApiKey.trim() && !credentialStatusQuery.data?.modelApiKeySaved) || discoverModelsMutation.isPending} onClick={() => discoverModelsMutation.mutate()}>{modelApiKey.trim() ? "保存并连接" : "连接并获取模型"}</Button>{modelConnection ? <p className={modelConnection.connected ? "text-emerald-500" : "text-destructive"}>{modelConnection.message}</p> : <p className="text-muted-foreground">连接成功后再选择模型；模型服务和聊天 Agent 的配置彼此独立。</p>}</div>
+            <div className="space-y-1"><Button size="sm" variant="outline" disabled={!modelBaseUrl.trim() || (!modelApiKey.trim() && !credentialStatusQuery.data?.modelApiKeySaved) || discoverModelsMutation.isPending} onClick={() => discoverModelsMutation.mutate()}>{modelApiKey.trim() ? "保存并连接" : "连接并获取模型"}</Button>{modelConnection ? (modelConnection.connected ? (<p className="flex min-w-0 items-start gap-1.5 text-foreground"><span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-success" /><span className="min-w-0 break-words">{modelConnection.message}</span></p>) : (<p className="break-words text-destructive">{modelConnection.message}</p>)) : <p className="text-muted-foreground">连接成功后再选择模型；模型服务和聊天 Agent 的配置彼此独立。</p>}</div>
             {showDirectModelPicker ? (
               <Field
                 label="用于媒体匹配的模型"
@@ -727,7 +727,7 @@ function LibrarySettingsContent() {
         </div>
       </details>
 
-      {error ? <p className="text-destructive" role="alert">{error}{" "}<Button type="button" size="sm" variant="ghost" className="h-auto rounded-none px-0 py-0 text-destructive underline" aria-label="关闭错误提示" onClick={() => setError(null)}>关闭</Button></p> : null}
+      {error ? <p className="break-words text-destructive" role="alert">{error}{" "}<Button type="button" size="sm" variant="ghost" className="h-7 rounded-none px-2 py-0 text-xs text-destructive underline" aria-label="关闭错误提示" onClick={() => setError(null)}>关闭</Button></p> : null}
       {matchedGroups.length > 0 ? (
         <section className="min-h-0 space-y-2">
           <p className="font-medium">已匹配分组（{matchedGroups.length}）</p>
@@ -928,7 +928,11 @@ function ScanProgressCard({ event, busy }: { event: LibraryScanEvent; busy: bool
 }
 
 function ValidationItem({ label, item }: { label: string; item: CredentialValidationResult["model"] }) {
-  return <p className={item.verified ? "text-emerald-500" : "text-destructive"}>{label}：{item.message}</p>;
+  return item.verified ? (
+    <p className="flex min-w-0 items-start gap-1.5 text-foreground"><span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-success" /><span className="min-w-0 break-words">{label}：{item.message}</span></p>
+  ) : (
+    <p className="break-words text-destructive">{label}：{item.message}</p>
+  );
 }
 
 function wikiCandidatesConsidered(preview: WikiEnrichmentPreview): number {
