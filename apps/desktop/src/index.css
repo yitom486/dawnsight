@@ -1,6 +1,13 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Workspace packages are outside Vite's app source tree. Scan their actual
+   component sources so shared primitives and business views get all variants. */
+@source "../../../packages/ui/src";
+@source "../../../packages/player-ui/src";
+@source "../../../packages/transcript-ui/src";
+@source "../../../packages/chat-ui/src";
+
 /* Streamdown controls render Tailwind utilities from their dist output;
    Tailwind v4 only generates classes it can see, so point it at the real
    installed files (bun isolated layout: apps/desktop/node_modules). */
