@@ -108,6 +108,10 @@
     "./community-ai/context-card": {
       "types": "./src/community-ai/context-card.tsx",
       "default": "./src/community-ai/context-card.tsx"
+    },
+    "./community-ai/loading-state": {
+      "types": "./src/community-ai/loading-state.tsx",
+      "default": "./src/community-ai/loading-state.tsx"
     }
   },
   "dependencies": {

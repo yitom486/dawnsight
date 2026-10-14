@@ -84,6 +84,44 @@
   }
 }
 
+/* Beautiful UI verbatim-adapted motion (see community-ai/loading-state):
+   pixel wavefront + label shimmer. Durations/delays follow the upstream
+   Drive pattern; colors resolve to product tokens via the bui-* classes. */
+@keyframes pixel-on {
+  0%,
+  100% {
+    opacity: 0.15;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes shimmer-text {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.bui-pixel-cell {
+  opacity: 0.15;
+  animation: pixel-on 650ms ease-in-out infinite;
+}
+
+.bui-shimmer-text {
+  background-image: linear-gradient(
+    90deg,
+    var(--muted-foreground) 35%,
+    var(--foreground) 50%,
+    var(--muted-foreground) 65%
+  );
+  background-size: 200% 100%;
+  animation: shimmer-text 1.4s linear infinite;
+}
+
 .chat-wait-dot {
   display: inline-block;
   width: 0.4rem;
@@ -183,8 +221,16 @@
   .chat-activity-live,
   .chat-tool-scan-line::after,
   .chat-tool-orbit::before,
-  .chat-stream-caret {
+  .chat-stream-caret,
+  .bui-pixel-cell,
+  .bui-shimmer-text {
     animation: none;
+  }
+
+  /* Shimmer text must stay legible without its gradient animation. */
+  .bui-shimmer-text.text-transparent {
+    color: var(--muted-foreground);
+    background-image: none;
   }
 
   .chat-wait-dot {

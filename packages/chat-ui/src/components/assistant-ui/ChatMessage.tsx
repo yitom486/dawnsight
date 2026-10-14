@@ -34,10 +34,9 @@ import {
 } from "../../assistantBlocks";
 import { blocksToPlainText } from "../../assistantBlocksText";
 import type { ChatTurn } from "../../types";
-import { ChatWaitingDots } from "../ChatWaitingDots";
 import { RichBlockRenderer } from "../RichBlockRenderer";
 import { BusinessCopyButton } from "./ChatActionBar";
-import { ToolActivityView } from "./ToolViews";
+import { LoadingStateView, ThoughtTraceView, ToolActivityView } from "./ToolViews";
 import { resolveHostTurn } from "./hostTurn";
 
 /**
@@ -286,29 +285,21 @@ function ActivityRows({
         }
         if (item.kind === "thought") {
           return (
-            <div key={item.id} className="text-muted-foreground">
-              <span className="inline-flex items-center gap-1.5 font-medium text-foreground/80">
-                {live ? (
-                  <span className="chat-tool-orbit" aria-hidden />
-                ) : null}
-                {item.title ?? "思考"}
-              </span>
-              <p className="mt-0.5 line-clamp-6 whitespace-pre-wrap break-words">
-                {item.text?.trim() || "…"}
-              </p>
-            </div>
+            <ThoughtTraceView
+              key={item.id}
+              title={item.title ?? "思考"}
+              text={item.text?.trim() || "…"}
+              live={live}
+            />
           );
         }
         return (
-          <div key={item.id}>
-            <span className="inline-flex items-center gap-1.5 font-medium text-foreground/80">
-              {live ? <span className="chat-tool-orbit" aria-hidden /> : null}
-              {item.title ?? "计划"}
-            </span>
-            <pre className="mt-0.5 max-h-32 overflow-auto whitespace-pre-wrap break-words font-sans text-muted-foreground">
-              {item.text}
-            </pre>
-          </div>
+          <ThoughtTraceView
+            key={item.id}
+            title={item.title ?? "计划"}
+            text={item.text ?? ""}
+            live={live}
+          />
         );
       })}
     </div>
@@ -323,7 +314,7 @@ function AssistantEmptyPart() {
   const { host } = useChatSlots();
   const running = useAuiState((s) => s.message.status?.type === "running");
   if (!running) return null;
-  return <ChatWaitingDots label={waitingLabel(host?.activities ?? [])} />;
+  return <LoadingStateView label={waitingLabel(host?.activities ?? [])} />;
 }
 
 const AssistantTextPart: TextMessagePartComponent = ({ text }) => {
@@ -356,7 +347,7 @@ const AssistantTextPart: TextMessagePartComponent = ({ text }) => {
 
   if (!sourceText) {
     if (!isRunning) return null;
-    return <ChatWaitingDots label={waitingLabel(host?.activities ?? [])} />;
+    return <LoadingStateView label={waitingLabel(host?.activities ?? [])} />;
   }
 
   return (

@@ -1259,7 +1259,36 @@ impl AcpService {
             return Err(error);
         }
         match response {
-            Ok(_) => Ok(projector.finish()),
+            Ok(_) => {
+                let prefix: String = session_id.chars().take(8).collect();
+                let notes_seen = projector.notes_seen;
+                let user_chunks = projector.user_chunks;
+                let agent_chunks = projector.agent_chunks;
+                let ignored_notes = projector.ignored_notes;
+                let truncated = projector.truncated;
+                let saturated = projector.saturated;
+                let turns = projector.finish();
+                let (user_turns, agent_turns) = turns.iter().fold((0, 0), |(u, a), turn| {
+                    if turn.role == "user" {
+                        (u + 1, a)
+                    } else {
+                        (u, a + 1)
+                    }
+                });
+                tracing::info!(
+                    session_id_prefix = %prefix,
+                    notes_seen,
+                    user_chunks,
+                    agent_chunks,
+                    ignored_notes,
+                    user_turns,
+                    agent_turns,
+                    truncated,
+                    saturated,
+                    "session/load replay projected",
+                );
+                Ok(turns)
+            }
             Err(error) => Err(AcpError::protocol(error.details.as_deref())),
         }
     }
@@ -1818,17 +1847,33 @@ struct LoadTranscriptProjector {
     turns: Vec<LoadedTurn>,
     pending_role: Option<String>,
     pending_text: String,
+    notes_seen: usize,
+    user_chunks: usize,
+    agent_chunks: usize,
+    ignored_notes: usize,
+    truncated: bool,
+    saturated: bool,
 }
 
 impl LoadTranscriptProjector {
     fn push(&mut self, note: &Value) {
+        self.notes_seen += 1;
         let params = note.get("params").unwrap_or(note);
         let update = params.get("update").unwrap_or(params);
         let kind = update.get("sessionUpdate").and_then(Value::as_str);
         let (role, text) = match kind {
-            Some("user_message_chunk") => ("user", content_blocks_text(update.get("content"))),
-            Some("agent_message_chunk") => ("agent", content_blocks_text(update.get("content"))),
-            _ => return,
+            Some("user_message_chunk") => {
+                self.user_chunks += 1;
+                ("user", content_blocks_text(update.get("content")))
+            }
+            Some("agent_message_chunk") => {
+                self.agent_chunks += 1;
+                ("agent", content_blocks_text(update.get("content")))
+            }
+            _ => {
+                self.ignored_notes += 1;
+                return;
+            }
         };
         if text.is_empty() {
             return;
@@ -1844,8 +1889,14 @@ impl LoadTranscriptProjector {
             }
         }
         if self.pending_text.len() > MAX_LOADED_TRANSCRIPT_MESSAGE_CHARS {
-            self.pending_text
-                .truncate(MAX_LOADED_TRANSCRIPT_MESSAGE_CHARS);
+            // Byte truncation panics on non-char-boundaries (fatal for CJK
+            // histories); walk back to one instead of losing the whole load.
+            let mut end = MAX_LOADED_TRANSCRIPT_MESSAGE_CHARS;
+            while !self.pending_text.is_char_boundary(end) {
+                end -= 1;
+            }
+            self.pending_text.truncate(end);
+            self.truncated = true;
         }
     }
 
@@ -1855,6 +1906,8 @@ impl LoadTranscriptProjector {
                 if let Some(turn) = LoadedTurn::new(&role, std::mem::take(&mut self.pending_text)) {
                     self.turns.push(turn);
                 }
+            } else {
+                self.saturated = true;
             }
             self.pending_text.clear();
         }

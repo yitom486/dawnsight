@@ -20,10 +20,13 @@
  *   "reject"/"deny" rejects; `onApprove`/`onReject` are integrator-provided.
  */
 import { useState } from "react";
+
+import { cn } from "@dawnsight/ui";
 import { Button } from "@dawnsight/ui/button";
 
 import { ApprovalCard } from "@dawnsight/ui/community-ai/approval-card";
 import { ContextCard } from "@dawnsight/ui/community-ai/context-card";
+import { ThinkingLoadingState } from "@dawnsight/ui/community-ai/loading-state";
 import { TaskRow } from "@dawnsight/ui/community-ai/task-row";
 import { ToolChip } from "@dawnsight/ui/community-ai/tool-chip";
 import type { ToolStatusTone } from "@dawnsight/ui/community-ai/tool-chip";
@@ -196,4 +199,106 @@ export type ContextViewProps = {
 /** Time-reference chip; seeking stays integrator-owned. */
 export function ContextView({ anchorMs, label, onSeek }: ContextViewProps) {
   return <ContextCard anchorMs={anchorMs} label={label} onSeek={onSeek} />;
+}
+
+export type ThoughtTraceViewProps = {
+  /** Projected header copy ("思考"/"计划" fallbacks resolved by caller). */
+  title: string;
+  /** Safety-projected body text (already redacted upstream where required). */
+  text: string;
+  /** Running run: shimmer title + expanded trace. */
+  live?: boolean;
+  defaultExpanded?: boolean;
+};
+
+/**
+ * Thinking-trace row, verbatim-adapted from the upstream Thinking header +
+ * expand pattern (sparkle, shimmer-while-working, rotating chevron,
+ * grid-rows expand, rail). What it never takes from upstream: the timed
+ * staging sequence, the variant picker, and fabricated durations
+ * ("Thought for 4 seconds") — rows render only caller-provided projected
+ * copy, all visible at once, expanded by default while running.
+ */
+export function ThoughtTraceView({
+  title,
+  text,
+  live = false,
+  defaultExpanded,
+}: ThoughtTraceViewProps) {
+  const [manualExpanded, setManualExpanded] = useState<boolean | null>(null);
+  const autoExpanded = defaultExpanded ?? live;
+  const expanded = manualExpanded ?? autoExpanded;
+  return (
+    <div>
+      <button
+        type="button"
+        aria-expanded={expanded}
+        onClick={() => setManualExpanded((current) => !(current ?? autoExpanded))}
+        className="flex min-h-7 w-fit items-center gap-2 rounded-md px-1 py-0.5 text-[length:var(--text-chat-meta)] leading-[var(--text-chat-meta--line-height)] transition-colors duration-100 hover:bg-muted"
+      >
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          aria-hidden
+          className={cn("shrink-0", live ? "text-foreground/70" : "text-muted-foreground")}
+          fill="currentColor"
+        >
+          <path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z" />
+        </svg>
+        {live ? (
+          <span className="bui-shimmer-text whitespace-nowrap bg-clip-text font-medium text-transparent motion-reduce:animate-none">
+            {title}
+          </span>
+        ) : (
+          <span className="whitespace-nowrap font-medium text-foreground/80">
+            {title}
+          </span>
+        )}
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+          className={cn(
+            "shrink-0 text-muted-foreground transition-transform duration-300 motion-reduce:transition-none",
+            expanded && "rotate-180",
+          )}
+        >
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+      <div
+        className="grid transition-[grid-template-rows,opacity] duration-300 motion-reduce:transition-none"
+        style={{
+          gridTemplateRows: expanded ? "1fr" : "0fr",
+          opacity: expanded ? 1 : 0,
+        }}
+      >
+        <div className="overflow-hidden">
+          <div className="relative ml-[5px] mt-1 pl-4">
+            <span aria-hidden className="absolute bottom-1 left-[3px] top-1 w-px bg-border" />
+            <p className="whitespace-pre-wrap break-words py-1 text-[length:var(--text-chat-meta)] leading-relaxed text-muted-foreground">
+              {text}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export type LoadingStateViewProps = {
+  /** Real run-state copy (waitingLabel output). */
+  label: string;
+};
+
+/** Waiting row: pixel grid + label + honest mount-clock. */
+export function LoadingStateView({ label }: LoadingStateViewProps) {
+  return <ThinkingLoadingState label={label} />;
 }

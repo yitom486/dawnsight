@@ -516,6 +516,58 @@ describe("session lifecycle e2e blackbox (connect resume + history reload)", () 
     ).toBeGreaterThanOrEqual(1);
   });
 
+  it("history switch failure keeps the old hint: restores resumability and reports it", async () => {
+    usePlayerStore.setState({ currentFile: MEDIA });
+    useAcpSessionStore.getState().setSavedSessionFor("codex", {
+      sessionId: "codex-current-0",
+      profileId: "codex",
+      cwd: CWD,
+    });
+    mockAgentSessionList = {
+      verified: true,
+      sessions: [
+        {
+          sessionId: "hist-ccc-3333",
+          cwd: CWD,
+          title: "历史线程 C",
+          updatedAt: "2026-09-03T10:00:00.000Z",
+          kind: "chat",
+        },
+      ],
+      truncated: false,
+    };
+    // Engine flakes mid-switch: the hint was already cleared upfront, so the
+    // failure path must write it back instead of minting stubs next connect.
+    const baseImpl = vi.mocked(invoke).getMockImplementation();
+    vi.mocked(invoke).mockImplementation((cmd: string, args?: unknown) => {
+      if (cmd === "acp_switch_session") {
+        return Promise.reject(new Error("engine flaked mid-switch"));
+      }
+      return baseImpl!(
+        cmd,
+        args as Record<string, unknown> | number[] | ArrayBuffer | Uint8Array | undefined,
+      );
+    });
+    renderPanel();
+    await waitForConnectCount(1);
+
+    const user = userEvent.setup();
+    await user.click(await screen.findByLabelText("历史对话"));
+    expect(await screen.findByText("历史线程 C")).toBeInTheDocument();
+    await user.click(screen.getByText("历史线程 C"));
+    await waitForSwitchCount(1);
+
+    await waitFor(() => {
+      expect(
+        useAcpSessionStore.getState().savedSessionFor("codex")?.sessionId,
+      ).toBe("codex-current-0");
+    });
+    expect(
+      await screen.findByText(/原会话已保留，可重试/),
+    ).toBeInTheDocument();
+    expect(loadCallsFor("hist-ccc-3333")).toHaveLength(0);
+  });
+
   it("end-to-end isolation: active world resumes while the other profile hint, rows and prefs stay intact", async () => {
     usePlayerStore.setState({ currentFile: MEDIA });
     useAcpSettingsStore

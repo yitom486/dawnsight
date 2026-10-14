@@ -6,6 +6,12 @@ import type { LoadedTranscriptEvent } from "./api";
 
 const TOOL_PRIORITY_MARKER = "【工具优先】";
 const PLAYBACK_MARKER = "【当前播放】";
+/**
+ * 现行组装格式（Rust `fold_context_text`）：单行头
+ * `【当前媒体】<标题|路径>｜位置…[ / 时长…][｜字幕…]`，后跟用户正文。
+ * 旧 `【当前播放】` 多行明细仍保留兼容。
+ */
+const MEDIA_HEADER_MARKER = "【当前媒体】";
 const ASSEMBLED_TASK_PREFIX = "Dawnsight task:";
 const ASSEMBLED_TASK_FIRST_LINE_PATTERN = /^(?:Dawnsight|Lumina) task:\s*([A-Za-z0-9_-]+)/;
 const ASSEMBLED_TASK_FALLBACK_LABEL = "快捷 AI 操作";
@@ -94,6 +100,7 @@ export function stripTranscriptScaffolding(text: string): string {
     // “【工具优先】xxx”被先掏成“xxx”就漏网了。
     if (trimmed.startsWith(TOOL_PRIORITY_MARKER)) continue;
     if (trimmed.startsWith(PLAYBACK_MARKER)) continue;
+    if (trimmed.startsWith(MEDIA_HEADER_MARKER)) continue;
     if (
       PLAYBACK_DETAIL_PREFIXES.some((prefix) => trimmed.startsWith(prefix))
     ) {

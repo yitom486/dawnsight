@@ -139,6 +139,29 @@ export function useAcpConnection(input: UseAcpConnectionInput) {
       : null,
   );
   const resumeAttemptedRef = useRef<SavedSessionHint | null>(null);
+  // 切换/新建失败时回填用的旧 hint：mutation 内先清后调，失败即丢则下次
+  // 只能建新会话攒 stub。回填只发生在 store 仍为空时（期间若有新
+  // sessionSaved 落定，说明新真相已到，绝不覆盖）。
+  const clearedHintRef = useRef<{
+    owner: string;
+    hint: SavedSessionHint | null;
+  } | null>(null);
+  const restoreClearedHint = (
+    owner: string,
+    hint: SavedSessionHint | null,
+  ): boolean => {
+    if (!hint?.sessionId) return false;
+    const current = useAcpSessionStore.getState().savedSessionFor(owner);
+    if (current?.sessionId) return false;
+    const snapshot = {
+      sessionId: hint.sessionId,
+      profileId: owner,
+      cwd: hint.cwd,
+    };
+    setSavedSessionFor(owner, snapshot);
+    persistSessionHintFor(owner, snapshot);
+    return true;
+  };
   // 画像切换 epoch：运行中切换画像时记下目标画像，connect effect 认领后
   // 必走“先关旧、再连新”，不再信任 sessionActive 快捷返回。
   const switchEpochRef = useRef<{ profileId: string } | null>(null);
@@ -258,7 +281,14 @@ export function useAcpConnection(input: UseAcpConnectionInput) {
       setLastSessionResolution(null);
       setSessionBanner(null);
       // 新建对话只清当前 agent 自家键的 hint，别家的续聊不受影响。
-      // B3：内存清完后 void 删 DB hint（失败留队重试）。
+      // B3：内存清完后 void 删 DB hint（失败留队重试）。失败回填见 onError。
+      clearedHintRef.current = {
+        owner: profileState.activeProfileId,
+        hint:
+          useAcpSessionStore.getState().savedSessionFor(
+            profileState.activeProfileId,
+          ) ?? null,
+      };
       clearSavedSessionFor(profileState.activeProfileId);
       clearPersistedSessionHintFor(profileState.activeProfileId);
       if (!preserveTurns) {
@@ -301,10 +331,19 @@ export function useAcpConnection(input: UseAcpConnectionInput) {
       await queryClient.invalidateQueries({ queryKey: ["acp-status"] });
     },
     onError: (error) => {
+      const cleared = clearedHintRef.current;
+      clearedHintRef.current = null;
+      const restored = cleared
+        ? restoreClearedHint(cleared.owner, cleared.hint)
+        : false;
       setConnectionState("error");
       setProgress(null);
       progressOwnerRef.current = null;
-      pushSystem(errorMessage(error));
+      pushSystem(
+        restored
+          ? `${errorMessage(error)}（原会话已保留，可重试）`
+          : errorMessage(error),
+      );
     },
   });
 
@@ -319,8 +358,15 @@ export function useAcpConnection(input: UseAcpConnectionInput) {
       const settings = clientSettingsFromStore(useAcpSettingsStore.getState());
       // 同进程切换只清目标线程所属 agent 自家键的 hint（通常就是当前 profile），
       // 别家的续聊不受影响。B3：内存清完后 void 删 DB hint。
+      // 失败回填见 onError：回填的是清掉之前的旧 hint（目标 hint 本来就不在
+      // store 里，回填它等于没修）。
       const hintOwner =
         options.savedSession?.profileId ?? profileState.activeProfileId;
+      clearedHintRef.current = {
+        owner: hintOwner,
+        hint:
+          useAcpSessionStore.getState().savedSessionFor(hintOwner) ?? null,
+      };
       clearSavedSessionFor(hintOwner);
       clearPersistedSessionHintFor(hintOwner);
       setConnectionState("connecting");
@@ -354,10 +400,21 @@ export function useAcpConnection(input: UseAcpConnectionInput) {
       await queryClient.invalidateQueries({ queryKey: ["acp-status"] });
     },
     onError: (error) => {
+      // 切失败回填切之前的旧 hint（见 mutationFn 的 clearedHintRef），不是
+      // 本次目标：目标本来就不在 store 里。store 已有新落定则不动。
+      const cleared = clearedHintRef.current;
+      clearedHintRef.current = null;
+      const restored = cleared
+        ? restoreClearedHint(cleared.owner, cleared.hint)
+        : false;
       setConnectionState("error");
       setProgress(null);
       progressOwnerRef.current = null;
-      pushSystem(errorMessage(error));
+      pushSystem(
+        restored
+          ? `${errorMessage(error)}（原会话已保留，可重试）`
+          : errorMessage(error),
+      );
     },
   });
 

@@ -45,6 +45,26 @@ describe("mapLoadedTranscript", () => {
     expect(turns[0]?.answer).toContain("这段主要讲重逢");
   });
 
+  it("strips the current-media header but keeps a bilingual question", () => {
+    const turns = mapLoadedTranscript([
+      {
+        role: "user",
+        text: [
+          "【当前媒体】We.Are.All.Trying.Here.S01E05.1080p.NF.WEB-DL.AAC2.0.H.264.mkv｜位置0:00 / 时长1:05:42｜字幕embedded:2",
+          "我想请问这一集的主要内容是什么呢请问",
+          "Natural English: Could you tell me what this episode is mainly about?",
+        ].join("\n"),
+      },
+      { role: "agent", text: "这一集主要讲两个人发声。" },
+    ]);
+    expect(turns).toHaveLength(1);
+    expect(turns[0]?.userText).not.toMatch(/【当前媒体】|We\.Are\.All|位置0:00|字幕embedded/);
+    expect(turns[0]?.userText).toContain("我想请问这一集的主要内容是什么呢请问");
+    expect(turns[0]?.userText).toContain(
+      "Natural English: Could you tell me what this episode is mainly about?",
+    );
+  });
+
   it("returns [] for empty or scaffold-only input without crashing", () => {
     expect(mapLoadedTranscript([])).toEqual([]);
     expect(mapLoadedTranscript(null)).toEqual([]);

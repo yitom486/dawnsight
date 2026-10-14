@@ -1,13 +1,21 @@
 /**
- * Adapted visual reference from Beautiful UI (https://www.beautifului.dev/,
- * MIT © 2026 Shane Levine, https://www.beautifului.dev/license) — implemented
- * with Dawnsight shared primitives; not verbatim upstream source.
+ * Verbatim-adapted from Beautiful UI (https://www.beautifului.dev/,
+ * MIT © 2026 Shane Levine, https://www.beautifului.dev/license) — source
+ * obtained via the per-section "Copy code" button on 2026-10-14
+ * (`.plan/chat-ui-rebuild/upstream/toolChips.clip.txt`).
  *
- * Tool chip: compact presentational toggle for one tool call (visual reference:
- * Beautiful UI "Tool Chips"). Props-only: every user-visible string arrives
- * via props — status text is resolved by the caller (the chat-ui layer resolves
- * it via `activityStatus.ts`/`toolStatus.ts`). No stores, no Tauri imports, no
- * business copy, no tool execution.
+ * Adopted verbatim: h-7 hover-pill row grammar (-mx bleed + px room),
+ * 12.5px medium title, inline status slot, chevron reveal interaction.
+ * Deliberately not shipped: the timed step reveal, demo rows/diffs, the
+ * file-diff chips + hover portal (no diff data exists in our domain), the
+ * no-op "+2 more" button, and the run header (our rows render per message).
+ * Deviations forced by product contract: the status dot stays always visible
+ * (upstream swaps its icon away on hover; our run states must never be
+ * color-or-nothing) and CJK status copy stays non-mono.
+ *
+ * Props-only: every user-visible string arrives via props — status text is
+ * resolved by the caller. No stores, no Tauri imports, no business copy, no
+ * tool execution.
  */
 import { ChevronDown } from "lucide-react";
 
@@ -45,12 +53,12 @@ export function ToolChip({
   return (
     <Button
       type="button"
-      variant="outline"
+      variant="ghost"
       size="sm"
       aria-expanded={onToggle ? expanded : undefined}
       onClick={onToggle}
       className={cn(
-        "h-7 max-w-full gap-1.5 px-2 text-xs font-normal text-muted-foreground hover:text-foreground",
+        "group/row -mx-[3px] h-7 w-[calc(100%+6px)] gap-2 rounded-md px-[3px] font-normal hover:bg-muted",
         className,
       )}
     >
@@ -58,14 +66,18 @@ export function ToolChip({
         aria-hidden
         className={cn("size-2 shrink-0 rounded-full", toneDotClassName(tone))}
       />
-      <span className="min-w-0 flex-1 truncate text-left">{title}</span>
-      <span className="shrink-0 text-[11px]">{status}</span>
+      <span className="min-w-0 flex-1 truncate text-left text-[12.5px] font-medium text-foreground">
+        {title}
+      </span>
+      <span className="shrink-0 text-[11.5px] text-muted-foreground">
+        {status}
+      </span>
       {onToggle ? (
         <ChevronDown
           aria-hidden
           className={cn(
-            "shrink-0 transition-transform",
-            expanded && "rotate-180",
+            "size-3.5 shrink-0 text-muted-foreground opacity-0 transition-[opacity,transform] duration-150 group-hover/row:opacity-100 motion-reduce:transition-none",
+            expanded && "rotate-180 opacity-100",
           )}
         />
       ) : null}
