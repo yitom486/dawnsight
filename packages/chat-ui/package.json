@@ -67,9 +67,30 @@
     "./components/WatchFeedCard": {
       "types": "./src/components/WatchFeedCard.tsx",
       "default": "./src/components/WatchFeedCard.tsx"
+    },
+    "./runtime": {
+      "types": "./src/runtime/index.ts",
+      "default": "./src/runtime/index.ts"
+    },
+    "./runtime/AcpRuntimeProvider": {
+      "types": "./src/runtime/AcpRuntimeProvider.tsx",
+      "default": "./src/runtime/AcpRuntimeProvider.tsx"
+    },
+    "./components/assistant-ui/ChatThread": {
+      "types": "./src/components/assistant-ui/ChatThread.tsx",
+      "default": "./src/components/assistant-ui/ChatThread.tsx"
+    },
+    "./components/assistant-ui/Composer": {
+      "types": "./src/components/assistant-ui/Composer.tsx",
+      "default": "./src/components/assistant-ui/Composer.tsx"
+    },
+    "./components/assistant-ui/ToolViews": {
+      "types": "./src/components/assistant-ui/ToolViews.tsx",
+      "default": "./src/components/assistant-ui/ToolViews.tsx"
     }
   },
   "dependencies": {
+    "@assistant-ui/react": "^0.15.28",
     "@dawnsight/contracts": "workspace:*",
     "@dawnsight/ui": "workspace:*",
     "lucide-react": "^1.37.0"

@@ -38,6 +38,7 @@ export function useAgentModelControls({ status, busy, sessionConnected, purpose 
   const modelId = purpose === "chapter" ? chapterSelections[activeProfileId]?.modelId ?? "" : chatModelId;
   const reasoningEffort = purpose === "chapter" ? chapterSelections[activeProfileId]?.reasoningEffort ?? "" : chatEffort;
   const [selectionError, setSelectionError] = useState<string | null>(null);
+  const [staleModelNotice, setStaleModelNotice] = useState<string | null>(null);
   const patchSettings = useCallback((patch: Partial<AcpClientSettings>) => {
     if (purpose === "chat") {
       if (patch.modelId != null || patch.reasoningEffort != null) useAcpSettingsStore.getState().markModelDefaultsInitialized(activeProfileId);
@@ -50,7 +51,7 @@ export function useAgentModelControls({ status, busy, sessionConnected, purpose 
     patchChapter(selection);
   }, [purpose, activeProfileId, patchChat, patchChapter]);
   useEffect(() => { if (purpose === "chapter") useChapterAgentSettingsStore.getState().initialize(); }, [purpose]);
-  useEffect(() => { setSelectionError(null); }, [activeProfileId]);
+  useEffect(() => { setSelectionError(null); setStaleModelNotice(null); }, [activeProfileId]);
 
   const selectedProfile = profiles.find((profile) => profile.id === activeProfileId);
   const revision = launchRevision(selectedProfile ?? activeProfileId);
@@ -111,6 +112,20 @@ export function useAgentModelControls({ status, busy, sessionConnected, purpose 
     }
   }, [optionSource, reasoningEffort, patchSettings]);
 
+  // 已存模型必须活在新鲜列表里：切 profile/重拉目录后，已显式选过的值也
+  // 要复验（首轮 merge 的 initialized 豁免不适用）。remembered 快照可能
+  // 本来就旧，只能信刚拿到的 directory 数据或 live 会话广告。
+  useEffect(() => {
+    const validationSource = directory.data ?? liveOptions;
+    if (!validationSource || !modelId) return;
+    if (validationSource.models.some((option) => option.value === modelId)) {
+      setStaleModelNotice(null);
+      return;
+    }
+    patchSettings({ modelId: "", reasoningEffort: "" });
+    setStaleModelNotice(`“${modelId}”已不在可用模型中，已恢复为 Agent 默认`);
+  }, [activeProfileId, directory.data, liveOptions, modelId, patchSettings]);
+
   const modelOptions = useMemo(() => buildModelOptions(modelSource, modelId), [modelSource, modelId]);
   const reasoningOptions = useMemo(() => buildReasoningOptions(optionSource, ""), [optionSource]);
   const applyModelSelection = async (next: Partial<ModelSelection>) => {
@@ -136,6 +151,7 @@ export function useAgentModelControls({ status, busy, sessionConnected, purpose 
     selectedReasoningLabel: selectedOptionLabel(reasoningOptions, reasoningEffort, "默认"),
     controlsDisabled: Boolean(busy || directory.isFetching),
     controlError: selectionError ?? (directory.error ? errorMessage(directory.error) : null),
+    staleModelNotice,
     discoverBusy: directory.isFetching,
     hasModelOptions: modelOptions.length > 0,
     hasReasoningOptions: reasoningOptions.length > 0,

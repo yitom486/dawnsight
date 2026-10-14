@@ -92,6 +92,22 @@
     "./textarea": {
       "types": "./src/textarea.tsx",
       "default": "./src/textarea.tsx"
+    },
+    "./community-ai/tool-chip": {
+      "types": "./src/community-ai/tool-chip.tsx",
+      "default": "./src/community-ai/tool-chip.tsx"
+    },
+    "./community-ai/task-row": {
+      "types": "./src/community-ai/task-row.tsx",
+      "default": "./src/community-ai/task-row.tsx"
+    },
+    "./community-ai/approval-card": {
+      "types": "./src/community-ai/approval-card.tsx",
+      "default": "./src/community-ai/approval-card.tsx"
+    },
+    "./community-ai/context-card": {
+      "types": "./src/community-ai/context-card.tsx",
+      "default": "./src/community-ai/context-card.tsx"
     }
   },
   "dependencies": {

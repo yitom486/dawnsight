@@ -1,53 +1,57 @@
-import { Button } from "@dawnsight/ui/button";
+import { useEffect, useRef, useState } from "react";
+import { errorMessage } from "@/lib/format";
 
 import { respondAcpPermission } from "../api";
 import type { PendingPermission } from "../types";
-import { ChatColumn } from "@dawnsight/chat-ui/components/ChatShell";
+import { ApprovalView } from "@dawnsight/chat-ui/components/assistant-ui/ToolViews";
 
 type Props = {
   pending: PendingPermission;
   onDone: () => void;
 };
 
+/**
+ * 审批提示：同样的 `PendingPermission` 契约（allow 前缀批准、
+ * reject/deny 否决，缺名回退文案），视觉走社区 Approval 卡。
+ */
 export function PermissionPrompt({ pending, onDone }: Props) {
-  const deny = pending.options.find(
-    (o) => o.kind?.includes("reject") || o.kind?.includes("deny"),
-  );
-  const allow = pending.options.find((o) => o.kind?.startsWith("allow"));
-
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const responding = useRef(false);
+  const currentRequest = useRef(pending.requestId);
+  currentRequest.current = pending.requestId;
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
+  const respond = (optionId: string | null) => {
+    if (responding.current) return;
+    responding.current = true;
+    const requestId = pending.requestId;
+    setBusy(true);
+    setError(null);
+    void respondAcpPermission(requestId, optionId).then(() => {
+      if (mounted.current && currentRequest.current === requestId) onDone();
+    }).catch((err) => {
+      if (mounted.current && currentRequest.current === requestId) setError(errorMessage(err));
+    }).finally(() => {
+      responding.current = false;
+      if (mounted.current && currentRequest.current === requestId) setBusy(false);
+    });
+  };
   return (
-    <ChatColumn className="rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2">
-      <p className="text-xs font-medium text-foreground">
-        需要你的审批：{pending.title ?? pending.toolCallId ?? "工具调用"}
-      </p>
-      <div className="mt-2 flex flex-wrap gap-2">
-        {allow ? (
-          <Button
-            size="sm"
-            className="h-7 text-xs"
-            onClick={() => {
-              void respondAcpPermission(pending.requestId, allow.optionId).then(
-                onDone,
-              );
-            }}
-          >
-            {allow.name || "允许"}
-          </Button>
-        ) : null}
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-7 text-xs"
-          onClick={() => {
-            void respondAcpPermission(
-              pending.requestId,
-              deny?.optionId ?? null,
-            ).then(onDone);
-          }}
-        >
-          {deny?.name || "拒绝"}
-        </Button>
-      </div>
-    </ChatColumn>
+    <div className="space-y-2">
+    <ApprovalView
+      title={`需要你的审批：${pending.title ?? pending.toolCallId ?? "工具调用"}`}
+      options={pending.options}
+      busy={busy}
+      approveFallbackLabel="允许"
+      rejectFallbackLabel="拒绝"
+      onApprove={(optionId) => respond(optionId)}
+      onReject={(optionId) => respond(optionId)}
+    />
+    {error ? <p role="alert" className="break-words text-xs text-destructive">{error}</p> : null}
+    </div>
   );
 }

@@ -219,6 +219,10 @@
   --text-ui-page--line-height: 1.3;
   --text-reading-body: 0.875rem;
   --text-reading-body--line-height: 1.65;
+  --text-chat-body: 0.9375rem;
+  --text-chat-body--line-height: 1.7;
+  --text-chat-meta: 0.75rem;
+  --text-chat-meta--line-height: 1.4;
   --space-ui-1: 0.25rem;
   --space-ui-2: 0.5rem;
   --space-ui-3: 0.75rem;

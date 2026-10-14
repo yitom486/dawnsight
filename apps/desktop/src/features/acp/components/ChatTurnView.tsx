@@ -95,7 +95,7 @@ function CopyAnswerButton({ text }: { text: string }) {
  * QueryClient is only touched inside the mounted confirm step, so turns
  * rendered without a query context (tests, history previews) keep working.
  */
-function SaveAnswerNote({ turn }: { turn: ChatTurn }) {
+export function SaveAnswerNote({ turn }: { turn: ChatTurn }) {
   const [confirming, setConfirming] = useState(false);
   const [saved, setSaved] = useState(false);
 

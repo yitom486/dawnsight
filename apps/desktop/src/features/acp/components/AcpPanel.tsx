@@ -3,11 +3,11 @@ import {
   useCallback,
   useEffect,
   useId,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
-import { useStickToBottom } from "use-stick-to-bottom";
 
 import {
   createNote,
@@ -31,7 +31,7 @@ import {
   type ProposalBindings,
 } from "@/features/notes/annotationTurnState";
 import { usePlayerStore } from "@/features/player";
-import { errorMessage } from "@/lib/format";
+import { errorMessage, formatTime } from "@/lib/format";
 import { notesKey } from "@dawnsight/query-keys";
 
 import "../chat-motion.css";
@@ -105,18 +105,24 @@ import { useVideoPromptContext } from "../useVideoPromptContext";
 import { useTypingPlaybackAnchor } from "../typingPlaybackAnchor";
 import { AgentSettingsPanel } from "./AgentSettingsPanel";
 import { ChatHistorySheet } from "@dawnsight/chat-ui/components/ChatHistorySheet";
-import { ChatComposerBar, type ChatComposerBarHandle } from "./ChatComposerBar";
 import { ChatShell } from "@dawnsight/chat-ui/components/ChatShell";
 import { ChatColumn } from "@dawnsight/chat-ui/components/ChatShell";
-import { Button } from "@dawnsight/ui/button";
 import { ChatToolbar } from "./ChatToolbar";
 import { CompanionHeaderPanel } from "./CompanionHeaderPanel";
-import { ChatTurnList } from "./ChatTurnList";
 import {
   COMPANION_TASK_LABELS,
   type CompanionTaskId,
 } from "./CompanionQuickActions";
 import { PermissionPrompt } from "./PermissionPrompt";
+import { AnnotationProposalCard } from "@/features/notes/components/AnnotationProposalCard";
+import { AcpRuntimeProvider } from "@dawnsight/chat-ui/runtime";
+import { ChatThread, type ChatBusinessSlots } from "@dawnsight/chat-ui/components/assistant-ui/ChatThread";
+import { AssistantComposer, type AssistantComposerHandle } from "@dawnsight/chat-ui/components/assistant-ui/Composer";
+import { ContextView } from "@dawnsight/chat-ui/components/assistant-ui/ToolViews";
+import { ChatMarkdownLazy } from "./ChatMarkdownLazy";
+import { SaveAnswerNote } from "./ChatTurnView";
+import { ComposerModelControls } from "./ComposerModelControls";
+import { normalizeRestoredShortcutOutput } from "../shortcutOutput";
 import { useAcpConnection } from "./useAcpConnection";
 import { useHistoryConversation } from "./useHistoryConversation";
 
@@ -213,26 +219,26 @@ export function AcpPanel() {
 
   const idSeq = useState(() => ({ n: 0 }))[0];
   const listKey = useId();
-  const turnListRef = useRef<HTMLDivElement | null>(null);
-  // 唯一的滚动跟随机制：use-stick-to-bottom 绑定真实滚动容器。
-  // resize 用 instant——token 流里不对每次增量启动滚动动画；
-  // reduced-motion 下同样无动画（见 chat-motion 约定）。
-  // initial:false：挂载不自动抢滚，首帧意图由下面的 effect 按进入时
-  // 的 stickToEnd 显式处理一次（恢复旧会话回到上次底部，读历史 stays top）。
-  const stick = useStickToBottom({ resize: "instant", initial: false });
-  const setScrollElement = useCallback(
-    (element: HTMLDivElement | null) => {
-      turnListRef.current = element;
-      stick.scrollRef(element);
-    },
-    [stick.scrollRef],
-  );
-  // F2：scope 替换（历史装载/新建/切 profile/resume 错位）必须先停 hook
-  // 的内部跟随与未结束滚动，否则正文增高时会被旧锁定状态拉回底部。
+  // 唯一的滚动跟随机制：assistant-ui Thread viewport（ChatThread 内）。
+  // 底部时新内容自动跟随，上滚即停留；无第二套滚动驱动。历史装载等
+  // scope 替换由各入口显式 scrollTo 定位（历史读头、发送滚底）。
+  const viewportRef = useRef<HTMLDivElement | null>(null);
+  const [viewportEpoch, setViewportEpoch] = useState(0);
+  const [scrollRequest, setScrollRequest] = useState(0);
+  const scrollViewportToBottom = useCallback(() => {
+    setScrollRequest((value) => value + 1);
+  }, []);
+  // The viewport owns scheduled scroll frames. Remount on an explicit scope
+  // replacement so the previous conversation's pending frames are cancelled.
   const stopChatFollow = useCallback(() => {
-    stick.stopScroll();
-  }, [stick.stopScroll]);
-  const composerRef = useRef<ChatComposerBarHandle | null>(null);
+    setViewportEpoch((value) => value + 1);
+  }, []);
+  useLayoutEffect(() => {
+    if (scrollRequest === 0) return;
+    const element = viewportRef.current;
+    element?.scrollTo({ top: element.scrollHeight, behavior: "instant" });
+  }, [scrollRequest]);
+  const composerRef = useRef<AssistantComposerHandle | null>(null);
   // 秒开恢复（第 1 层）：首渲染直接摆内存镜像里的 turns + 草稿，零网络、
   // 无 effect 闪帧（冷启动时镜像为空则先空白，随后 hydrate 从 SQLite 回填
   // reseeding，绝不闪别的世界的旧内容）。只认当前 profile 自家键的快照；对账信息进 restoreRef，
@@ -355,7 +361,7 @@ export function AcpPanel() {
     resumeNoticePendingRef: connection.resumeNoticePendingRef,
     transcriptLoadSeqRef: connection.transcriptLoadSeqRef,
     idSeq,
-    turnListRef,
+    turnListRef: viewportRef,
     pushSystem,
     setTurns,
     setNotices,
@@ -379,18 +385,16 @@ export function AcpPanel() {
   if (mountFollowRef.current === null) {
     mountFollowRef.current = history.stickToEnd;
   }
-  const stickAtBottom = stick.isAtBottom;
   useEffect(() => {
     if (mountFollowRef.current !== false) {
       const follow = mountFollowRef.current;
       mountFollowRef.current = false;
-      if (follow) void stick.scrollToBottom("instant");
+      if (follow) scrollViewportToBottom();
       return;
     }
-    if (!stickAtBottom && history.stickToEnd) {
-      history.setStickToEnd(false);
-    }
-  }, [stick, history, stickAtBottom]);
+    // Viewport's onAtBottomChange now persists the actual reading intent;
+    // explicit send/shortcut actions request bottom after the DOM update.
+  }, [history, scrollViewportToBottom]);
 
   // B3：dawnsight-acp-session（acpSessionStore persist）保留作纯离线备，
   // 以 SQLite 为准，挂载时只清已下线的旧历史键，绝不动会话 hint 备层。
@@ -862,7 +866,7 @@ export function AcpPanel() {
 
     const anchorPositionMs = consumeAnchorPositionMs();
     history.setStickToEnd(true);
-    void stick.scrollToBottom("instant");
+    scrollViewportToBottom();
     runMutation.mutate({
       text: COMPANION_TASK_LABELS[taskId],
       taskId,
@@ -933,9 +937,7 @@ export function AcpPanel() {
     promptQueue,
   ]);
 
-  const send = () => {
-    const text = draft.trim();
-    const images = attachments;
+  const sendWithText = (text: string, images: ChatImageAttachment[]) => {
     if (
       (!text && images.length === 0) ||
       !available ||
@@ -945,7 +947,7 @@ export function AcpPanel() {
     }
     const anchorPositionMs = consumeAnchorPositionMs();
     history.setStickToEnd(true);
-    void stick.scrollToBottom("instant");
+    scrollViewportToBottom();
     if (busy || busyRef.current || runMutation.isPending) {
       syncPromptQueue(
         enqueuePrompt(
@@ -960,6 +962,10 @@ export function AcpPanel() {
     setDraft("");
     setAttachments([]);
     runMutation.mutate({ text, anchorPositionMs, images });
+  };
+
+  const send = () => {
+    sendWithText(draft.trim(), attachments);
   };
 
   const bargeIn = () => {
@@ -1059,6 +1065,143 @@ export function AcpPanel() {
             ? "已记住该对话的 AI 记忆，下次连接将自动尝试恢复"
             : (statusQuery.data?.message ?? null);
 
+  // assistant-ui 业务槽：身份稳定的回调 + 纯渲染分支。slots 在输入/
+  // 流式期间保持同一引用，避免旧 turn 跟随每次 token 更新重渲染
+  //（见 chatStreamingRerender 回归）。
+  const slots = useMemo<ChatBusinessSlots>(
+    () => ({
+      resolveTurn: (turnId: string) =>
+        turnsRef.current.find((turn) => turn.id === turnId),
+      renderMarkdown: (markdown: string, opts?: { streaming?: boolean }) => (
+        <ChatMarkdownLazy content={markdown} streaming={opts?.streaming} />
+      ),
+      normalizeAnswer: (turn: ChatTurn) =>
+        turn.status === "done" && turn.answer
+          ? (normalizeRestoredShortcutOutput(turn.answer)?.answer ?? turn.answer)
+          : turn.answer,
+      onAssistantAction,
+      renderAnnotationProposal: (turn: ChatTurn) =>
+        turn.annotationProposal && sessionCwd ? (
+          <AnnotationProposalCard
+            className="mt-2"
+            proposal={turn.annotationProposal}
+            workspace={sessionCwd}
+            onDismiss={() => handleDismissAnnotation(turn.id)}
+            onSaved={() =>
+              handleSaveAnnotation(turn.id, turn.annotationProposal?.proposalId)
+            }
+          />
+        ) : null,
+      renderAnchorChip: (anchorMs: number) => (
+        <ContextView
+          anchorMs={anchorMs}
+          label={formatTime(anchorMs)}
+          onSeek={(ms) => {
+            void usePlayerStore.getState().seek(ms);
+          }}
+        />
+      ),
+      renderMessageFooterExtra: (turn: ChatTurn) => (
+        <SaveAnswerNote turn={turn} />
+      ),
+    }),
+    [
+      onAssistantAction,
+      sessionCwd,
+      handleDismissAnnotation,
+      handleSaveAnnotation,
+    ],
+  );
+
+  const welcomeNode = (
+    <div className="flex flex-1 flex-col items-center justify-center gap-2 py-16 text-center">
+      <p className="text-[length:var(--text-chat-body)] leading-[var(--text-chat-body--line-height)] font-medium text-foreground">
+        快捷操作的完整回答会显示在这里
+      </p>
+      <p className="text-[length:var(--text-chat-meta)] leading-[var(--text-chat-meta--line-height)] text-muted-foreground">
+        也可以直接输入问题。
+      </p>
+    </div>
+  );
+
+  const bannerNode = (
+    <>
+      {connection.sessionBanner ? (
+        <p className="px-3 pb-1 pt-3 text-center text-[11px] text-muted-foreground">
+          {connection.sessionBanner}
+        </p>
+      ) : null}
+      {turns.length > 0 || notices.length > 0 ? (
+        <p className="px-1 pb-1 pt-2 text-[10px] font-medium text-muted-foreground">
+          当前会话
+        </p>
+      ) : null}
+      {notices.map((notice) => (
+        <p
+          key={notice.id}
+          className="px-3 pb-1 text-center text-[11px] text-muted-foreground"
+        >
+          {notice.content}
+        </p>
+      ))}
+    </>
+  );
+
+  const composerNode = (
+    <div className="flex flex-col gap-2">
+      {pendingPermission ? (
+        <PermissionPrompt
+          key={pendingPermission.requestId}
+          pending={pendingPermission}
+          onDone={() => setPendingPermission(null)}
+        />
+      ) : null}
+      {connection.progress ? (
+        <p className="px-1 text-[11px] text-muted-foreground">
+          {connection.progress}
+        </p>
+      ) : null}
+      <AssistantComposer
+        ref={composerRef}
+        value={draft}
+        disabled={!available || connection.connectionState !== "connected"}
+        busy={composerBusy}
+        placeholder={
+          !available
+            ? "请展开下方 Agent 设置并配置可用的 Agent"
+            : connection.newChatPending || connection.connectionState === "connecting"
+              ? "正在连接 Agent…"
+              : connection.connectionState === "error"
+                ? "连接失败，请点击上方「重连」"
+                : connection.connectionState === "idle"
+                  ? "Agent 未连接，请点击上方「重连」"
+                  : "输入问题（Enter 发送，Shift+Enter 换行）"
+        }
+        onChange={onDraftChange}
+        queue={promptQueue}
+        onSend={send}
+        onBargeIn={bargeIn}
+        onCancel={cancelCurrentTurn}
+        onRemoveQueued={(id) => {
+          syncPromptQueue(removeQueuedPrompt(promptQueueRef.current, id));
+        }}
+        onClearQueue={() => syncPromptQueue([])}
+        attachments={attachments}
+        onPasteImages={handlePasteImages}
+        onRemoveAttachment={(id) =>
+          setAttachments((prev) => prev.filter((item) => item.id !== id))
+        }
+        controls={
+          <ComposerModelControls
+            status={statusQuery.data}
+            busy={composerBusy}
+            sessionConnected={connection.connectionState === "connected"}
+          />
+        }
+      />
+    </div>
+  );
+
   return (
     <ChatShell data-chat-shell={listKey}>
       <div className="sticky top-0 z-20 shrink-0 bg-card">
@@ -1125,99 +1268,32 @@ export function AcpPanel() {
       </div>
 
       <div
-        ref={setScrollElement}
-        className="chat-scroll min-h-0 flex-1 overflow-y-auto overscroll-y-contain"
+        id="companion-panel-watch-feed-chat"
+        role="region"
+        aria-label="观剧流对话"
+        className="flex min-h-0 flex-1 flex-col"
       >
-        {connection.sessionBanner ? (
-          <p className="px-3 pb-1 pt-3 text-center text-[11px] text-muted-foreground">
-            {connection.sessionBanner}
-          </p>
-        ) : null}
-        <div
-          id="companion-panel-watch-feed-chat"
-          role="region"
-          aria-label="观剧流对话"
+        <AcpRuntimeProvider
+          key={JSON.stringify([activeProfileId, sessionCwd, viewportEpoch])}
+          turns={turns}
+          busy={busy}
+          isDisabled={!available || connection.connectionState !== "connected"}
+          thinkingLevel={thinkingLevel}
+          onSendText={(text) => sendWithText(text, [])}
+          onCancelRun={cancelCurrentTurn}
+          onNotice={pushSystem}
         >
-          <p className="px-1 pb-1 pt-2 text-[10px] font-medium text-muted-foreground">
-            当前会话
-          </p>
-          <ChatTurnList
-            turns={turns}
-            notices={notices}
-            contentRef={stick.contentRef}
-            annotationWorkspace={sessionCwd}
-            onDismissAnnotation={handleDismissAnnotation}
-            onSaveAnnotation={handleSaveAnnotation}
-            onAssistantAction={onAssistantAction}
-            emptyHint="快捷操作的完整回答会显示在这里，也可以直接输入问题。"
+          <ChatThread
+            viewportRef={viewportRef}
+            autoScroll={history.stickToEnd}
+            onAtBottomChange={history.setStickToEnd}
+            composer={composerNode}
+            welcome={welcomeNode}
+            sessionBanner={bannerNode}
+            components={slots}
           />
-        </div>
+        </AcpRuntimeProvider>
       </div>
-
-      {!stickAtBottom && turns.length > 0 ? (
-        <ChatColumn className="shrink-0 py-1 text-center">
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="h-7 px-3 text-[11px]"
-            aria-label="回到最新"
-            onClick={() => {
-              history.setStickToEnd(true);
-              void stick.scrollToBottom("instant");
-            }}
-          >
-            回到最新
-          </Button>
-        </ChatColumn>
-      ) : null}
-
-      {pendingPermission ? (
-        <PermissionPrompt
-          pending={pendingPermission}
-          onDone={() => setPendingPermission(null)}
-        />
-      ) : null}
-
-      {connection.progress ? (
-        <ChatColumn className="shrink-0 pb-1 text-[11px] text-muted-foreground">
-          {connection.progress}
-        </ChatColumn>
-      ) : null}
-
-      <ChatComposerBar
-        ref={composerRef}
-        value={draft}
-        disabled={!available || connection.connectionState !== "connected"}
-        busy={composerBusy}
-        status={statusQuery.data}
-        sessionConnected={connection.connectionState === "connected"}
-        placeholder={
-          !available
-            ? "请展开下方 Agent 设置并配置可用的 Agent"
-            : connection.newChatPending || connection.connectionState === "connecting"
-              ? "正在连接 Agent…"
-              : connection.connectionState === "error"
-                ? "连接失败，请点击上方「重连」"
-                : connection.connectionState === "idle"
-                  ? "Agent 未连接，请点击上方「重连」"
-                  : "输入问题（Enter 发送，Shift+Enter 换行）"
-        }
-        onChange={onDraftChange}
-        queue={promptQueue}
-        onSend={send}
-        onBargeIn={bargeIn}
-        onCancel={cancelCurrentTurn}
-        onRemoveQueued={(id) => {
-          syncPromptQueue(removeQueuedPrompt(promptQueueRef.current, id));
-        }}
-        onClearQueue={() => syncPromptQueue([])}
-        attachments={attachments}
-        onPasteImages={handlePasteImages}
-        onRemoveAttachment={(id) =>
-          setAttachments((prev) => prev.filter((item) => item.id !== id))
-        }
-      />
 
       <AgentSettingsPanel
         status={statusQuery.data}
