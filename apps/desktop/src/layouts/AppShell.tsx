@@ -29,7 +29,8 @@ import { errorMessage } from "@/lib/format";
 import { getStartupNotice, revealLogDir, type SystemStartupNotice } from "@/lib/system";
 import dawnsightLogo from "../../src-tauri/icons/dawnsight-cat-source.png";
 
-const RELEASES_URL = "https://github.com/yitom486/dawnsight-app/releases";
+// Source and installers share one repo: release.yml publishes to its Releases.
+const RELEASES_URL = "https://github.com/yitom486/dawnsight/releases";
 const REPO_URL = "https://github.com/yitom486/dawnsight";
 
 type AppShellProps = {

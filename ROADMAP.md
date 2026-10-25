@@ -14,6 +14,19 @@
 | 7 | Multimodal Video Understanding |
 | 8 | Unified GPU Composition（远期研究：视频画面与 Web UI 可组合叠加） |
 
+## 版本规则（2026-10-25 确定）
+
+- 从已发布的 0.4.1 往后**逐个递增，不跳级、不回退**：已装 0.4.1 的用户只会被更新器
+  推送更大的版本号，回到 0.3.x 会让他们永远收不到更新。
+- 第三位（补丁）：修复、界面打磨、不改变产品能力的小改进。第二位（小版本）：用户可
+  明显感知的新能力里程碑。第一位留给正式 1.0。
+- 已定版本：**0.4.2** = 界面精简、播放画面 HUD、聊天流式平滑、「关于」链接修复；
+  **0.5.0** = 网盘 / 云端 NAS 播放。其间的修复按 0.4.3、0.4.4… 顺延。
+- 源码与安装包同在 `yitom486/dawnsight`（2026-10-25 由 `lumina` 改名并合并发布）；
+  更新器地址指向它的 `releases/latest/download/latest.json`。旧仓库 `lumina-app` 只由
+  release.yml 同步一份 `latest.json`，让 0.4.1 及更早的客户端仍能收到更新，需要保留
+  `RELEASE_REPO_TOKEN` 密钥，直到不再支持这些旧版本。
+
 ## Phase 1 验收摘要
 
 - Native 画面：子 HWND + `wid`，非 HTML `<video>`

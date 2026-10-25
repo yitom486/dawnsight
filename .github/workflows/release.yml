@@ -165,13 +165,19 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  # Installers, signatures and latest.json all live in this repository's own
+  # Releases (the tauri-action draft above). The old public `lumina-app` repo
+  # only receives a latest.json bridge so pre-0.4.2 clients, whose updater
+  # endpoint still points there, can find new versions.
   publish:
-    name: Stage all three platforms in public release draft
+    name: Stage all three platforms in release draft
     needs: release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     env:
       RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
-      GH_TOKEN: ${{ secrets.RELEASE_REPO_TOKEN }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -187,7 +193,7 @@ jobs:
         run: |
           set -euo pipefail
           TAG="$RELEASE_TAG"
-          REPO="yitom486/lumina-app"
+          REPO="${{ github.repository }}"
           VERSION="${TAG#v}"
           BODY="Dawnsight ${TAG} 发布。"
           CHANGELOG_BODY="$(awk -v version="$VERSION" '$0 ~ "^## " version "[[:space:]]" {found=1; next} found && /^## / {exit} found {print}' CHANGELOG.md)"
@@ -225,6 +231,8 @@ jobs:
               echo "::error::Public release ${TAG} already exists and is published; refusing to append a partial rerun"
               exit 1
             fi
+            # tauri-action created this draft with a placeholder body.
+            gh release edit "$TAG" --repo "$REPO" --title "Dawnsight ${TAG}" --notes "$BODY"
           else
             gh release create "$TAG" --repo "$REPO" \
               --title "Dawnsight ${TAG}" \
@@ -244,7 +252,7 @@ jobs:
     needs: publish
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
     env:
       RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
     steps:
@@ -254,12 +262,12 @@ jobs:
 
       - name: Build and upload latest.json
         env:
-          GH_TOKEN: ${{ secrets.RELEASE_REPO_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
           TAG="$RELEASE_TAG"
-          REPO="yitom486/lumina-app"
+          REPO="${{ github.repository }}"
           VERSION="${TAG#v}"
           WORK="$(mktemp -d)"
           cd "$WORK"
@@ -315,21 +323,55 @@ jobs:
             '$wrapped[0] as $platforms | {version: $version, notes: $notes, pub_date: $pub_date, platforms: $platforms}' \
             > latest.json
           gh release upload "$TAG" latest.json --repo "$REPO" --clobber
+          cp latest.json "$RUNNER_TEMP/latest.json"
+
+      - name: Stage legacy updater bridge in lumina-app
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_REPO_TOKEN }}
+          LEGACY_REPO: yitom486/lumina-app
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="$RELEASE_TAG"
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::RELEASE_REPO_TOKEN is required to keep pre-0.4.2 clients updating"
+            exit 1
+          fi
+          # Same latest.json: its URLs already point at this repository's assets.
+          if ! gh release view "$TAG" --repo "$LEGACY_REPO" >/dev/null 2>&1; then
+            gh release create "$TAG" --repo "$LEGACY_REPO" \
+              --title "Dawnsight ${TAG}" \
+              --notes "Dawnsight 已迁移到 https://github.com/${{ github.repository }}/releases ，此处仅保留旧版本自动更新所需的 latest.json。" \
+              --draft
+          fi
+          gh release upload "$TAG" "$RUNNER_TEMP/latest.json" --repo "$LEGACY_REPO" --clobber
 
   publish-release:
     name: Publish completed release
     needs: updater
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     env:
       RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
-      GH_TOKEN: ${{ secrets.RELEASE_REPO_TOKEN }}
     steps:
       - name: Publish verified three-platform release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
-          gh release edit "$RELEASE_TAG" --repo yitom486/lumina-app --draft=false
-          if [ "$(gh release view "$RELEASE_TAG" --repo yitom486/lumina-app --json isDraft --jq '.isDraft')" != "false" ]; then
-            echo "::error::Public release ${RELEASE_TAG} is still a draft"
+          REPO="${{ github.repository }}"
+          gh release edit "$RELEASE_TAG" --repo "$REPO" --draft=false --latest
+          if [ "$(gh release view "$RELEASE_TAG" --repo "$REPO" --json isDraft --jq '.isDraft')" != "false" ]; then
+            echo "::error::Release ${RELEASE_TAG} is still a draft"
             exit 1
           fi
+
+      - name: Publish legacy updater bridge
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_REPO_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release edit "$RELEASE_TAG" --repo yitom486/lumina-app --draft=false --latest

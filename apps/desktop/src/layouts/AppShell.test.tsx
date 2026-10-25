@@ -115,7 +115,7 @@ describe("AboutDialog", () => {
     await user.click(await screen.findByRole("menuitem", { name: "关于 Dawnsight" }));
     await user.click(await screen.findByRole("button", { name: "下载更新" }));
     expect(openUrl).toHaveBeenCalledWith(
-      "https://github.com/yitom486/dawnsight-app/releases",
+      "https://github.com/yitom486/dawnsight/releases",
     );
   });
 
