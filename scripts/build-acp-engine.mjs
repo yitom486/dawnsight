@@ -27,6 +27,13 @@ function argValue(flag) {
 }
 
 function defaultTriple() {
+  // Tauri resolves externalBin by the Rust host triple, so ask rustc first.
+  try {
+    const host = execFileSync("rustc", ["-vV"], { encoding: "utf8" }).match(/^host: (\S+)$/m);
+    if (host) return host[1];
+  } catch {
+    // rustc missing: fall back to the per-OS default below
+  }
   if (process.platform === "win32") return "x86_64-pc-windows-msvc";
   if (process.platform === "darwin") return "aarch64-apple-darwin";
   return "x86_64-unknown-linux-gnu";

@@ -48,6 +48,11 @@ jobs:
       - name: Install frontend dependencies
         run: bun install --frozen-lockfile
 
+      # tauri.conf.json bundles bin/acp-engine as an externalBin; the app's
+      # build script fails without it. Compiled from @yitom/acp-client.
+      - name: Build ACP engine sidecar
+        run: node scripts/build-acp-engine.mjs
+
       - name: Run deterministic E2E suite
         run: bun run test:e2e:deterministic
 
@@ -102,6 +107,11 @@ jobs:
 
       - name: Install frontend dependencies
         run: bun install --frozen-lockfile
+
+      # tauri.conf.json bundles bin/acp-engine as an externalBin; the app's
+      # build script fails without it. Compiled from @yitom/acp-client.
+      - name: Build ACP engine sidecar
+        run: node scripts/build-acp-engine.mjs
 
       - name: Run release quality gates
         run: |
