@@ -209,7 +209,13 @@ mod tests {
         let tmp = std::env::temp_dir().join("dawnsight-acp-cwd-file.mp4");
         let _ = std::fs::write(&tmp, b"x");
         let cwd = resolve_session_cwd(Some(tmp.to_str().expect("utf8"))).expect("cwd");
-        let parent = tmp.parent().expect("parent");
+        // resolve_session_cwd canonicalizes; on macOS temp_dir() is
+        // /var/folders/... which canonicalizes to /private/var/folders/...
+        let parent = tmp
+            .parent()
+            .expect("parent")
+            .canonicalize()
+            .expect("canonical parent");
         assert!(same_workspace(
             &cwd.to_string_lossy(),
             &parent.to_string_lossy()
