@@ -1,3 +1,5 @@
+// Must stay first: renames pre-rename settings before any store hydrates.
+import "./lib/legacyStorageBoot";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
 import ReactDOM from "react-dom/client";

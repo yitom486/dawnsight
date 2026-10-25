@@ -8,6 +8,7 @@ pub mod credentials;
 mod database;
 mod error;
 mod glossary;
+pub mod legacy;
 mod metadata;
 pub mod model;
 mod naming;

@@ -448,6 +448,7 @@ fn merge_glossary_entry(
 /// isolated and replace it with `MediaLibraryService::load_subtitle_glossary`
 /// once that port exists; do not add another glossary persistence format.
 fn library_group_file(root: &Path, group_key: &str, file_name: &str) -> PathBuf {
+    dawnsight_library::legacy::migrate_legacy_library_dir(root);
     let readable: String = group_key
         .chars()
         .map(|character| match character {

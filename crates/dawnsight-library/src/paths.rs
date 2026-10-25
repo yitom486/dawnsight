@@ -9,6 +9,10 @@ use std::path::{Path, PathBuf};
 use crate::error::LibraryError;
 
 pub const DAWNSIGHT_DIR_NAME: &str = ".dawnsight";
+/// Per-library folder written by the pre-rename app (Lumina, ≤ 0.4.1).
+pub const LEGACY_DIR_NAME: &str = ".lumina";
+/// Staging name used while a legacy folder is being copied forward.
+pub const MIGRATING_DIR_NAME: &str = ".dawnsight.migrating";
 
 pub fn dawnsight_dir(root: &Path) -> PathBuf {
     root.join(DAWNSIGHT_DIR_NAME)
@@ -18,9 +22,10 @@ pub fn dawnsight_index_path(root: &Path) -> PathBuf {
     dawnsight_dir(root).join("index.json")
 }
 
-/// Read-side index location. Single location since the rename (no users to
-/// migrate): callers that only need the path keep using this helper.
+/// Read-side index location. Copies a pre-rename `.lumina` folder forward on
+/// first touch, so upgraded installs keep their index.
 pub fn index_path_for_read(root: &Path) -> PathBuf {
+    crate::legacy::migrate_legacy_library_dir(root);
     dawnsight_index_path(root)
 }
 
@@ -37,7 +42,10 @@ pub fn dawnsight_tmp_dir(cwd: &Path) -> PathBuf {
 }
 
 pub fn is_dawnsight_data_dir(name: &str) -> bool {
-    name == DAWNSIGHT_DIR_NAME
+    matches!(
+        name,
+        DAWNSIGHT_DIR_NAME | LEGACY_DIR_NAME | MIGRATING_DIR_NAME
+    )
 }
 
 /// Normalize a path string to `/` separators and trim trailing slashes.
@@ -77,7 +85,7 @@ pub fn display_relative_path(root: &Path, path: &Path) -> String {
 pub fn discover_library_root_for_media(media_path: &Path) -> Option<PathBuf> {
     let mut current = media_path.parent()?;
     loop {
-        if dawnsight_index_path(current).is_file() {
+        if index_path_for_read(current).is_file() {
             return Some(current.to_path_buf());
         }
         current = current.parent()?;

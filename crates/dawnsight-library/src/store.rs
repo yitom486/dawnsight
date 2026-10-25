@@ -296,8 +296,10 @@ pub fn group_dir(root: &Path, group_key: &str) -> PathBuf {
     dawnsight_groups_dir(root).join(group_dir_name(group_key))
 }
 
-/// Read-side group dir. Single location since the rename (no users to migrate).
+/// Read-side group dir. Copies a pre-rename `.lumina` folder forward on first
+/// touch, so upgraded installs keep their per-group metadata and subtitles.
 pub fn group_dir_for_read(root: &Path, group_key: &str) -> PathBuf {
+    crate::legacy::migrate_legacy_library_dir(root);
     group_dir(root, group_key)
 }
 

@@ -3,6 +3,7 @@ pub mod agent_pool;
 pub mod agent_stub;
 pub mod asr;
 mod commands;
+mod legacy_migration;
 pub mod library;
 pub mod mcp;
 pub mod media;
@@ -117,6 +118,8 @@ pub fn run() {
     STARTUP_START.get_or_init(std::time::Instant::now);
     init_tracing();
     tracing::info!(elapsed_ms = startup_ms(), "startup: tracing initialized");
+    // Before any store opens and before config windows create the WebView.
+    legacy_migration::migrate_from_lumina();
 
     let builder = tauri::Builder::default().plugin(tauri_plugin_opener::init());
     #[cfg(not(test))]
