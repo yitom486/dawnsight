@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { usePlayerStore } from "@/features/player";
 import { useUiStore } from "@/features/player/uiStore";
@@ -81,10 +81,10 @@ function resetStores() {
   localStorage.clear();
 }
 
-// NOTE: the tree mounts exactly once for the whole file. Full unmount would
-// run a production effect cleanup that calls import.meta.hot.off, which the
-// vitest SSR runtime does not provide (production hooks are out of scope and
-// stay untouched). Store resets in beforeEach keep the tests independent.
+// NOTE: the tree mounts exactly once for the whole file. Unmount it in
+// afterAll so Base UI floating timers do not fire after the test environment
+// is torn down; the production cleanup already guards import.meta.hot with
+// optional chaining. Store resets in beforeEach keep the tests independent.
 beforeAll(() => {
   resetStores();
   const client = new QueryClient({
@@ -95,6 +95,10 @@ beforeAll(() => {
       <App />
     </QueryClientProvider>,
   );
+});
+
+afterAll(() => {
+  cleanup();
 });
 
 beforeEach(() => {
