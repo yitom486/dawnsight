@@ -27,8 +27,8 @@ use windows::Win32::UI::WindowsAndMessaging::{
 
 use super::{
     emit_surface_event, forward_surface_event, input::should_emit_surface_click,
-    input::should_seek_immediately, input::MouseArbiter, input::PendingClick,
-    toggle_surface_play_pause,
+    input::should_seek_immediately, input::surface_click_delay_ms, input::MouseArbiter,
+    input::PendingClick, toggle_surface_play_pause,
 };
 use crate::player::error::{PlayerError, PlayerErrorCode};
 use crate::player::model::PlayerEvent;
@@ -379,7 +379,7 @@ unsafe extern "system" fn surface_wnd_proc(
                 let timer_id = SetTimer(
                     Some(hwnd),
                     CLICK_TIMER_ID,
-                    unsafe { GetDoubleClickTime().max(1) },
+                    surface_click_delay_ms(unsafe { GetDoubleClickTime() }),
                     None,
                 );
                 if timer_id == 0 {

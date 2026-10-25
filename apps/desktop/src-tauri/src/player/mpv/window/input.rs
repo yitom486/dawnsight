@@ -19,8 +19,22 @@ pub(crate) const OSC_SEEK_HIT_PAD_PX: i32 = 12;
 pub(crate) const TOP_ZONE_PX: i32 = 64;
 pub(crate) const DRAG_THRESHOLD_PX: i32 = 4;
 
-/// A click that has completed its press/release pair but is waiting for the
-/// platform double-click window to expire.
+/// Upper bound on how long a video-surface single click (play/pause) waits to
+/// rule out a double click (fullscreen). The Windows default double-click time
+/// is 500 ms, which makes play/pause feel sluggish; 250 ms still catches most
+/// double clicks. Only the Win32 surface runs a click timer.
+#[cfg_attr(not(windows), allow(dead_code))]
+pub(crate) const MAX_SURFACE_CLICK_DELAY_MS: u32 = 250;
+
+/// Single-click wait: the platform double-click time, capped at
+/// [`MAX_SURFACE_CLICK_DELAY_MS`] so a shorter user setting is still honoured.
+#[cfg_attr(not(windows), allow(dead_code))]
+pub(crate) fn surface_click_delay_ms(platform_double_click_ms: u32) -> u32 {
+    platform_double_click_ms.clamp(1, MAX_SURFACE_CLICK_DELAY_MS)
+}
+
+/// A click that has completed its press/release pair but is waiting out the
+/// double-click window (see [`surface_click_delay_ms`]).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct PendingClick {
     pub(crate) x: i32,
@@ -182,8 +196,17 @@ pub(crate) fn should_seek_immediately(x: i32, y: i32, width: i32, height: i32) -
 #[cfg(test)]
 mod tests {
     use super::{
-        should_emit_surface_click, should_seek_immediately, MouseArbiter, PendingClick, TOP_ZONE_PX,
+        should_emit_surface_click, should_seek_immediately, surface_click_delay_ms, MouseArbiter,
+        PendingClick, MAX_SURFACE_CLICK_DELAY_MS, TOP_ZONE_PX,
     };
+
+    #[test]
+    fn surface_click_delay_caps_slow_system_settings_but_keeps_fast_ones() {
+        assert_eq!(surface_click_delay_ms(500), MAX_SURFACE_CLICK_DELAY_MS);
+        assert_eq!(MAX_SURFACE_CLICK_DELAY_MS, 250);
+        assert_eq!(surface_click_delay_ms(200), 200);
+        assert_eq!(surface_click_delay_ms(0), 1);
+    }
 
     #[test]
     fn surface_click_bottom_zone_exemption() {
