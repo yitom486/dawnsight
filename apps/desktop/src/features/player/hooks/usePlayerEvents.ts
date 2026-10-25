@@ -73,7 +73,7 @@ export function usePlayerEvents(): void {
       void syncFromRuntime();
     };
 
-    import.meta.hot?.on("vite:afterUpdate", onViteAfterUpdate);
+    import.meta.hot?.on?.("vite:afterUpdate", onViteAfterUpdate);
 
     void (async () => {
       try {
@@ -92,7 +92,7 @@ export function usePlayerEvents(): void {
     return () => {
       cancelled = true;
       syncVersion += 1;
-      import.meta.hot?.off("vite:afterUpdate", onViteAfterUpdate);
+      import.meta.hot?.off?.("vite:afterUpdate", onViteAfterUpdate);
     };
   }, []);
 }
