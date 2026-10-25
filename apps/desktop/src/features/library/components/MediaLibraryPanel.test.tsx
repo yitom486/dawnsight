@@ -123,7 +123,12 @@ describe("MediaLibraryPanel pending groups", () => {
     renderPanel();
     fireEvent.click(await screen.findByText("手动选"));
     const confirm = await screen.findByText("确认拉取");
-    fireEvent.click(screen.getByLabelText("演员阵容"));
+    // Click the enclosing label like a user would: happy-dom re-runs label
+    // activation after Base UI's own root click, toggling twice, while
+    // Chromium toggles once.
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: "演员阵容" }).closest("label")!,
+    );
     fireEvent.click(confirm);
     await waitFor(() => {
       const call = vi
