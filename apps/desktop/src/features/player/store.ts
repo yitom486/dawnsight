@@ -394,7 +394,10 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     }
 
     try {
-      const siblings = await api.listSiblingVideos(path);
+      const listed = await api.listSiblingVideos(path);
+      // The IPC contract is string[], but a missing/mocked command resolves
+      // null; treat anything else as "no siblings" instead of throwing.
+      const siblings = Array.isArray(listed) ? listed : [];
       const nextIdx = indexOfPath(siblings, path);
       set({
         playlist: siblings.length > 0 ? siblings : [path],
