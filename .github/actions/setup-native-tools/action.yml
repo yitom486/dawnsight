@@ -26,6 +26,11 @@ runs:
           $archive = Join-Path $env:RUNNER_TEMP $metadata['archive']
           $extractDir = Join-Path $env:RUNNER_TEMP 'dawnsight-mpv-dev'
           curl.exe -L --fail --retry 3 -o $archive $metadata['url']
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $actual = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -ne $metadata['sha256']) {
+            throw "libmpv archive sha256 mismatch: expected $($metadata['sha256']), got $actual"
+          }
           New-Item -ItemType Directory -Force -Path $extractDir | Out-Null
           tar.exe -xf $archive -C $extractDir
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

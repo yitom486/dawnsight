@@ -4,7 +4,10 @@ Windows x64 **dev** 包，给 Dawnsight 链接和运行时加载。不要装到�
 
 ## 当前版本
 
-- 来源：[shinchiro/mpv-winbuild-cmake](https://github.com/shinchiro/mpv-winbuild-cmake/releases)
+- 构建：[shinchiro/mpv-winbuild-cmake](https://github.com/shinchiro/mpv-winbuild-cmake)
+- 下载：[mpv-player-windows（SourceForge）/libmpv](https://sourceforge.net/projects/mpv-player-windows/files/libmpv/)
+  ——同一批构建的长期镜像；shinchiro 的 GitHub Release 只保留最近几周，旧 tag 会 404
+- 校验：压缩包 SHA-256 写在 `VERSION` 的 `sha256=`，CI 下载后先校验再解压
 - 发行：`20260830`
 - 文件：`mpv-dev-x86_64-20260830-git-e8673660ab.7z`（普通 x86_64，不是 v3/AVX2）
 - 运行时：`libmpv-2.dll`
@@ -25,7 +28,7 @@ Windows x64 **dev** 包，给 Dawnsight 链接和运行时加载。不要装到�
 $dir = "$env:TEMP\dawnsight-mpv"
 New-Item -ItemType Directory -Force -Path $dir | Out-Null
 curl.exe -L --fail -o "$dir\mpv-dev.7z" `
-  https://github.com/shinchiro/mpv-winbuild-cmake/releases/download/20260830/mpv-dev-x86_64-20260830-git-e8673660ab.7z
+  https://downloads.sourceforge.net/project/mpv-player-windows/libmpv/mpv-dev-x86_64-20260830-git-e8673660ab.7z
 tar.exe -xf "$dir\mpv-dev.7z" -C "$PSScriptRoot"
 ```
 

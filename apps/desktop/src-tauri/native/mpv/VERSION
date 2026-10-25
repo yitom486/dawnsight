@@ -3,4 +3,6 @@ tag=20260830
 archive=mpv-dev-x86_64-20260830-git-e8673660ab.7z
 git=e8673660ab
 dll=libmpv-2.dll
-url=https://github.com/shinchiro/mpv-winbuild-cmake/releases/download/20260830/mpv-dev-x86_64-20260830-git-e8673660ab.7z
+url=https://downloads.sourceforge.net/project/mpv-player-windows/libmpv/mpv-dev-x86_64-20260830-git-e8673660ab.7z
+sha256=7310560bd25cc760282e8754a389302629c6e748261030c3870e1cb2f80cdc48
+mirror=mpv-player-windows (SourceForge) keeps every shinchiro build; GitHub releases are pruned after a few weeks
