@@ -77,6 +77,7 @@ export function SeekBar() {
       </span>
       <div
         className="relative min-w-0 flex-1"
+        data-slot="seek-track"
         onPointerMove={handlePointerMove}
         onPointerLeave={() => setPreviewTimeMs(null)}
       >
