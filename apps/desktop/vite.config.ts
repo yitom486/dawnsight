@@ -77,6 +77,10 @@ export default defineConfig({
         test: {
           name: "ui",
           environment: "happy-dom",
+          // Rendered blackbox flows finish in well under a second alone, but
+          // full-suite parallel load pushed them past the 5s default. A hung
+          // test still fails.
+          testTimeout: 15_000,
           include: ["src/**/*.test.tsx", "../../packages/*/src/**/*.test.tsx"],
           exclude: ["**/node_modules/**", "**/dist/**"],
           setupFiles: ["src/test/setup.ts"],
