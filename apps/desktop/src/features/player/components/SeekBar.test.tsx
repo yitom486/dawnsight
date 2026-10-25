@@ -28,7 +28,7 @@ describe("SeekBar", () => {
 
     render(<SeekBar />);
     const slider = screen.getByRole("slider");
-    const track = slider.closest("div.relative");
+    const track = slider.closest('[data-slot="seek-track"]');
     expect(track).not.toBeNull();
     vi.spyOn(track as HTMLElement, "getBoundingClientRect").mockReturnValue({
       left: 0,
