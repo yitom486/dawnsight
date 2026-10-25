@@ -302,14 +302,22 @@ describe("profile switch isolation blackbox (switch world entry)", () => {
     await waitFor(() => {
       expect(screen.getByLabelText("切换 Agent")).toBeEnabled();
     });
-    await user.click(screen.getByLabelText("切换 Agent"));
-    // Base UI 下拉挂载是异步渲染：重负载并行时默认 1000ms 不够。
-    // 只放宽等待（菜单永不打开照样失败），不断言改动。
-    await user.click(
-      await screen.findByRole("menuitem", { name: "Cursor" }, { timeout: 10_000 }),
+    // 回合落定后连接状态还会再循环一轮（idle/connecting/connected），重渲染
+    // 可能在点中菜单项前把已打开的下拉关掉。以「真的切到新世界」为成功条件
+    // 重试打开+选择；切换永远不生效照样超时失败，不掩盖真问题。
+    await waitFor(
+      async () => {
+        if (screen.queryAllByText("cursor 的问题").length === 0) {
+          if (!screen.queryByRole("menuitem", { name: "Cursor" })) {
+            await user.click(screen.getByLabelText("切换 Agent"));
+          }
+          const item = screen.queryByRole("menuitem", { name: "Cursor" });
+          if (item) await user.click(item);
+        }
+        expect(screen.getAllByText("cursor 的问题").length).toBeGreaterThanOrEqual(1);
+      },
+      { timeout: 10_000 },
     );
-
-    expect((await screen.findAllByText("cursor 的问题")).length).toBeGreaterThanOrEqual(1);
     // 旧世界的弹窗、进度、排队指示一个都不许进新世界。
     expect(screen.queryByText("需要你的审批：旧世界审批")).not.toBeInTheDocument();
     expect(screen.queryByText("旧世界发送中…")).not.toBeInTheDocument();
