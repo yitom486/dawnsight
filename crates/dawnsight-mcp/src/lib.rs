@@ -29,9 +29,14 @@ pub const MCP_SUBCOMMAND: &str = "--dawnsight-mcp";
 /// Optional append-only diagnostic log path supplied by the desktop host.
 ///
 /// MCP runs as a child of the Agent harness, so its stderr is not guaranteed
-/// to reach Dawnsight's tracing subscriber. The server keeps stderr diagnostics
-/// for direct probes and mirrors them to this file when the host provides it.
+/// to reach Dawnsight's tracing subscriber. Diagnostics go to this file when
+/// the host provides it; stderr is opt-in via [`TIMING_STDERR_ENV`].
 pub const DIAGNOSTIC_LOG_ENV: &str = "DAWNSIGHT_MCP_DIAGNOSTIC_LOG";
+
+/// Set to `1` / `true` to also print `[dawnsight-mcp-timing]` lines to stderr
+/// (direct stdio probes). Off by default: the Agent harness owns this stderr
+/// and would otherwise collect a line for every `tools/list` / `tools/call`.
+pub const TIMING_STDERR_ENV: &str = "DAWNSIGHT_MCP_TIMING_STDERR";
 
 /// Per-MCP-child correlation id supplied by the desktop ACP host.
 ///

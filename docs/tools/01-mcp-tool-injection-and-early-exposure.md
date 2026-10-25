@@ -306,6 +306,7 @@ MCP instructions 是 Agent 连接阶段收到的指引，不应替代 Host 的�
 
 - Dawnsight 日志：`registering Dawnsight MCP for ACP session`（确认配置送达：command/args/env/profile）、`session/new completed`（耗时不代表等了 MCP）。
 - `dawnsight-mcp.log`（`DAWNSIGHT_MCP_DIAGNOSTIC_LOG` 指向，App 端在 `adapter.rs` 里配）：`server_started` / `initialize_received` / `tools_list_served <profile> tools=<N>` / `tool started|finished`。`no-tools` 会话列出 0 是符合设计的（隔离任务），不要把它当成聊天会话注册失败。
+- 直接用 stdio 探测 MCP 进程时，设 `DAWNSIGHT_MCP_TIMING_STDERR=1` 可把同样的行以 `[dawnsight-mcp-timing]` 前缀打到 stderr；默认关闭，避免每次 `tools/list` / `tools/call` 都往 Agent harness 的 stderr 写一行。
 - ACP 侧 `tool_call observed` 日志：只证明模型“宣布”了调用；真正的执行起止看上一条。
 - 仍在 App Server 肚子里、观测不到的：它何时 spawn 我们的进程、列出后是否缓存、下次是否重列。需要时用 `/mcp` 问它自己，或看任务管理器里 dawnsight MCP 子进程在不在。
 

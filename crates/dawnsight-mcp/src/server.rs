@@ -15,7 +15,7 @@ use super::snapshot::{
     DawnsightMcpSnapshot, CONTEXT_FILE_ENV,
 };
 use super::tools::handle_tool_call_with_context;
-use crate::{DIAGNOSTIC_ID_ENV, DIAGNOSTIC_LOG_ENV};
+use crate::{DIAGNOSTIC_ID_ENV, DIAGNOSTIC_LOG_ENV, TIMING_STDERR_ENV};
 
 const PROTOCOL_VERSION: &str = "2024-11-05";
 const TOOL_WORKER_COUNT: usize = 4;
@@ -38,7 +38,7 @@ const CHAPTER_TOOL_INSTRUCTIONS: &str = "\n章节任务工具仅在 snapshot 带
 
 /// Timing probe for the serial-vs-parallel question. stdout must stay pure
 /// JSON-RPC, and this process exits before the app's tracing subscriber
-/// exists, so diagnostics use stderr plus the optional host log file.
+/// exists, so diagnostics use the optional host log file plus opt-in stderr.
 fn log_timing(event: &str, id: &Value, tool: &str, elapsed_ms: Option<u128>) {
     let elapsed = elapsed_ms
         .map(|value| format!(" elapsed_ms={value}"))
@@ -48,8 +48,23 @@ fn log_timing(event: &str, id: &Value, tool: &str, elapsed_ms: Option<u128>) {
         std::process::id(),
         diagnostic_id()
     );
-    eprintln!("[dawnsight-mcp-timing] {line}");
-    append_diagnostic(&line);
+    emit_diagnostic(&line);
+}
+
+fn emit_diagnostic(line: &str) {
+    if timing_stderr_enabled(std::env::var(TIMING_STDERR_ENV).ok().as_deref()) {
+        eprintln!("[dawnsight-mcp-timing] {line}");
+    }
+    append_diagnostic(line);
+}
+
+fn timing_stderr_enabled(value: Option<&str>) -> bool {
+    matches!(
+        value
+            .map(|value| value.trim().to_ascii_lowercase())
+            .as_deref(),
+        Some("1" | "true")
+    )
 }
 
 fn append_diagnostic(line: &str) {
@@ -85,8 +100,7 @@ fn log_server_started() {
         std::process::id(),
         diagnostic_id(),
     );
-    eprintln!("[dawnsight-mcp-timing] {line}");
-    append_diagnostic(&line);
+    emit_diagnostic(&line);
 }
 
 pub fn run_stdio_server() -> Result<(), String> {
@@ -782,6 +796,16 @@ mod tests {
         sync_snapshot_capabilities, write_chapter_task_snapshot, AgentCapabilities,
         ChapterTaskContext, DawnsightMcpSnapshot, SNAPSHOT_SCHEMA_VERSION,
     };
+
+    #[test]
+    fn timing_stderr_is_opt_in() {
+        assert!(!timing_stderr_enabled(None));
+        assert!(!timing_stderr_enabled(Some("")));
+        assert!(!timing_stderr_enabled(Some("0")));
+        assert!(!timing_stderr_enabled(Some("off")));
+        assert!(timing_stderr_enabled(Some("1")));
+        assert!(timing_stderr_enabled(Some(" TRUE ")));
+    }
 
     #[test]
     fn tool_list_matches_canonical_contract() {
