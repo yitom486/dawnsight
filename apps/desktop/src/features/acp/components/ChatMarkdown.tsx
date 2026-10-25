@@ -1,3 +1,4 @@
+import { useDeferredValue } from "react";
 import { Streamdown, type Components } from "streamdown";
 import { math } from "@streamdown/math";
 import { cjk } from "@streamdown/cjk";
@@ -7,6 +8,7 @@ import { enhanceCitationChildren } from "@/features/evidence/EvidenceLink";
 import { cn } from "@dawnsight/ui/utils";
 
 import "katex/dist/katex.min.css";
+import "streamdown/styles.css";
 
 type Props = {
   content: string;
@@ -42,6 +44,16 @@ type Props = {
 // renderer had no highlighting either). Code blocks still render plain with
 // a Chinese copy button from core controls. Revisit via createCodePlugin +
 // lazy import only with a real highlighting demand (see evidence file).
+// Character separation also gives Chinese prose an incremental fade. No artificial
+// typing queue: bound the cascade so fast streams stay visually caught up.
+const STREAM_ANIMATION = {
+  animation: "fadeIn",
+  duration: 150,
+  sep: "char",
+  stagger: 8,
+  maxBacklogMs: 120,
+} as const;
+
 const BASE_PLUGINS = { math, cjk } as const;
 
 // Module-level singletons: stable identity across renders/turns so Streamdown
@@ -130,11 +142,15 @@ const STREAMDOWN_COMPONENTS: Components = {
 };
 
 export function ChatMarkdown({ content, className, streaming = false }: Props) {
+  const deferredContent = useDeferredValue(content);
+  // Let input/scroll updates win while streaming; completion always renders all text.
+  const renderedContent = streaming ? deferredContent : content;
   return (
     <div className={cn("chat-markdown", className)}>
       <Streamdown
         mode={streaming ? "streaming" : "static"}
         isAnimating={streaming}
+        animated={streaming ? STREAM_ANIMATION : false}
         plugins={BASE_PLUGINS}
         components={STREAMDOWN_COMPONENTS}
         controls={STREAMDOWN_CONTROLS}
@@ -142,7 +158,7 @@ export function ChatMarkdown({ content, className, streaming = false }: Props) {
         skipHtml
         urlTransform={chatUrlTransform}
       >
-        {content}
+        {renderedContent}
       </Streamdown>
     </div>
   );

@@ -25,13 +25,53 @@ import {
 
 const SKIP_DESCEND = new Set(["code", "pre", "a"]);
 
+/** Keep citation tokens whole when a renderer splits prose into animation spans.
+ * Only citation-bearing runs lose their decorative spans; ordinary text keeps
+ * its original animation nodes. Semantic code/link boundaries are never crossed.
+ */
+function joinAnimatedCitationRuns(children: ReactNode): ReactNode[] {
+  const result: ReactNode[] = [];
+  let run: ReactNode[] = [];
+  let text = "";
+  let animated = false;
+  const flush = () => {
+    if (animated && parseEvidenceSegments(text).some((part) => part.kind !== "text")) {
+      result.push(text);
+    } else {
+      result.push(...run);
+    }
+    run = [];
+    text = "";
+    animated = false;
+  };
+  for (const child of Children.toArray(children)) {
+    const props =
+      isValidElement<{ children?: ReactNode; "data-sd-animate"?: unknown }>(child)
+      && child.type === "span"
+        ? child.props
+        : undefined;
+    const animatedText = props && "data-sd-animate" in props
+      && typeof props.children === "string" ? props.children : undefined;
+    if (typeof child === "string" || animatedText !== undefined) {
+      run.push(child);
+      text += typeof child === "string" ? child : animatedText;
+      animated ||= animatedText !== undefined;
+    } else {
+      flush();
+      result.push(child);
+    }
+  }
+  flush();
+  return result;
+}
+
 /**
  * Split string children on bracketed citations. Element children recurse
  * except code/pre/link (citations inside code or links never linkify).
  * Strings stay strings when citation-free, so rendering is unchanged.
  */
 export function enhanceCitationChildren(children: ReactNode): ReactNode {
-  return Children.map(children, (child) => {
+  return Children.map(joinAnimatedCitationRuns(children), (child) => {
     if (typeof child === "string") {
       const segments = parseEvidenceSegments(child);
       if (

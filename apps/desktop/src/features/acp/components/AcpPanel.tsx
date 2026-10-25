@@ -35,6 +35,7 @@ import { errorMessage, formatTime } from "@/lib/format";
 import { notesKey } from "@dawnsight/query-keys";
 
 import "../chat-motion.css";
+import { createTextStreamBuffer } from "../textStreamBuffer";
 
 import { useAcpProfilesStore } from "@dawnsight/chat-ui/acpProfilesStore";
 import { useAskAboutStore } from "@dawnsight/chat-ui/askAboutStore";
@@ -795,6 +796,9 @@ export function AcpPanel() {
         return input ? [input] : [];
       });
 
+      const streamBuffer = createTextStreamBuffer((event) =>
+        handleEvent(event, turn.id, thinkingLevel),
+      );
       try {
         const player = usePlayerStore.getState();
         const frozenContext = buildAnchoredVideoPromptContext({
@@ -804,7 +808,7 @@ export function AcpPanel() {
         });
         const result = await acpPrompt(
           text,
-          (event: AcpEvent) => handleEvent(event, turn.id, thinkingLevel),
+          streamBuffer.push,
           {
             profileId: profileState.activeProfileId,
             cwd: sessionCwd,
@@ -821,6 +825,7 @@ export function AcpPanel() {
         );
         return result;
       } catch (error) {
+        streamBuffer.close();
         const message = errorMessage(error);
         const code =
           typeof error === "object" && error && "code" in error
@@ -838,6 +843,8 @@ export function AcpPanel() {
           ),
         );
         throw error;
+      } finally {
+        streamBuffer.close();
       }
     },
     onSettled: () => {

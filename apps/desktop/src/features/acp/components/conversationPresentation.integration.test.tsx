@@ -127,7 +127,9 @@ describe("conversation presentation integration", () => {
       <ChatTurnView turn={turn} presentationMode="release" />,
     );
     expect(
-      await screen.findByText("这段双方已经达成共识。"),
+      await screen.findByText((_, element) =>
+        element?.tagName === "P" && element.textContent === "这段双方已经达成共识。",
+      ),
     ).toBeInTheDocument();
     // 真实事件链：工具启动（经 sealAgentSegment）+ 工具期追消息，正文不消失。
     turn = applyAcpEventToTurn(
@@ -141,14 +143,14 @@ describe("conversation presentation integration", () => {
       "minimal",
     );
     view.rerender(<ChatTurnView turn={turn} presentationMode="release" />);
-    expect(screen.queryByText("这段双方已经达成共识。")).toBeInTheDocument();
+    expect(view.container.querySelector(".chat-markdown")).toHaveTextContent("这段双方已经达成共识。");
     turn = applyAcpEventToTurn(
       turn,
       { type: "agentMessage", text: "正在整理台词细节。" },
       "minimal",
     );
     view.rerender(<ChatTurnView turn={turn} presentationMode="release" />);
-    expect(screen.queryByText("这段双方已经达成共识。")).toBeInTheDocument();
+    expect(view.container.querySelector(".chat-markdown")).toHaveTextContent("这段双方已经达成共识。");
     view.unmount();
   });
 

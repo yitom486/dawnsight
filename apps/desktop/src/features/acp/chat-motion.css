@@ -249,3 +249,25 @@
     opacity: 1;
   }
 }
+
+/* Upstream Streamdown styles load lazily; specificity keeps this override valid. */
+@media (prefers-reduced-motion: reduce) {
+  .chat-markdown [data-sd-animate],
+  .chat-markdown [data-sd-animate-marker]::marker {
+    animation: none;
+  }
+}
+
+/* Business wrappers only: stable message keys prevent re-entry on each token. */
+@keyframes chat-message-enter {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.chat-message-enter,
+.chat-status-enter {
+  animation: chat-message-enter 160ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .chat-message-enter,
+  .chat-status-enter { animation: none; }
+}

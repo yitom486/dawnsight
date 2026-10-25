@@ -10,6 +10,7 @@ import {
 import {
   MessagePrimitive,
   useAuiState,
+  useSmooth,
   type MessageState,
   type TextMessagePartComponent,
 } from "@assistant-ui/react";
@@ -150,7 +151,7 @@ function ChatUserMessage() {
       data-slot="dawnsight-chat-user-message"
       data-role="user"
       data-turn-id={host?.id}
-      className="flex flex-col items-end gap-1.5"
+      className="chat-message-enter flex flex-col items-end gap-1.5"
     >
       <div className="w-fit max-w-[88%] space-y-2 rounded-lg bg-accent px-3 py-2 text-accent-foreground">
         {images.length > 0 ? (
@@ -179,7 +180,7 @@ function ChatAssistantMessage() {
       data-slot="dawnsight-chat-assistant-message"
       data-role="assistant"
       data-turn-id={host?.id}
-      className="w-full min-w-0"
+      className="chat-message-enter w-full min-w-0"
     >
       <AssistantActivities />
       <MessagePrimitive.Parts
@@ -317,7 +318,11 @@ function AssistantEmptyPart() {
   return <LoadingStateView label={waitingLabel(host?.activities ?? [])} />;
 }
 
-const AssistantTextPart: TextMessagePartComponent = ({ text }) => {
+// Official assistant-ui pacing; commit at most every 32ms to limit Markdown work.
+const SMOOTH_PROSE = { drainMs: 180, maxCharIntervalMs: 4, minCommitMs: 32 } as const;
+
+const AssistantTextPart: TextMessagePartComponent = (part) => {
+  const { text } = part;
   const { slots, host, setCopyText } = useChatSlots();
   const statusType = useAuiState((s) => s.message.status?.type);
   const customMeta = useAuiState((s) => s.message.metadata?.custom);
@@ -331,21 +336,34 @@ const AssistantTextPart: TextMessagePartComponent = ({ text }) => {
   const sourceText =
     host && slots.normalizeAnswer ? slots.normalizeAnswer(host) : text;
 
-  const structured = sourceText
-    ? parseAssistantBlocksText(sourceText, { streaming: isRunning })
-    : null;
+  const structured = useMemo(
+    () => sourceText ? parseAssistantBlocksText(sourceText, { streaming: isRunning }) : null,
+    [sourceText, isRunning],
+  );
   const richBlocks = structured?.blocks ?? [];
   const copyableText = richBlocks.length ? blocksToPlainText(richBlocks) : sourceText;
+  const isStructured = looksLikeStructuredJson(sourceText);
   const displayText =
-    looksLikeStructuredJson(sourceText) && richBlocks.length === 0
+    isStructured && richBlocks.length === 0
       ? "正在整理结构化结果…"
       : sourceText;
+
+  // Smooth display only: business text and actions remain authoritative. Bypass
+  // immediately on completion/error so cancellation never leaves a typing backlog.
+  const smoothed = useSmooth(
+    { ...part, text: displayText },
+    isRunning && !isError && !isStructured && richBlocks.length === 0 ? SMOOTH_PROSE : false,
+  );
+  // The upstream reveal counts UTF-16 units. Don't paint half an emoji.
+  const visibleText = /[\uD800-\uDBFF]$/.test(smoothed.text)
+    ? smoothed.text.slice(0, -1)
+    : smoothed.text;
 
   useEffect(() => {
     setCopyText(isError ? "" : copyableText);
   }, [copyableText, isError, setCopyText]);
 
-  if (!sourceText) {
+  if (!sourceText || (!visibleText && isRunning && !isStructured && !isError)) {
     if (!isRunning) return null;
     return <LoadingStateView label={waitingLabel(host?.activities ?? [])} />;
   }
@@ -357,7 +375,6 @@ const AssistantTextPart: TextMessagePartComponent = ({ text }) => {
           "w-full min-w-0 break-words text-foreground text-[length:var(--text-chat-body)] leading-[var(--text-chat-body--line-height)]",
           isError &&
             "whitespace-pre-wrap rounded-lg bg-destructive/10 px-3 py-2 text-destructive",
-          !isError && isRunning && "chat-reply-streaming",
         )}
       >
         {isError ? (
@@ -379,14 +396,14 @@ const AssistantTextPart: TextMessagePartComponent = ({ text }) => {
             }
           />
         ) : slots.renderMarkdown ? (
-          slots.renderMarkdown(displayText, { streaming: isRunning })
+          slots.renderMarkdown(visibleText, { streaming: isRunning })
         ) : (
           <span className="whitespace-pre-wrap break-words">
-            {displayText}
+            {visibleText}
           </span>
         )}
         {!isError && isRunning ? (
-          <span className="chat-stream-caret ml-0.5 inline-block text-muted-foreground">
+          <span aria-hidden="true" className="chat-stream-caret ml-0.5 inline-block text-muted-foreground">
             ▍
           </span>
         ) : null}

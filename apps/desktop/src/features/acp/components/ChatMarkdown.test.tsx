@@ -19,6 +19,14 @@ afterEach(() => {
 });
 
 describe("ChatMarkdown", () => {
+  it("animates live text and renders completed content without animation spans", () => {
+    const { container, rerender } = render(<ChatMarkdown content="Live text" streaming />);
+    expect(container.querySelector("[data-sd-animate]")).toBeTruthy();
+    rerender(<ChatMarkdown content="Live text completed." />);
+    expect(container.querySelector("[data-sd-animate]")).toBeNull();
+    expect(container.textContent).toContain("Live text completed.");
+  });
+
   it("renders headings and inline code", () => {
     render(<ChatMarkdown content={"## 标题\n\n这是 `code` 示例。"} />);
     expect(screen.getByRole("heading", { level: 2, name: "标题" })).toBeInTheDocument();
@@ -126,18 +134,32 @@ describe("ChatMarkdown", () => {
   });
 });
 
-function renderMarkdown(content: string) {
+function renderMarkdown(content: string, streaming = false) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
   return render(
     <QueryClientProvider client={client}>
-      <ChatMarkdown content={content} />
+      <ChatMarkdown content={content} streaming={streaming} />
     </QueryClientProvider>,
   );
 }
 
 describe("ChatMarkdown citations", () => {
+  it.each([
+    "See [03:12] now.",
+    "- See [03:12] now.",
+  ])("keeps verified citations usable during animated streaming: %s", async (content) => {
+    renderMarkdown(content, true);
+    expect(await screen.findByRole("button", { name: "[03:12]" })).toBeInTheDocument();
+  });
+
+  it("does not linkify animated code or web-link labels", () => {
+    renderMarkdown("`[03:12]` and [[04:00]](https://example.com)", true);
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    expect(screen.getByRole("link")).toHaveAttribute("href", "https://example.com/");
+  });
+
   beforeEach(() => {
     vi.mocked(invoke).mockImplementation((cmd: string) => {
       if (cmd === "media_inspect")

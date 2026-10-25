@@ -468,7 +468,9 @@ describe("ChatTurnView", () => {
       />,
     );
 
-    expect(await screen.findByText("正在整理结构化结果…")).toBeInTheDocument();
+    expect(await screen.findByText((_, element) =>
+      element?.tagName === "P" && element.textContent === "正在整理结构化结果…",
+    )).toBeInTheDocument();
     expect(screen.queryByText(/chapter_recap\.v1/)).not.toBeInTheDocument();
   });
 
@@ -484,7 +486,7 @@ describe("ChatTurnView", () => {
     );
     const assistant = container.querySelector('[data-turn-id="t1"]');
     expect(assistant).toHaveClass("w-full");
-    expect(await screen.findByText("流式片段")).toBeInTheDocument();
+    expect(assistant).toHaveTextContent("流式片段");
     expect(container.textContent).toContain("▍");
   });
 

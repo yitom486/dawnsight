@@ -300,5 +300,5 @@ export type LoadingStateViewProps = {
 
 /** Waiting row: pixel grid + label + honest mount-clock. */
 export function LoadingStateView({ label }: LoadingStateViewProps) {
-  return <ThinkingLoadingState label={label} />;
+  return <ThinkingLoadingState label={label} className="chat-status-enter" />;
 }
