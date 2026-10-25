@@ -117,7 +117,12 @@ describe("ChatHistorySheet", () => {
 
   it("formats time and falls back to a session prefix", () => {
     renderSheet();
-    expect(screen.getByText(/11\/15/)).toBeInTheDocument();
+    // 1_700_000_000_000 is 11/14 in UTC but 11/15 in UTC+8: derive the
+    // expected month/day in the runner's own time zone.
+    const updated = new Date(1_700_000_000_000);
+    expect(
+      screen.getByText(new RegExp(`${updated.getMonth() + 1}/${updated.getDate()}`)),
+    ).toBeInTheDocument();
     expect(screen.getByText("对话 sess-emp")).toBeInTheDocument();
   });
 
