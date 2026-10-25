@@ -1,7 +1,13 @@
-import { Check, ChevronDown, History, Plus, StickyNote } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  History,
+  MoreHorizontal,
+  Plus,
+  StickyNote,
+} from "lucide-react";
 import { useRef } from "react";
 
-import { Badge } from "@dawnsight/ui/badge";
 import { Button } from "@dawnsight/ui/button";
 import {
   DropdownMenu,
@@ -46,7 +52,14 @@ const CONNECTION_LABEL: Record<AcpConnectionState, string> = {
   error: "连接失败",
 };
 
-/** Header — status, title preview, history / new chat actions. */
+/** Only failures need words; connected/connecting read from the dot (plus the
+ * composer placeholder while connecting), so the header stays one line. */
+const QUIET_STATES: ReadonlySet<AcpConnectionState> = new Set([
+  "connected",
+  "connecting",
+]);
+
+/** Header — one row: status dot + agent, then history / new chat / ⋯. */
 export function ChatToolbar({
   agentLabel,
   chatTitle,
@@ -76,9 +89,23 @@ export function ChatToolbar({
   return (
     <ChatColumn className="shrink-0 space-y-1 border-b border-border py-2">
       <div className="relative">
-      <div className="flex flex-wrap items-start gap-2">
+      <div className="flex items-center gap-2">
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <span
+              aria-hidden
+              title={CONNECTION_LABEL[connectionState]}
+              className={cn(
+                "size-1.5 shrink-0 rounded-full",
+                connectionState === "connected" && "bg-success",
+                connectionState === "connecting" &&
+                  "bg-warning animate-pulse motion-reduce:animate-none",
+                connectionState === "error" && "bg-destructive",
+                (connectionState === "idle" ||
+                  connectionState === "unavailable") &&
+                  "bg-muted-foreground/50",
+              )}
+            />
             {canSwitchAgent ? (
               <DropdownMenu>
                 <DropdownMenuTrigger
@@ -87,7 +114,7 @@ export function ChatToolbar({
                       type="button"
                       size="sm"
                       variant="ghost"
-                      className="h-7 max-w-[11rem] cursor-pointer truncate rounded-md border border-transparent bg-transparent px-1 text-[12px] font-medium text-foreground outline-none hover:bg-transparent hover:border-border focus-visible:border-border focus-visible:ring-0 disabled:cursor-default disabled:opacity-60"
+                      className="h-7 max-w-[11rem] cursor-pointer truncate rounded-md border border-transparent bg-transparent px-1 text-[length:var(--text-ui-meta)] font-medium text-foreground outline-none hover:bg-transparent hover:border-border focus-visible:border-border focus-visible:ring-0 disabled:cursor-default disabled:opacity-60"
                       disabled={busy || switchDisabled}
                       aria-label="切换 Agent"
                       title={`切换 Agent：${agentLabel}（各家会话记忆独立保留）`}
@@ -138,35 +165,19 @@ export function ChatToolbar({
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <span className="min-w-0 flex-1 break-words text-[12px] font-medium text-foreground">
+              <span className="min-w-0 truncate text-[length:var(--text-ui-meta)] font-medium text-foreground">
                 {agentLabel}
               </span>
             )}
-            <Badge
-              variant="secondary"
+            <span
               className={cn(
-                "h-auto min-w-0 gap-1 rounded-full px-2 py-0.5 text-[length:var(--text-ui-label)]",
-                connectionState === "connected" && "bg-success/15",
-                connectionState === "connecting" && "bg-warning/15",
-                connectionState === "error" && "bg-destructive/15",
-                (connectionState === "idle" ||
-                  connectionState === "unavailable") &&
-                  "bg-muted",
+                "shrink-0 text-[length:var(--text-ui-label)] text-muted-foreground",
+                connectionState === "error" && "text-destructive",
+                QUIET_STATES.has(connectionState) && "sr-only",
               )}
             >
-              <span
-                className={cn(
-                  "h-1.5 w-1.5 shrink-0 rounded-full",
-                  connectionState === "connected" && "bg-success",
-                  connectionState === "connecting" && "animate-pulse bg-warning",
-                  connectionState === "error" && "bg-destructive",
-                  (connectionState === "idle" ||
-                    connectionState === "unavailable") &&
-                    "bg-muted-foreground/50",
-                )}
-              />
               {CONNECTION_LABEL[connectionState]}
-            </Badge>
+            </span>
           </div>
           {chatTitle ? (
             <p className="mt-1 break-words text-[length:var(--text-ui-label)] text-muted-foreground">
@@ -176,22 +187,18 @@ export function ChatToolbar({
         </div>
 
         <div className="flex shrink-0 items-center gap-1">
-          {onQuickNoteOpenChange ? (
-            <div ref={quickNoteAnchorRef}>
+          {connectionState === "error" || connectionState === "idle" ? (
+            onReconnect ? (
               <Button
-                ref={quickNoteButtonRef}
-                size="icon"
-                variant="ghost"
-                className="size-7"
-                disabled={busy || quickNoteDisabled}
-                aria-label="快速写批注"
-                aria-expanded={quickNoteOpen}
-                title="快速写批注"
-                onClick={() => onQuickNoteOpenChange(!quickNoteOpen)}
+                size="sm"
+                variant="outline"
+                className="h-7 px-2 text-[length:var(--text-ui-label)]"
+                disabled={busy || loading}
+                onClick={onReconnect}
               >
-                <StickyNote className="size-3.5" />
+                重连
               </Button>
-            </div>
+            ) : null
           ) : null}
           {onOpenHistory ? (
             <Button
@@ -222,18 +229,39 @@ export function ChatToolbar({
           >
             <Plus className="size-3.5" />
           </Button>
-          {connectionState === "error" || connectionState === "idle" ? (
-            onReconnect ? (
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 px-2 text-[length:var(--text-ui-label)]"
-                disabled={busy || loading}
-                onClick={onReconnect}
-              >
-                重连
-              </Button>
-            ) : null
+          {onQuickNoteOpenChange ? (
+            <div ref={quickNoteAnchorRef}>
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={
+                    <Button
+                      ref={quickNoteButtonRef}
+                      size="icon"
+                      variant="ghost"
+                      className="size-7"
+                      aria-label="更多对话操作"
+                      title="更多"
+                    >
+                      <MoreHorizontal className="size-3.5" />
+                    </Button>
+                  }
+                />
+                <DropdownMenuContent
+                  align="end"
+                  side="bottom"
+                  className="z-[100] min-w-[10rem]"
+                >
+                  <DropdownMenuItem
+                    className="cursor-pointer gap-2"
+                    disabled={busy || quickNoteDisabled}
+                    onClick={() => onQuickNoteOpenChange(!quickNoteOpen)}
+                  >
+                    <StickyNote className="size-3.5 text-muted-foreground" />
+                    快速写批注
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           ) : null}
         </div>
       </div>

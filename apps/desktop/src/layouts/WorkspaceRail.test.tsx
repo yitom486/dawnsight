@@ -56,24 +56,14 @@ describe("WorkspaceRail", () => {
     expect(onSelect).toHaveBeenCalledWith("transcript");
   });
 
-  it("uses the same selected, tooltip, and keyboard button contract for AI", async () => {
-    const user = userEvent.setup();
-
+  it("leaves the AI toggle to the title bar", () => {
     render(
       <TooltipProvider>
         <WorkspaceRail items={[]} activeTab="playlist" onSelect={() => {}} />
       </TooltipProvider>,
     );
 
-    const chatButton = screen.getByRole("button", { name: "打开 AI 对话" });
-    expect(chatButton).toHaveAttribute("aria-pressed", "false");
-
-    await user.click(chatButton);
-
-    expect(screen.getByRole("button", { name: "收起 AI 对话" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    expect(screen.queryByRole("button", { name: /AI 对话/ })).toBeNull();
   });
 
   it("exposes the active workspace as the current page and keeps labels visible", () => {

@@ -44,9 +44,14 @@ afterEach(() => {
 });
 
 describe("ChatToolbar", () => {
-  it("shows the connection label as text, not just a color dot", () => {
+  it("keeps quiet states to a dot but still names them for screen readers", () => {
     renderToolbar({ connectionState: "connecting" });
-    expect(screen.getByText("连接中")).toBeInTheDocument();
+    expect(screen.getByText("连接中")).toHaveClass("sr-only");
+  });
+
+  it("spells out failures next to the agent name", () => {
+    renderToolbar({ connectionState: "error" });
+    expect(screen.getByText("连接失败")).not.toHaveClass("sr-only");
   });
 
   it("prefers statusError over statusLine", () => {
@@ -178,9 +183,10 @@ describe("ChatToolbar", () => {
     const user = userEvent.setup();
     const onQuickNoteOpenChange = vi.fn();
     renderToolbar({ onQuickNoteOpenChange });
-    const trigger = screen.getByRole("button", { name: "快速写批注" });
+    const trigger = screen.getByRole("button", { name: "更多对话操作" });
     expect(trigger.tagName).toBe("BUTTON");
     await user.click(trigger);
+    await user.click(await screen.findByRole("menuitem", { name: "快速写批注" }));
     await waitFor(() => expect(onQuickNoteOpenChange).toHaveBeenCalledWith(true));
   });
 

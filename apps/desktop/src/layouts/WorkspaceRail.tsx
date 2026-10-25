@@ -1,4 +1,4 @@
-import { Sparkles, type LucideIcon } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 import { useChatUiStore } from "@dawnsight/chat-ui/chatUiStore";
 import { Button } from "@dawnsight/ui/button";
@@ -26,16 +26,15 @@ type WorkspaceRailProps = {
 /**
  * Narrow navigation rail for the sibling workspaces around the native player.
  * It only changes which existing panel is rendered; it never enters the HWND
- * rectangle or creates a transparent overlay above it.
+ * rectangle or creates a transparent overlay above it. The AI dock toggle
+ * lives only in the title bar; picking a workspace here closes the dock.
  */
 export function WorkspaceRail({
   items,
   activeTab,
   onSelect,
 }: WorkspaceRailProps) {
-  const chatOpen = useChatUiStore((state) => state.chatOpen);
   const closeChat = useChatUiStore((state) => state.closeChat);
-  const toggleChat = useChatUiStore((state) => state.toggleChat);
 
   return (
     <nav
@@ -77,37 +76,6 @@ export function WorkspaceRail({
             </Tooltip>
           );
         })}
-      </div>
-
-      <div className="mt-auto w-full border-t border-border/70 pt-[var(--space-ui-3)]">
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <Button
-              type="button"
-              variant="ghost"
-              size="default"
-              className={cn(
-                "flex h-14 w-full flex-col gap-[var(--space-ui-1)] rounded-[var(--radius-ui-control)] px-[var(--space-ui-1)] py-[var(--space-ui-2)] text-[length:var(--text-ui-label)] leading-[var(--text-ui-label--line-height)] font-medium transition-[background-color,color,border-color] duration-[var(--duration-ui-feedback)] motion-reduce:transition-none max-[700px]:size-10 max-[700px]:gap-0",
-                chatOpen
-                  ? "border-l-2 border-ai bg-ai-muted text-ai hover:bg-ai-muted"
-                  : "border-l-2 border-transparent text-muted-foreground hover:bg-surface-subtle hover:text-foreground",
-              )}
-              aria-label={chatOpen ? "收起 AI 对话" : "打开 AI 对话"}
-              aria-pressed={chatOpen}
-              aria-current={chatOpen ? "page" : undefined}
-              data-active={chatOpen ? "true" : "false"}
-              onClick={toggleChat}
-              >
-                <Sparkles className="size-5 shrink-0 max-[700px]:size-4" />
-                <span className="max-[700px]:sr-only">AI 对话</span>
-              </Button>
-            }
-          />
-          <TooltipContent side="right">
-            {chatOpen ? "收起对话 (Esc)" : "AI 对话"}
-          </TooltipContent>
-        </Tooltip>
       </div>
     </nav>
   );

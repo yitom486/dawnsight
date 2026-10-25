@@ -12,7 +12,7 @@ import { AcpPanel } from "./AcpPanel";
  * when hidden so an active ACP session survives close/reopen.
  *
  * 无标题栏：标题栏只剩静态“AI 对话”四个字（X 已删），纯占高。
- * 收起走左侧导航栏的 AI 对话开关和 Esc；读屏用 aside 的 label。
+ * 收起走标题栏的 AI 对话开关和 Esc；读屏用 aside 的 label。
  * 宽度由 App 行里的 RightPanelResizeHandle 统一调节（与章节等侧栏共用）。
  */
 export function ChatDock() {

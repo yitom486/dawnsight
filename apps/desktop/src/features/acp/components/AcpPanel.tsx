@@ -1156,7 +1156,8 @@ export function AcpPanel() {
           onDone={() => setPendingPermission(null)}
         />
       ) : null}
-      {connection.progress ? (
+      {/* 连接中只由输入框占位符说明，避免与表头状态点重复。 */}
+      {connection.progress && connection.connectionState !== "connecting" ? (
         <p className="px-1 text-[11px] text-muted-foreground">
           {connection.progress}
         </p>

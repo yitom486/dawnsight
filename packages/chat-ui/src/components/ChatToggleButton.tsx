@@ -1,10 +1,10 @@
-import { MessageSquare, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 
 import { Button, Tooltip, TooltipContent, TooltipTrigger, cn } from "@dawnsight/ui";
 
 import { useChatUiStore } from "../chatUiStore";
 
-/** Top-right entry — opens the parallel ChatDock (not a sidebar tab). */
+/** The only AI entry — opens the parallel ChatDock (not a sidebar tab). */
 export function ChatToggleButton({ className }: { className?: string }) {
   const chatOpen = useChatUiStore((s) => s.chatOpen);
   const toggleChat = useChatUiStore((s) => s.toggleChat);
@@ -17,13 +17,12 @@ export function ChatToggleButton({ className }: { className?: string }) {
           type="button"
           variant={chatOpen ? "secondary" : "ghost"}
           size="icon"
-          className={cn("relative size-8 gap-0.5 px-2", className)}
+          className={cn("size-8", className)}
           aria-label={chatOpen ? "收起 AI 对话" : "打开 AI 对话"}
           aria-pressed={chatOpen}
           onClick={toggleChat}
           >
-            <Sparkles className="size-3.5 text-ai" />
-            <MessageSquare className="size-4" />
+            <Sparkles className="size-4 text-ai" />
           </Button>
         }
       />

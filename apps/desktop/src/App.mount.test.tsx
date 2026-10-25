@@ -156,7 +156,8 @@ describe("App online media mount", () => {
     useChatUiStore.setState({ chatOpen: false });
 
     const rail = screen.getByRole("navigation", { name: "工作区导航" });
-    await user.click(within(rail).getByRole("button", { name: "打开 AI 对话" }));
+    const titleBar = screen.getByRole("banner", { name: "应用标题栏" });
+    await user.click(within(titleBar).getByRole("button", { name: "打开 AI 对话" }));
     expect(useChatUiStore.getState().chatOpen).toBe(true);
 
     await user.click(within(rail).getByRole("button", { name: "在线媒体" }));

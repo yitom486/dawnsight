@@ -73,7 +73,7 @@ describe("CompanionHeaderPanel", () => {
     expect(localStorage.getItem("dawnsight-companion-header-expanded-v2")).toBe("1");
   });
 
-  it("整行可点击：点标题/副标题文字同样展开/收起", () => {
+  it("整行可点击：点标题文字或右端图标同样展开/收起", () => {
     renderPanel();
 
     // 默认展开，点标题文字收起为单行。
@@ -83,8 +83,8 @@ describe("CompanionHeaderPanel", () => {
     ).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "展开观剧助手" })).toBeInTheDocument();
 
-    // 点副标题文字重新展开。
-    fireEvent.click(screen.getByText("观剧上下文与快捷操作"));
+    // 单行标题：再点一次整行重新展开。
+    fireEvent.click(screen.getByRole("button", { name: "展开观剧助手" }));
     expect(
       screen.getByRole("region", { name: "AI 观剧流" }),
     ).toBeInTheDocument();

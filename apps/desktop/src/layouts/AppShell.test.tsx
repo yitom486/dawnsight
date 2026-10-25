@@ -45,7 +45,7 @@ beforeEach(() => {
   });
 });
 
-describe("AboutButton", () => {
+describe("AboutDialog", () => {
   it("renders the branded application title bar", () => {
     vi.mocked(getVersion).mockResolvedValue("0.3.0");
     render(
@@ -72,7 +72,8 @@ describe("AboutButton", () => {
       </TooltipProvider>,
     );
 
-    await user.click(screen.getByRole("button", { name: "关于 Dawnsight" }));
+    await user.click(screen.getByRole("button", { name: "更多" }));
+    await user.click(await screen.findByRole("menuitem", { name: "关于 Dawnsight" }));
     await waitFor(() => {
       expect(screen.getByText("版本 0.3.0")).toBeInTheDocument();
     });
@@ -90,7 +91,8 @@ describe("AboutButton", () => {
       </TooltipProvider>,
     );
 
-    await user.click(screen.getByRole("button", { name: "关于 Dawnsight" }));
+    await user.click(screen.getByRole("button", { name: "更多" }));
+    await user.click(await screen.findByRole("menuitem", { name: "关于 Dawnsight" }));
     await user.click(await screen.findByRole("button", { name: "GitHub 仓库" }));
     expect(openUrl).toHaveBeenCalledWith(
       "https://github.com/yitom486/dawnsight",
@@ -109,7 +111,8 @@ describe("AboutButton", () => {
       </TooltipProvider>,
     );
 
-    await user.click(screen.getByRole("button", { name: "关于 Dawnsight" }));
+    await user.click(screen.getByRole("button", { name: "更多" }));
+    await user.click(await screen.findByRole("menuitem", { name: "关于 Dawnsight" }));
     await user.click(await screen.findByRole("button", { name: "下载更新" }));
     expect(openUrl).toHaveBeenCalledWith(
       "https://github.com/yitom486/dawnsight-app/releases",
@@ -127,7 +130,8 @@ describe("AboutButton", () => {
       </TooltipProvider>,
     );
 
-    await user.click(screen.getByRole("button", { name: "关于 Dawnsight" }));
+    await user.click(screen.getByRole("button", { name: "更多" }));
+    await user.click(await screen.findByRole("menuitem", { name: "关于 Dawnsight" }));
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
     expect(useUiStore.getState().aboutOpen).toBe(true);
 

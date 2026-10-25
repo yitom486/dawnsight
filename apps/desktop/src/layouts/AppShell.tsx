@@ -1,10 +1,23 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { FileText, Info, Maximize2, Minimize2, X } from "lucide-react";
+import {
+  FileText,
+  Info,
+  Maximize2,
+  Minimize2,
+  MoreHorizontal,
+  X,
+} from "lucide-react";
 import { getVersion } from "@tauri-apps/api/app";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { Button } from "@dawnsight/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@dawnsight/ui/dropdown-menu";
 import {
   Tooltip,
   TooltipContent,
@@ -57,36 +70,52 @@ export function FullscreenToggleButton() {
   );
 }
 
-/** Crash/log export: reveal the file-log directory in the OS file manager. */
-function LogDirButton() {
-  const onClick = () => {
+/** Low-frequency app actions (log export, about) live behind one ⋯ trigger. */
+function AppMenu() {
+  const setAboutOpen = useUiStore((s) => s.setAboutOpen);
+
+  // Crash/log export: reveal the file-log directory in the OS file manager.
+  const openLogDir = () => {
     void revealLogDir().catch((error: unknown) => {
       usePlayerStore.getState().setStatusMessage(errorMessage(error));
     });
   };
 
   return (
-    <Tooltip>
-      <TooltipTrigger
+    <DropdownMenu>
+      <DropdownMenuTrigger
         render={
           <Button
-          type="button"
-          variant="ghost"
-          size="icon" className="size-8"
-          onClick={onClick}
-          aria-label="打开日志目录"
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="size-8"
+            aria-label="更多"
+            title="更多"
           >
-            <FileText className="size-4" />
+            <MoreHorizontal className="size-4" />
           </Button>
         }
       />
-      <TooltipContent>打开日志目录（报障时打包发开发者）</TooltipContent>
-    </Tooltip>
+      <DropdownMenuContent align="end" side="bottom" className="z-[100] min-w-[12rem]">
+        <DropdownMenuItem className="cursor-pointer gap-2" onClick={openLogDir}>
+          <FileText className="size-4 text-muted-foreground" />
+          打开日志目录
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          className="cursor-pointer gap-2"
+          onClick={() => setAboutOpen(true)}
+        >
+          <Info className="size-4 text-muted-foreground" />
+          关于 Dawnsight
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
 /** About dialog: product intro + runtime version + update entry. */
-export function AboutButton() {
+function AboutDialog() {
   const [version, setVersion] = useState("…");
   const aboutOpen = useUiStore((s) => s.aboutOpen);
   const setAboutOpen = useUiStore((s) => s.setAboutOpen);
@@ -131,24 +160,6 @@ export function AboutButton() {
 
   return (
     <>
-      <Tooltip>
-        <TooltipTrigger
-          render={
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="size-8"
-              onClick={() => setAboutOpen(true)}
-              aria-label="关于 Dawnsight"
-            >
-              <Info className="size-4" />
-            </Button>
-          }
-        />
-        <TooltipContent>关于 Dawnsight</TooltipContent>
-      </Tooltip>
-
       {aboutOpen && typeof document !== "undefined"
         ? createPortal(
             <div
@@ -336,15 +347,15 @@ export function AppShell({ children }: AppShellProps) {
           </div>
           <div className="flex h-full shrink-0 items-center gap-0.5" data-tauri-drag-region="none">
             <ChatToggleButton />
-            <LogDirButton />
-            <AboutButton />
             <FullscreenToggleButton />
+            <AppMenu />
             <div aria-hidden="true" className="mx-1 h-4 w-px bg-border/80" />
             <WindowControls />
           </div>
         </header>
       ) : null}
       <main className="flex min-h-0 flex-1 flex-col">{children}</main>
+      <AboutDialog />
     </div>
   );
 }

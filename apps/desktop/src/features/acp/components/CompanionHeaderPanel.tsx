@@ -60,7 +60,7 @@ export function CompanionHeaderPanel({
       <Collapsible open={expanded} onOpenChange={handleExpandedChange}>
         <CollapsibleTrigger
           aria-label={expanded ? "收起观剧助手" : "展开观剧助手"}
-          title={expanded ? "收起" : "展开"}
+          title={expanded ? "收起观剧上下文与快捷操作" : "展开观剧上下文与快捷操作"}
           className={cn(
             "-mx-1 flex w-[calc(100%+0.5rem)] items-center gap-2 rounded-md px-1 py-0.5 text-left",
             "transition-colors hover:bg-muted/40",
@@ -68,13 +68,8 @@ export function CompanionHeaderPanel({
           )}
         >
           <Sparkles className="size-3.5 shrink-0 text-primary" aria-hidden />
-          <span className="min-w-0 flex-1">
-            <span className="block truncate text-xs font-medium text-foreground">
-              AI 观剧流
-            </span>
-            <span className="block truncate text-[10px] text-muted-foreground">
-              观剧上下文与快捷操作
-            </span>
+          <span className="min-w-0 flex-1 truncate text-[length:var(--text-ui-meta)] font-medium text-foreground">
+            AI 观剧流
           </span>
           {expanded ? (
             <Minus className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
