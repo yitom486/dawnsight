@@ -7,4 +7,6 @@ pub use dawnsight_player::mpv::{LibMpvPlayer, NetworkPlaybackOpts};
 #[cfg(test)]
 mod baseline;
 pub mod native_library;
+#[cfg(test)]
+mod osc_script;
 pub mod window;

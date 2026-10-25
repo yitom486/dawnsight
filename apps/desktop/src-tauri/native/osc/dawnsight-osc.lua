@@ -8,6 +8,9 @@
 -- 元素（只要这些，不要上下集/上下章/全屏）：
 --   顶部：字幕/音轨下拉选择（含关闭选项）
 --   底部：播放/暂停、进度条（点击+拖拽）、时间、音量竖向滑杆（含静音）
+-- HUD（窗口与全屏都显示，只读、不接收输入，独立 overlay 位于 OSC 之下）：
+--   画面中央：暂停时的播放图标、恢复播放时短暂闪现；空闲时的品牌引导
+--   画面顶部居中：跳转/音量/静音/倍速/字幕/音轨切换的短暂提示
 -- 输入由宿主 WndProc 通过唯一的 `script-message dawnsight-surface-mouse ...`
 -- 转发。本脚本只消费明确的 move/down/up/click/double/leave/cancel 等事件，
 -- 不依赖 mpv keymap。
@@ -54,6 +57,20 @@ local STYLE = {
     menu_row_h = 32, -- 下拉选项行高
     volume_popup_w = 58, -- 音量竖条浮层宽度
     volume_popup_h = 132, -- 音量竖条浮层高度
+    seek_knob = 16, -- 进度条游标直径（只是视觉，不影响命中盒）
+    alpha_scrim = 150, -- 全屏底部柔和遮罩透明度；255=关闭遮罩
+    scrim_h = 170, -- 底部遮罩高度（从画面底边往上）
+
+    -- HUD：画面内的只读提示
+    hud_icon = 76, -- 中央播放图标圆盘直径
+    hud_icon_alpha = 110, -- 暂停常驻图标圆盘透明度
+    hud_toast_size = 22, -- 顶部提示字号
+    hud_toast_top = 24, -- 顶部提示距画面上边（全屏 OSC 可见时自动让位）
+    hud_toast_ms = 1200, -- 顶部提示停留时长
+    hud_flash_ms = 450, -- 恢复播放时中央图标闪现时长
+    hud_arm_ms = 1500, -- 打开文件后静默期：轨道/音量初始化不弹提示
+    col_idle_title = "FFFFFF", -- 空闲引导标题
+    col_idle_hint = "AAB2BD", -- 空闲引导副文案
 }
 -- ============================================================================
 -- 样式区结束。下面是逻辑（命中判定/绘制/绑定），调外观不用往下看。
@@ -299,8 +316,8 @@ render = function()
 
     -- 顶部两个按钮：悬停描边高亮，其余保持纯文本
     local tops = {
-        { r = sub_rect, label = track_button_label("sub", "SUB"), kind = "sub" },
-        { r = aud_rect, label = track_button_label("audio", "AUD"), kind = "audio" },
+        { r = sub_rect, label = track_button_label("sub", "字幕"), kind = "sub" },
+        { r = aud_rect, label = track_button_label("audio", "音轨"), kind = "audio" },
     }
     for _, b in ipairs(tops) do
         local hovered = inside(b.r, mouse.x, mouse.y)
@@ -380,6 +397,17 @@ render = function()
         draw_track_menu("audio", aud_rect)
     end
 
+    -- ---------- 底部：柔和遮罩（模糊边缘，衬托白色控件） ----------
+    if S.alpha_scrim < 255 then
+        a:new_event()
+        a:pos(0, 0)
+        a:an(7)
+        a:append("{\\blur40\\bord0\\1c&H" .. S.col_bg .. "&\\1a" .. alpha_hex(S.alpha_scrim) .. "}")
+        a:draw_start()
+        a:rect_cw(-40, h - S.scrim_h, w + 40, h + 40)
+        a:draw_stop()
+    end
+
     -- ---------- 底部：背景条 ----------
     local bar_y = h - S.margin - S.bottom_h
     ui.bar = { x = S.margin, y = bar_y, w = w - 2 * S.margin, h = S.bottom_h }
@@ -424,6 +452,18 @@ render = function()
         a:rect_cw(seek_x, seek_y, seek_x + fill_w, seek_y + S.seek_h)
         a:draw_stop()
     end
+    if st.dur ~= nil and st.dur > 0 then
+        local knob_r = S.seek_knob / 2
+        local knob_cx = seek_x + fill_w
+        local knob_cy = seek_y + S.seek_h / 2
+        a:new_event()
+        a:pos(0, 0)
+        a:an(7)
+        a:append("{\\blur0\\bord0\\1c&H" .. S.col_text .. "&}")
+        a:draw_start()
+        a:round_rect_cw(knob_cx - knob_r, knob_cy - knob_r, knob_cx + knob_r, knob_cy + knob_r, knob_r)
+        a:draw_stop()
+    end
 
     -- ---------- 底部：播放/时间/音量（alignment 取底 \an1） ----------
     local row_y = seek_y + S.seek_h + 8 -- 按钮行顶边
@@ -438,18 +478,36 @@ render = function()
     ui.time = time_rect
     ui.volume_popup, ui.volume_slider, ui.volume_mute = nil, nil, nil
 
-    local play_label = "PAUSE"
-    if st.pause then play_label = "PLAY" end
     local vol_label
     if st.mute then
-        vol_label = "MUTE"
+        vol_label = "静音"
     else
-        vol_label = "VOL " .. tostring(math.floor(st.vol or 0))
+        vol_label = "音量 " .. tostring(math.floor(st.vol or 0))
     end
     local time_label = fmt_time(st.pos) .. " / " .. fmt_time(st.dur)
 
+    -- 播放/暂停：矢量图标画在命中盒左侧，命中盒本身不变。
+    local icon = math.floor(row_h * 0.62)
+    local icon_x = play_rect.x + 6
+    local icon_y = play_rect.y + math.floor((row_h - icon) / 2)
+    local play_col = inside(play_rect, mouse.x, mouse.y) and S.col_hover or S.col_text
+    a:new_event()
+    a:pos(0, 0)
+    a:an(7)
+    a:append("{\\blur0\\bord0\\1c&H" .. play_col .. "&}")
+    a:draw_start()
+    if st.pause then
+        a:move_to(icon_x, icon_y)
+        a:line_to(icon_x, icon_y + icon)
+        a:line_to(icon_x + icon * 0.87, icon_y + icon / 2)
+    else
+        local bar_w = math.floor(icon * 0.32)
+        a:rect_cw(icon_x, icon_y, icon_x + bar_w, icon_y + icon)
+        a:rect_cw(icon_x + icon - bar_w, icon_y, icon_x + icon, icon_y + icon)
+    end
+    a:draw_stop()
+
     local bottoms = {
-        { r = play_rect, label = play_label },
         { r = time_rect, label = time_label },
         { r = vol_rect, label = vol_label },
     }
@@ -830,10 +888,210 @@ local function handle_surface_mode(mode)
     end
 end
 
+-- ============================================================================
+-- HUD：画面内只读提示。独立 overlay（z 低于 OSC），不参与命中与输入路由。
+-- ============================================================================
+local hud = mp.create_osd_overlay("ass-events")
+local hud_state = {
+    idle = true, -- 没有文件时显示品牌引导
+    loaded = false, -- 当前文件已 file-loaded
+    armed = false, -- 打开文件后的静默期结束，属性变化才弹提示
+    seeking = false, -- 收到 seek，等 playback-restart 再报落点
+    toast = nil, -- 顶部提示文案
+    flash = false, -- 恢复播放瞬间的中央图标
+}
+local hud_toast_timer = nil
+local hud_flash_timer = nil
+local hud_arm_timer = nil
+
+-- 估算文本宽度：三/四字节 UTF-8（CJK 等）按整字宽，其余按半字宽，只用于提示
+-- 底板尺寸。按字节扫描，因为 mpv 的 LuaJIT 没有 utf8 库。
+local function text_width(text, size)
+    local width = 0
+    for i = 1, #text do
+        local byte = text:byte(i)
+        if byte >= 0xE0 then
+            width = width + size
+        elseif byte < 0x80 or byte >= 0xC0 then
+            width = width + size * 0.56
+        end
+    end
+    return width
+end
+
+local function draw_play_disc(a, cx, cy, d, disc_alpha)
+    local S = STYLE
+    local r = d / 2
+    a:new_event()
+    a:pos(0, 0)
+    a:an(7)
+    a:append("{\\blur2\\bord0\\1c&H" .. S.col_bg .. "&\\1a" .. alpha_hex(disc_alpha) .. "}")
+    a:draw_start()
+    a:round_rect_cw(cx - r, cy - r, cx + r, cy + r, r)
+    a:draw_stop()
+
+    -- 三角形略向右偏，视觉居中。
+    local t = d * 0.36
+    local tx = cx - t * 0.38
+    a:new_event()
+    a:pos(0, 0)
+    a:an(7)
+    a:append("{\\blur0\\bord0\\1c&H" .. S.col_text .. "&}")
+    a:draw_start()
+    a:move_to(tx, cy - t / 2)
+    a:line_to(tx, cy + t / 2)
+    a:line_to(tx + t * 0.87, cy)
+    a:draw_stop()
+end
+
+local function render_hud()
+    local w, h = mp.get_osd_size()
+    if w == nil or w <= 0 or h == nil or h <= 0 then
+        w, h = 1280, 720
+    end
+    local S = STYLE
+    local a = assdraw.ass_new()
+
+    if hud_state.idle then
+        a:new_event()
+        a:pos(w / 2, h / 2 - 8)
+        a:an(2)
+        a:append("{\\blur0\\bord0\\fn" .. S.font .. "\\fs34\\1c&H" .. S.col_idle_title .. "&}")
+        a:append("Dawnsight")
+        a:new_event()
+        a:pos(w / 2, h / 2 + 8)
+        a:an(8)
+        a:append("{\\blur0\\bord0\\fn" .. S.font .. "\\fs18\\1c&H" .. S.col_idle_hint .. "&}")
+        a:append("打开本地视频或在线链接开始观看")
+    elseif hud_state.loaded and (st.pause or hud_state.flash) then
+        local alpha = hud_state.flash and 60 or S.hud_icon_alpha
+        draw_play_disc(a, w / 2, h / 2, S.hud_icon, alpha)
+    end
+
+    if hud_state.toast ~= nil and not hud_state.idle then
+        local size = S.hud_toast_size
+        local pad_x, pad_y = 16, 8
+        local box_w = text_width(hud_state.toast, size) + pad_x * 2
+        local box_h = size + pad_y * 2
+        -- 全屏 OSC 顶部有字幕/音轨按钮，提示整体下移让位。
+        local top = S.hud_toast_top
+        if fullscreen and visible then
+            top = S.margin + S.top_btn_h + 20
+        end
+        local x0 = w / 2 - box_w / 2
+        a:new_event()
+        a:pos(0, 0)
+        a:an(7)
+        a:append("{\\blur2\\bord0\\1c&H" .. S.col_panel .. "&\\1a" .. alpha_hex(S.alpha_panel + 40) .. "}")
+        a:draw_start()
+        a:round_rect_cw(x0, top, x0 + box_w, top + box_h, box_h / 2)
+        a:draw_stop()
+        a:new_event()
+        a:pos(w / 2, top + box_h / 2)
+        a:an(5)
+        a:append("{\\blur0\\bord0\\fn" .. S.font .. "\\fs" .. size .. "\\1c&H" .. S.col_text .. "&}")
+        a:append(hud_state.toast)
+    end
+
+    hud.res_x = w
+    hud.res_y = h
+    hud.data = a.text
+    hud.z = 900
+    hud:update()
+end
+
+local function hud_toast(text)
+    if not hud_state.armed then return end
+    hud_state.toast = ass_text(text)
+    if hud_toast_timer ~= nil then hud_toast_timer:kill() end
+    hud_toast_timer = mp.add_timeout(STYLE.hud_toast_ms / 1000, function()
+        hud_toast_timer = nil
+        hud_state.toast = nil
+        render_hud()
+    end)
+    render_hud()
+end
+
+local function hud_flash_resume()
+    if not hud_state.armed then return end
+    hud_state.flash = true
+    if hud_flash_timer ~= nil then hud_flash_timer:kill() end
+    hud_flash_timer = mp.add_timeout(STYLE.hud_flash_ms / 1000, function()
+        hud_flash_timer = nil
+        hud_state.flash = false
+        render_hud()
+    end)
+end
+
+local function track_toast(kind, id)
+    local prefix = kind == "sub" and "字幕：" or "音轨："
+    if id == nil or id < 0 then
+        hud_toast(prefix .. "关闭")
+        return
+    end
+    for index, track in ipairs(tracks_for(kind)) do
+        if numeric_value(track.id, -1) == id then
+            hud_toast(prefix .. track_title(track, index, kind))
+            return
+        end
+    end
+    hud_toast(prefix .. tostring(id))
+end
+
+local function format_speed(v)
+    local text = string.format("%.2f", v):gsub("0+$", ""):gsub("%.$", "")
+    return text
+end
+
+mp.register_event("start-file", function()
+    if hud_arm_timer ~= nil then
+        hud_arm_timer:kill()
+        hud_arm_timer = nil
+    end
+    hud_state.loaded = false
+    hud_state.armed = false
+    hud_state.seeking = false
+    hud_state.toast = nil
+    hud_state.flash = false
+    render_hud()
+end)
+mp.register_event("file-loaded", function()
+    hud_state.loaded = true
+    hud_arm_timer = mp.add_timeout(STYLE.hud_arm_ms / 1000, function()
+        hud_arm_timer = nil
+        hud_state.armed = true
+    end)
+    render_hud()
+end)
+mp.register_event("end-file", function()
+    hud_state.loaded = false
+    hud_state.armed = false
+    render_hud()
+end)
+mp.register_event("seek", function()
+    hud_state.seeking = true
+end)
+mp.register_event("playback-restart", function()
+    if not hud_state.seeking then return end
+    hud_state.seeking = false
+    local pos = mp.get_property_number("time-pos")
+    hud_toast("跳转到 " .. fmt_time(pos) .. " / " .. fmt_time(st.dur))
+end)
+mp.observe_property("idle-active", "bool", function(_, v)
+    hud_state.idle = v == true
+    render_hud()
+end)
+mp.observe_property("speed", "number", function(_, v)
+    if v ~= nil then hud_toast("倍速 " .. format_speed(v) .. "×") end
+end)
+
 -- ---------- 状态订阅（只读展示用，不改播放逻辑） ----------
 mp.observe_property("pause", "bool", function(_, v)
+    local was_paused = st.pause
     if v ~= nil then st.pause = v end
+    if was_paused and v == false then hud_flash_resume() end
     render()
+    render_hud()
 end)
 mp.observe_property("time-pos", "number", function(_, v)
     if v ~= nil then st.pos = v end
@@ -846,19 +1104,30 @@ end)
 mp.observe_property("volume", "number", function(_, v)
     if v ~= nil then st.vol = v end
     render()
+    -- 全屏 OSC 可见时它自己显示音量，不再重复提示。
+    if v ~= nil and not st.mute and not (fullscreen and visible) then
+        hud_toast("音量 " .. tostring(math.floor(v + 0.5)) .. "%")
+    end
 end)
 mp.observe_property("mute", "bool", function(_, v)
     if v ~= nil then st.mute = v end
     render()
+    if v == true then
+        hud_toast("已静音")
+    elseif v == false then
+        hud_toast("取消静音 · 音量 " .. tostring(math.floor((st.vol or 0) + 0.5)) .. "%")
+    end
 end)
 -- 字幕/音轨/轨道列表变化时重绘，并刷新下拉面板的选中态。
 mp.observe_property("sid", "native", function(_, v)
     st.sid = numeric_value(v, -1)
     render()
+    track_toast("sub", st.sid)
 end)
 mp.observe_property("aid", "native", function(_, v)
     st.aid = numeric_value(v, -1)
     render()
+    track_toast("audio", st.aid)
 end)
 mp.observe_property("track-list", "native", function(_, v)
     if type(v) == "table" then
@@ -868,11 +1137,17 @@ mp.observe_property("track-list", "native", function(_, v)
     end
     render()
 end)
-mp.observe_property("osd-dimensions", "native", function() render() end)
+mp.observe_property("osd-dimensions", "native", function()
+    render()
+    render_hud()
+end)
 mp.register_script_message("dawnsight-surface-mouse", handle_surface_mouse)
 mp.register_script_message("dawnsight-surface-mode", handle_surface_mode)
 
 -- 没播东西时也先生成一帧，但保持隐藏；首次移动/进入时显示。
 render()
+render_hud()
 
 mp.msg.info("dawnsight-osc skin loaded")
+-- 可轮询的加载标记：日志可能早于宿主开启日志订阅，冒烟测试读这个属性。
+mp.set_property_native("user-data/dawnsight-osc/loaded", true)
