@@ -137,11 +137,16 @@ jobs:
           # Without them this step fails at signing with a clear error.
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # AppImage: linuxdeploy strips every ELF it bundles, which breaks the
+          # bun --compile acp-engine sidecar (its payload is appended to the
+          # binary). Only linuxdeploy reads this variable.
+          NO_STRIP: ${{ matrix.platform == 'linux' && 'true' || '' }}
         with:
           tauriScript: bun run tauri
           # createUpdaterArtifacts only here (never in CI debug builds):
           # emits .sig + latest.json next to the installers for the updater endpoints.
-          args: --config {"bundle":{"createUpdaterArtifacts":true}}
+          # Linux builds run verbose so a linuxdeploy failure shows its cause.
+          args: ${{ matrix.platform == 'linux' && '--verbose ' || '' }}--config {"bundle":{"createUpdaterArtifacts":true}}
           tagName: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
           releaseName: Dawnsight ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
           releaseBody: "internal"
