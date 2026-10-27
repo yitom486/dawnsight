@@ -1,7 +1,8 @@
 //! `acp-engine` sidecar driver (newline JSON-RPC over stdio).
 //!
 //! The engine is built from `@yitom/acp-client` (`scripts/build-acp-engine.mjs`)
-//! and runs as a Tauri `externalBin` sidecar. This driver owns its process:
+//! and runs as a Tauri `externalBin` sidecar (on Linux a bundled data file, see
+//! [`engine_candidates`]). This driver owns its process:
 //! request/response matching, notification dispatch (session updates,
 //! permission requests, status changes), lazy spawn and shutdown.
 //!
@@ -11,7 +12,7 @@
 
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{mpsc, Arc, Mutex};
@@ -29,10 +30,7 @@ type PendingTx = mpsc::Sender<Result<Value, String>>;
 /// Resolve the sidecar binary path.
 ///
 /// 1. `DAWNSIGHT_ACP_ENGINE` env override (absolute path, dev/tests).
-/// 2. Next to the current executable: `acp-engine-<triple>[.exe]`
-///    (production bundle layout for `externalBin`).
-/// 3. `bin/acp-engine-<triple>[.exe]` next to the current executable.
-/// 4. Dev-tree walk-up: `<root>/apps/desktop/src-tauri/bin/...`.
+/// 2. Then the first existing file from [`engine_candidates`].
 pub fn resolve_engine_path() -> Result<PathBuf, AcpError> {
     if let Some(path) = std::env::var_os("DAWNSIGHT_ACP_ENGINE").map(PathBuf::from) {
         if path.is_file() {
@@ -43,38 +41,66 @@ pub fn resolve_engine_path() -> Result<PathBuf, AcpError> {
             path.display()
         ))));
     }
+    let exe = std::env::current_exe().ok();
+    let exe_dir = exe.as_deref().and_then(Path::parent);
+    let cwd = std::env::current_dir().ok();
+    engine_candidates(exe_dir, cwd.as_deref())
+        .into_iter()
+        .find(|candidate| candidate.is_file())
+        .ok_or_else(|| {
+            AcpError::not_configured(Some(
+                "acp-engine sidecar binary is missing; run node scripts/build-acp-engine.mjs",
+            ))
+        })
+}
+
+/// Where the sidecar can live, in lookup order.
+///
+/// - Installed Windows/macOS builds: Tauri bundles `externalBin` next to the
+///   main executable *without* the target-triple suffix (`acp-engine[.exe]`).
+/// - `acp-engine-<triple>[.exe]` next to the executable or in `bin/`
+///   (unbundled release builds and older layouts).
+/// - Linux deb/rpm/AppImage: `tauri.linux.conf.json` ships it as
+///   `/usr/share/dawnsight/acp-engine`, i.e. `../share/dawnsight` from the
+///   executable. It is kept out of `usr/bin` because linuxdeploy rewrites the
+///   rpath of everything there, which breaks the bun-compiled binary.
+/// - Dev tree walk-up from the working directory: `src-tauri/bin/...`.
+fn engine_candidates(exe_dir: Option<&Path>, cwd: Option<&Path>) -> Vec<PathBuf> {
     let file_name = engine_file_name();
+    let bundled_name = if cfg!(windows) {
+        "acp-engine.exe"
+    } else {
+        "acp-engine"
+    };
     let mut candidates = Vec::new();
-    if let Ok(exe) = std::env::current_exe() {
-        if let Some(dir) = exe.parent() {
-            candidates.push(dir.join(&file_name));
-            candidates.push(dir.join("bin").join(&file_name));
-        }
-    }
-    if let Ok(cwd) = std::env::current_dir() {
-        let mut dir = Some(cwd.as_path());
-        for _ in 0..6 {
-            let Some(parent) = dir else { break };
+    if let Some(dir) = exe_dir {
+        candidates.push(dir.join(bundled_name));
+        candidates.push(dir.join(&file_name));
+        candidates.push(dir.join("bin").join(&file_name));
+        if cfg!(target_os = "linux") {
             candidates.push(
-                parent
-                    .join("apps")
-                    .join("desktop")
-                    .join("src-tauri")
-                    .join("bin")
-                    .join(&file_name),
+                dir.join("..")
+                    .join("share")
+                    .join("dawnsight")
+                    .join("acp-engine"),
             );
-            candidates.push(parent.join("src-tauri").join("bin").join(&file_name));
-            dir = parent.parent();
         }
     }
-    for candidate in &candidates {
-        if candidate.is_file() {
-            return Ok(candidate.clone());
-        }
+    let mut dir = cwd;
+    for _ in 0..6 {
+        let Some(parent) = dir else { break };
+        candidates.push(
+            parent
+                .join("apps")
+                .join("desktop")
+                .join("src-tauri")
+                .join("bin")
+                .join(&file_name),
+        );
+        candidates.push(parent.join("src-tauri").join("bin").join(&file_name));
+        dir = parent.parent();
     }
-    Err(AcpError::not_configured(Some(
-        "acp-engine sidecar binary is missing; run node scripts/build-acp-engine.mjs",
-    )))
+    candidates
 }
 
 fn engine_file_name() -> String {
@@ -482,6 +508,81 @@ impl Default for SidecarEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn scratch_dir(name: &str) -> PathBuf {
+        let dir =
+            std::env::temp_dir().join(format!("dawnsight-engine-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("scratch dir");
+        dir
+    }
+
+    #[test]
+    fn bundled_name_next_to_the_executable_is_tried_first() {
+        let exe_dir = Path::new("install");
+        let candidates = engine_candidates(Some(exe_dir), None);
+        let bundled = if cfg!(windows) {
+            "acp-engine.exe"
+        } else {
+            "acp-engine"
+        };
+        assert_eq!(candidates[0], exe_dir.join(bundled));
+        assert_eq!(candidates[1], exe_dir.join(engine_file_name()));
+    }
+
+    #[test]
+    fn linux_looks_in_share_and_other_platforms_do_not() {
+        let exe_dir = Path::new("usr").join("bin");
+        let share = exe_dir
+            .join("..")
+            .join("share")
+            .join("dawnsight")
+            .join("acp-engine");
+        let candidates = engine_candidates(Some(&exe_dir), None);
+        assert_eq!(candidates.contains(&share), cfg!(target_os = "linux"));
+    }
+
+    /// Regression for 0.4.2: an installed build has `acp-engine[.exe]`
+    /// (triple stripped by the bundler) beside the app and no dev tree.
+    #[test]
+    fn installed_layout_resolves_the_bundled_sidecar() {
+        let install = scratch_dir("installed");
+        let bundled = install.join(if cfg!(windows) {
+            "acp-engine.exe"
+        } else {
+            "acp-engine"
+        });
+        std::fs::write(&bundled, b"stub").expect("stub sidecar");
+
+        let found = engine_candidates(Some(&install), None)
+            .into_iter()
+            .find(|candidate| candidate.is_file());
+
+        assert_eq!(found.as_deref(), Some(bundled.as_path()));
+        let _ = std::fs::remove_dir_all(&install);
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn linux_package_layout_resolves_the_share_sidecar() {
+        let root = scratch_dir("linux-package");
+        let bin = root.join("usr").join("bin");
+        let share = root.join("usr").join("share").join("dawnsight");
+        std::fs::create_dir_all(&bin).expect("bin");
+        std::fs::create_dir_all(&share).expect("share");
+        std::fs::write(share.join("acp-engine"), b"stub").expect("stub sidecar");
+
+        let found = engine_candidates(Some(&bin), None)
+            .into_iter()
+            .find(|candidate| candidate.is_file())
+            .expect("sidecar found");
+
+        assert_eq!(
+            std::fs::canonicalize(found).expect("canonical"),
+            std::fs::canonicalize(share.join("acp-engine")).expect("canonical")
+        );
+        let _ = std::fs::remove_dir_all(&root);
+    }
 
     fn test_engine() -> Option<SidecarEngine> {
         if resolve_engine_path().is_err() {

@@ -1,9 +1,27 @@
 {
   "bundle": {
+    "externalBin": [],
     "resources": {
       "native/mpv/runtime/": "mpv/",
       "native/ffmpeg/ffprobe": "ffmpeg/ffprobe",
       "native/ffmpeg/ffmpeg": "ffmpeg/ffmpeg"
+    },
+    "linux": {
+      "appimage": {
+        "files": {
+          "/usr/share/dawnsight/acp-engine": "bin/acp-engine-x86_64-unknown-linux-gnu"
+        }
+      },
+      "deb": {
+        "files": {
+          "/usr/share/dawnsight/acp-engine": "bin/acp-engine-x86_64-unknown-linux-gnu"
+        }
+      },
+      "rpm": {
+        "files": {
+          "/usr/share/dawnsight/acp-engine": "bin/acp-engine-x86_64-unknown-linux-gnu"
+        }
+      }
     }
   }
 }
