@@ -1,0 +1,108 @@
+name: Linux bundle check
+
+# Builds only the Linux AppImage + deb (no signing, no publishing) and checks
+# that the bundled acp-engine sidecar survives packaging: present, executable,
+# resolvable by ldd and able to start. v0.4.2 shipped without Linux because
+# linuxdeploy rewrote the sidecar's rpath and broke it; this catches that class
+# of failure without going through the release workflow.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [master]
+    paths:
+      - ".github/workflows/linux-bundle-check.yml"
+      - ".github/workflows/release.yml"
+      - "apps/desktop/src-tauri/tauri*.conf.json"
+      - "apps/desktop/src-tauri/src/acp/engine.rs"
+      - "scripts/build-acp-engine.mjs"
+  push:
+    branches: [master]
+    paths:
+      - ".github/workflows/linux-bundle-check.yml"
+      - ".github/workflows/release.yml"
+      - "apps/desktop/src-tauri/tauri*.conf.json"
+      - "apps/desktop/src-tauri/src/acp/engine.rs"
+      - "scripts/build-acp-engine.mjs"
+
+permissions:
+  contents: read
+
+jobs:
+  bundle:
+    name: Linux AppImage + deb
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo registry and build metadata
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: linux-bundle-cargo-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            linux-bundle-cargo-
+            release-linux-cargo-
+
+      - name: Setup native tools
+        uses: ./.github/actions/setup-native-tools
+        with:
+          platform: linux
+
+      - name: Install frontend dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build ACP engine sidecar
+        run: node scripts/build-acp-engine.mjs
+
+      - name: Build Linux bundles
+        working-directory: apps/desktop
+        run: bun run tauri build --bundles appimage,deb --verbose
+
+      - name: Check bundled acp-engine
+        shell: bash
+        run: |
+          set -euo pipefail
+          bundle="$GITHUB_WORKSPACE/target/release/bundle"
+          appimage="$(find "$bundle/appimage" -maxdepth 1 -name '*.AppImage' -print -quit)"
+          deb="$(find "$bundle/deb" -maxdepth 1 -name '*.deb' -print -quit)"
+          test -n "$appimage" && test -n "$deb"
+
+          check_engine() {
+            local label="$1" root="$2"
+            local engine="$root/usr/share/dawnsight/acp-engine"
+            echo "== $label"
+            if [ -e "$root/usr/bin/acp-engine" ]; then
+              echo "::error::$label still ships usr/bin/acp-engine (linuxdeploy will rewrite it)"
+              exit 1
+            fi
+            if [ ! -x "$engine" ]; then
+              echo "::error::$label is missing an executable usr/share/dawnsight/acp-engine"
+              exit 1
+            fi
+            ldd "$engine"
+            local out
+            out="$(timeout 20 "$engine" </dev/null 2>/dev/null || true)"
+            echo "$out" | head -3
+            if ! grep -q '"method":"ready"' <<<"$out"; then
+              echo "::error::$label acp-engine did not report ready"
+              exit 1
+            fi
+          }
+
+          work="$(mktemp -d)"
+          (cd "$work" && "$appimage" --appimage-extract >/dev/null)
+          check_engine "AppImage" "$work/squashfs-root"
+
+          debroot="$(mktemp -d)"
+          dpkg-deb -x "$deb" "$debroot"
+          check_engine "deb" "$debroot"
