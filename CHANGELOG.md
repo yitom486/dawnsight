@@ -6,7 +6,7 @@
 
 - 产品由 Lumina 更名为 **Dawnsight**。从 Lumina 0.4.1 升级时，首次启动会自动把笔记、截图、AI 对话、章节、媒体库索引与各项设置复制到新位置，原数据保留不动；whisper 模型与 yt-dlp 改为移动，退回旧版需重新下载。
 - Windows 安装包会替换已安装的 Lumina：自动更新时也会创建 Dawnsight 的开始菜单与桌面快捷方式，并静默卸载旧程序（不删除用户数据）。
-- 安装包与自动更新改由 [yitom486/dawnsight](https://github.com/yitom486/dawnsight/releases) 发布；旧版本仍能通过原更新地址收到本次更新。
+- 安装包改由 [yitom486/dawnsight](https://github.com/yitom486/dawnsight/releases) 发布。从旧版“关于 → 下载更新”打开的原发布页会提示新的下载地址。
 
 ### 播放
 
@@ -27,7 +27,8 @@
 
 ### 已知限制
 
-- macOS 与 Linux 从 Lumina 升级后，数据会迁移，但界面设置需要重新配置。
+- 本版本暂不提供 Linux 安装包：AppImage 打包时 linuxdeploy 会改写 bun 编译的 acp-engine 并使其失效，修复后随 0.4.3 提供。Linux 用户请继续使用 0.4.1。
+- macOS 从 Lumina 升级后，数据会迁移，但界面设置需要重新配置。
 - 通过 MSI 安装的 Lumina 不会被自动卸载，请在“设置 → 应用”中手动卸载（数据不受影响）。
 
 ## 0.4.1 — 三端发布与在线播放回归修复

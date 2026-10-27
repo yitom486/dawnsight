@@ -9,6 +9,13 @@ on:
         description: "Git tag to build (e.g. v0.2.0)"
         required: true
         default: v0.4.1
+      skip_linux:
+        # Escape hatch for a release whose Linux bundle is known broken (v0.4.2:
+        # linuxdeploy breaks the bun-compiled acp-engine sidecar). Only manual
+        # runs can set it; tag pushes always require all three platforms.
+        description: "Publish without Linux (Windows + macOS only)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -68,13 +75,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - platform: windows
-            runs-on: windows-latest
-          - platform: macos
-            runs-on: macos-latest
-          - platform: linux
-            runs-on: ubuntu-latest
+        include: ${{ fromJSON(inputs.skip_linux && '[{"platform":"windows","runs-on":"windows-latest"},{"platform":"macos","runs-on":"macos-latest"}]' || '[{"platform":"windows","runs-on":"windows-latest"},{"platform":"macos","runs-on":"macos-latest"},{"platform":"linux","runs-on":"ubuntu-latest"}]') }}
 
     steps:
       - uses: actions/checkout@v4
@@ -183,6 +184,7 @@ jobs:
     env:
       RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      SKIP_LINUX: ${{ inputs.skip_linux && 'true' || 'false' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -205,8 +207,15 @@ jobs:
           if [ -n "$CHANGELOG_BODY" ]; then
             BODY="$CHANGELOG_BODY"
           fi
+          PLATFORMS="windows macos linux"
+          if [ "$SKIP_LINUX" = "true" ]; then
+            PLATFORMS="windows macos"
+            BODY="${BODY}
 
-          for platform in windows macos linux; do
+          > 本版本暂不提供 Linux 安装包（AppImage 打包问题修复中），Linux 用户请继续使用上一版本。"
+          fi
+
+          for platform in $PLATFORMS; do
             if [ ! -d "public-assets/lumina-${platform}" ]; then
               echo "::error::Missing ${platform} build artifact"
               exit 1
@@ -227,9 +236,11 @@ jobs:
           require_asset public-assets/lumina-macos '*.dmg'
           require_asset public-assets/lumina-macos '*.app.tar.gz'
           require_asset public-assets/lumina-macos '*.app.tar.gz.sig'
-          require_asset public-assets/lumina-linux '*.AppImage'
-          require_asset public-assets/lumina-linux '*.deb'
-          require_asset public-assets/lumina-linux '*.AppImage.sig'
+          if [ "$SKIP_LINUX" != "true" ]; then
+            require_asset public-assets/lumina-linux '*.AppImage'
+            require_asset public-assets/lumina-linux '*.deb'
+            require_asset public-assets/lumina-linux '*.AppImage.sig'
+          fi
 
           if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
             if [ "$(gh release view "$TAG" --repo "$REPO" --json isDraft --jq '.isDraft')" != "true" ]; then
@@ -260,6 +271,7 @@ jobs:
       contents: write
     env:
       RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+      SKIP_LINUX: ${{ inputs.skip_linux && 'true' || 'false' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -315,7 +327,11 @@ jobs:
             echo "::error::no updater signatures found for ${TAG}"
             exit 1
           fi
-          for platform in windows-x86_64 darwin-aarch64 linux-x86_64; do
+          REQUIRED="windows-x86_64 darwin-aarch64 linux-x86_64"
+          if [ "$SKIP_LINUX" = "true" ]; then
+            REQUIRED="windows-x86_64 darwin-aarch64"
+          fi
+          for platform in $REQUIRED; do
             if ! jq -e --arg p "$platform" '.[$p] | (.signature | length > 0) and (.url | length > 0)' "$PLATFORMS" >/dev/null; then
               echo "::error::missing updater metadata for ${platform}"
               exit 1
