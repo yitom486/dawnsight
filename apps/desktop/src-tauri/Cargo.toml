@@ -1,6 +1,6 @@
 [package]
 name = "dawnsight-app"
-version = "0.4.2"
+version = "0.4.3"
 description = "AI Video Reader desktop app with native libmpv playback"
 authors = ["you"]
 edition = "2021"

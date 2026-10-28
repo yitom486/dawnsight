@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.3 — 修复安装版 AI 不可用，恢复 Linux 安装包
+
+### 修复
+
+- 修复 0.4.2 安装版找不到 acp-engine、AI 对话与章节分段无法启动的问题（开发运行不受影响）。
+- 恢复 Linux 安装包：acp-engine 改放在 `/usr/share/dawnsight/`，AppImage 打包不再破坏它；CI 新增 Linux 打包检查，解包 AppImage 与 deb 确认 acp-engine 能启动。
+
+### 升级
+
+- 应用内没有自动更新，请从 [发布页](https://github.com/yitom486/dawnsight/releases) 下载 0.4.3 安装包覆盖安装，数据不受影响。
+
 ## 0.4.2 — 更名 Dawnsight、升级迁移与界面重做
 
 ### 更名与升级
